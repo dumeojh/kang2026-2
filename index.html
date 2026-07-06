@@ -212,7 +212,7 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 및 시스템 관리)</h2>
 
-            <!-- 시스템 기본 설정 (입학년도/학년 기준점) -->
+            <!-- 시스템 기본 설정 -->
             <div class="system-box">
                 <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
                 <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면, 나머지 학년의
@@ -282,7 +282,6 @@
     </div>
 
     <script>
-        // Supabase 설정
         const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
 
@@ -291,7 +290,6 @@
         let verifiedStudentId = "";
         let verifiedStudentName = "";
 
-        // [화면 전환 기능]
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
             document.getElementById('studentSection').classList.add('hidden');
@@ -329,7 +327,7 @@
                 return;
             }
 
-            // 1. 관리자가 설정한 시스템 기준(입학년도, 학년) 불러오기
+            // 1. 관리자 시스템 기준 불러오기
             const { data: configData, error: configError } = await supabaseClient
                 .from('app_config')
                 .select('*')
@@ -341,26 +339,21 @@
                 return;
             }
 
-            // 입력받은 학번의 첫 번째 자리를 통해 학생의 학년 추출
             const studentGrade = parseInt(sId.charAt(0));
-
             if (isNaN(studentGrade) || studentGrade < 1 || studentGrade > 3) {
                 alert("학번 형식이 올바르지 않습니다. (1, 2, 3학년 중 하나로 시작해야 합니다)");
                 return;
             }
 
-            // 기준 설정을 바탕으로 현재 학생의 입학년도를 자동 계산
-            // 예: 기준 설정이 2026년 1학년일 때, 학번이 2학년(2로 시작)이면 2026 - (2 - 1) = 2025년도로 계산됨
-            const expectedAdmissionYear = configData.admission_year - (studentGrade - configData.target_grade);
+            // 예상 입학년도 계산
+            const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
             const gradeColumn = `grade${studentGrade}_id`;
 
-            // 2. students 테이블에서 계산된 입학년도와 학번, 이름을 교차 검증
+            // 2. 수파베이스의 엄격한 타입 체크 우회를 위해 '이름'으로만 먼저 DB 검색 (오류 방지 핵심 로직)
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
-                .eq('admission_year', expectedAdmissionYear)
-                .eq('name', sName)
-                .eq(gradeColumn, sId);
+                .eq('name', sName);
 
             if (studentError) {
                 console.error("명단 확인 오류:", studentError);
@@ -369,11 +362,30 @@
             }
 
             if (!studentData || studentData.length === 0) {
-                alert(`입력하신 정보(${expectedAdmissionYear}년도 입학, ${studentGrade}학년)와 일치하는 학생 명단이 없습니다. 오타가 없는지 확인해주세요.`);
+                alert(`'${sName}' 학생을 DB에서 찾을 수 없습니다. 이름 오타나 띄어쓰기를 확인해주세요.`);
                 return;
             }
 
-            // 인증 성공 시 변수 저장 및 화면 전환
+            // 3. 자바스크립트에서 유연하게 문자/숫자를 일치시켜 검증 수행
+            const matchedStudent = studentData.find(student =>
+                Number(student.admission_year) === expectedAdmissionYear &&
+                String(student[gradeColumn]) === String(sId)
+            );
+
+            // 4. 불일치할 경우 매우 상세한 디버깅용 에러 메시지 팝업
+            if (!matchedStudent) {
+                let dbInfo = "";
+                studentData.forEach(s => {
+                    // 칼럼 자체가 없으면 '칼럼없음' 출력하여 오타(grade2-id 등) 파악
+                    const dbId = s[gradeColumn] !== undefined ? s[gradeColumn] : "칼럼 없음(수파베이스 칼럼명 확인 요망)";
+                    dbInfo += `\n- DB입학년도: ${s.admission_year}, DB학번(${gradeColumn}): ${dbId}`;
+                });
+
+                alert(`'${sName}' 학생은 명단에 있지만, 학번이나 입학년도 조건이 맞지 않습니다.\n\n[입력된 계산 결과]\n- 예상 입학년도: ${expectedAdmissionYear}\n- 입력 학번: ${sId}\n\n[DB에 저장된 실제 정보]${dbInfo}`);
+                return;
+            }
+
+            // 인증 성공 시 통과
             verifiedStudentId = sId;
             verifiedStudentName = sName;
 
@@ -381,7 +393,6 @@
             document.getElementById('step2Subject').classList.remove('hidden');
             document.getElementById('authSuccessMessage').innerText = `인증 완료: ${sName} 학생, 신청할 과목을 선택해주세요.`;
 
-            // 확인된 학생의 학년에 맞는 과목만 불러오기
             loadSubjectsForStudent(studentGrade);
         }
 
