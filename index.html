@@ -77,6 +77,7 @@
         }
 
         input[type="text"],
+        input[type="number"],
         select {
             width: 100%;
             padding: 12px;
@@ -155,6 +156,14 @@
             margin-bottom: 20px;
         }
 
+        .system-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
         .auth-message {
             text-align: center;
             font-weight: bold;
@@ -201,9 +210,33 @@
         <!-- 관리자: 환경설정 섹션 -->
         <div id="adminSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
-            <h2>환경설정 (과목 관리)</h2>
+            <h2>환경설정 (과목 및 시스템 관리)</h2>
 
-            <!-- 보기 필터 (이 필터의 학년 값이 새 과목 추가 시 자동으로 사용됩니다) -->
+            <!-- 시스템 기본 설정 (입학년도/학년) -->
+            <div class="system-box">
+                <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (학생 인증 기준)</h3>
+                <p style="font-size: 13px; color: #555; margin-bottom: 15px;">학생들이 로그인할 때 기준이 되는 명단(입학년도와 학년)을 설정합니다.
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 14px;">입학년도:</label>
+                        <input type="number" id="sysAdmissionYear" placeholder="예: 2024" style="margin-bottom: 10px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 14px;">대상 학년:</label>
+                        <select id="sysTargetGrade" style="margin-bottom: 10px;">
+                            <option value="1">1학년</option>
+                            <option value="2">2학년</option>
+                            <option value="3">3학년</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-admin"
+                    style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
+                    onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
+            </div>
+
+            <!-- 보기 필터 -->
             <div class="filter-box">
                 <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
                 <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
@@ -216,7 +249,6 @@
             <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
 
             <h3>새 과목 추가</h3>
-            <!-- 실수 방지를 위해 별도의 학년 선택(gradeSelect) 드롭다운을 삭제했습니다. -->
             <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
             <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
 
@@ -269,6 +301,7 @@
             document.getElementById(sectionId).classList.remove('hidden');
 
             if (sectionId === 'adminSection') {
+                loadSystemSettings();
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
                 loadEnrollments();
@@ -296,11 +329,31 @@
                 return;
             }
 
+            // 1. 관리자가 설정한 시스템 설정(입학년도, 대상 학년) 불러오기
+            const { data: configData, error: configError } = await supabaseClient
+                .from('app_config')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (configError || !configData) {
+                alert("시스템 환경설정이 완료되지 않았습니다. 관리자에게 문의하세요.");
+                return;
+            }
+
+            const targetYear = configData.admission_year;
+            const targetGrade = configData.target_grade;
+
+            // 해당 학년에 맞는 학번 칼럼 선택 (예: grade1_id, grade2_id, grade3_id)
+            const gradeColumn = `grade${targetGrade}_id`;
+
+            // 2. students 테이블에서 입학년도, 지정된 학번, 이름 3가지 교차 검증
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
+                .eq('admission_year', targetYear)
                 .eq('name', sName)
-                .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
+                .eq(gradeColumn, sId);
 
             if (studentError) {
                 console.error("명단 확인 오류:", studentError);
@@ -309,7 +362,7 @@
             }
 
             if (!studentData || studentData.length === 0) {
-                alert("입력하신 학번과 이름이 일치하지 않습니다. 오타가 없는지 확인해주세요.");
+                alert(`[${targetYear}년도 입학 ${targetGrade}학년] 명단에 일치하는 정보가 없습니다. 오타가 없는지 확인해주세요.`);
                 return;
             }
 
@@ -320,8 +373,8 @@
             document.getElementById('step2Subject').classList.remove('hidden');
             document.getElementById('authSuccessMessage').innerText = `인증 완료: ${sName} 학생, 신청할 과목을 선택해주세요.`;
 
-            const grade = parseInt(sId.charAt(0));
-            loadSubjectsForStudent(grade);
+            // 환경설정에서 지정된 대상 학년의 과목을 불러옴
+            loadSubjectsForStudent(targetGrade);
         }
 
         async function loadSubjectsForStudent(grade) {
@@ -373,7 +426,42 @@
             }
         }
 
-        // ---------------- [환경설정(과목 관리) 기능] ----------------
+        // ---------------- [환경설정(과목 관리 및 시스템 관리) 기능] ----------------
+
+        async function loadSystemSettings() {
+            const { data, error } = await supabaseClient
+                .from('app_config')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (data) {
+                document.getElementById('sysAdmissionYear').value = data.admission_year;
+                document.getElementById('sysTargetGrade').value = data.target_grade;
+            }
+        }
+
+        async function saveSystemSettings() {
+            const year = document.getElementById('sysAdmissionYear').value;
+            const grade = document.getElementById('sysTargetGrade').value;
+
+            if (!year) {
+                alert("입학년도를 정확히 입력해주세요.");
+                return;
+            }
+
+            // id 1번 레코드를 업데이트하거나 없으면 생성 (upsert)
+            const { error } = await supabaseClient.from('app_config').upsert([
+                { id: 1, admission_year: parseInt(year), target_grade: parseInt(grade) }
+            ]);
+
+            if (error) {
+                alert("설정 저장 중 오류가 발생했습니다: " + error.message);
+                console.error(error);
+            } else {
+                alert("시스템 인증 기준이 성공적으로 저장되었습니다.");
+            }
+        }
 
         async function loadSubjects() {
             const filterGrade = document.getElementById('adminGradeFilter').value;
@@ -444,7 +532,6 @@
         }
 
         async function addSubject() {
-            // 변경된 부분: 보기 필터(adminGradeFilter)의 학년 값을 직접 가져옵니다.
             const grade = document.getElementById('adminGradeFilter').value;
             const subjectName = document.getElementById('subjectInput').value;
 
@@ -459,7 +546,6 @@
 
             if (!error) {
                 document.getElementById('subjectInput').value = '';
-                // 과목 추가 후에도 자동으로 현재 필터링된 학년의 목록을 새로고침하여 보여줍니다.
                 loadSubjects();
             } else {
                 console.error(error);
