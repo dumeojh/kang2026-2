@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안성여고 소인수 강좌 시스템</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -198,17 +197,12 @@
     </div>
 
     <script>
-        // Supabase 설정 (본인 정보로 반드시 변경하세요)
+        // Supabase 설정
         const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
-
-        //https://zfywndoukwuxseloxogj.supabase.co/rest/v1/    /rest/v1 이놈은 삭제
-
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
 
-        //eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw
-
-
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // 식별자 충돌 방지를 위해 supabase -> supabaseClient 로 변경
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // [화면 전환 기능]
         function showSection(sectionId) {
@@ -235,7 +229,7 @@
 
             if (studentId.length === 5) {
                 const grade = parseInt(studentId.charAt(0));
-                const { data, error } = await supabase.from('settings').select('*').eq('grade', grade);
+                const { data, error } = await supabaseClient.from('settings').select('*').eq('grade', grade);
 
                 if (error) return;
                 subjectSelect.innerHTML = '';
@@ -269,7 +263,7 @@
                 return;
             }
 
-            const { error } = await supabase.from('enrollments').insert([
+            const { error } = await supabaseClient.from('enrollments').insert([
                 { student_id: sId, student_name: sName, subject_name: subject }
             ]);
 
@@ -287,7 +281,7 @@
         // ---------------- [환경설정(과목 관리) 기능] ----------------
 
         async function loadSubjects() {
-            const { data, error } = await supabase.from('settings').select('*').order('grade', { ascending: true });
+            const { data, error } = await supabaseClient.from('settings').select('*').order('grade', { ascending: true });
             if (error) return;
 
             const list = document.getElementById('subjectList');
@@ -316,7 +310,7 @@
                 return;
             }
 
-            const { error } = await supabase.from('settings').insert([{ grade: parseInt(grade), subject_name: subjectName }]);
+            const { error } = await supabaseClient.from('settings').insert([{ grade: parseInt(grade), subject_name: subjectName }]);
 
             if (!error) {
                 document.getElementById('subjectInput').value = '';
@@ -326,7 +320,7 @@
 
         async function deleteSubject(id) {
             if (confirm("삭제하시겠습니까?")) {
-                await supabase.from('settings').delete().eq('id', id);
+                await supabaseClient.from('settings').delete().eq('id', id);
                 loadSubjects();
             }
         }
@@ -334,7 +328,7 @@
         async function editSubject(id, oldName) {
             const newName = prompt("새로운 과목 이름을 입력하세요:", oldName);
             if (newName && newName !== oldName) {
-                await supabase.from('settings').update({ subject_name: newName }).eq('id', id);
+                await supabaseClient.from('settings').update({ subject_name: newName }).eq('id', id);
                 loadSubjects();
             }
         }
@@ -342,7 +336,7 @@
         // ---------------- [수강신청 내역 확인 기능] ----------------
 
         async function loadEnrollments() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('enrollments')
                 .select('*')
                 .order('student_id', { ascending: true });
