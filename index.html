@@ -270,7 +270,6 @@
 <body>
 
     <div class="container" id="mainContainer">
-        <!-- 메인 메뉴 -->
         <div id="mainMenu">
             <h1>소인수 강좌 시스템</h1>
             <p style="text-align: center; margin-bottom: 30px;">원하시는 메뉴를 선택해주세요.</p>
@@ -278,11 +277,9 @@
             <button class="btn-status" onclick="showSection('classStatusSection')">📊 반별 신청 현황 (미신청자 확인)</button>
             <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (전체 명단)</button>
             <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 과목 환경설정 (관리자)</button>
-            <!-- 맨 마지막에 통계 버튼 추가 -->
             <button class="btn-stat" onclick="location.href='statistics.html'">📈 통계 현황 (과목별 인원)</button>
         </div>
 
-        <!-- 학생 섹션 -->
         <div id="studentSection" class="hidden">
             <button class="btn-back" onclick="resetStudentSection(); showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>소인수 과목 신청</h2>
@@ -314,7 +311,6 @@
             </div>
         </div>
 
-        <!-- 반별 신청 현황 (미신청자 확인) 섹션 -->
         <div id="classStatusSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
@@ -349,6 +345,7 @@
             <table id="statusTable">
                 <thead>
                     <tr>
+                        <th>연번</th>
                         <th>학번</th>
                         <th>이름</th>
                         <th>신청 과목</th>
@@ -356,13 +353,12 @@
                 </thead>
                 <tbody id="statusTableBody">
                     <tr class="empty-row">
-                        <td colspan="3">조회할 학년과 반을 선택해주세요.</td>
+                        <td colspan="4">조회할 학년과 반을 선택해주세요.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- 관리자: 환경설정 섹션 -->
         <div id="adminSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 및 시스템 관리)</h2>
@@ -416,7 +412,6 @@
             <div id="subjectList"></div>
         </div>
 
-        <!-- 관리자: 신청 내역 확인 (전체 명단) 섹션 -->
         <div id="enrollmentListSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📋 수강 신청 내역 (전체 명단)</h2>
@@ -449,6 +444,7 @@
             <table id="enrollmentTable">
                 <thead>
                     <tr>
+                        <th>연번</th>
                         <th>학번</th>
                         <th>이름</th>
                         <th>신청 과목</th>
@@ -456,13 +452,12 @@
                 </thead>
                 <tbody id="enrollmentTableBody">
                     <tr class="empty-row">
-                        <td colspan="3">조회할 학년과 반을 선택해주세요.</td>
+                        <td colspan="4">조회할 학년과 반을 선택해주세요.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- 통계 현황 섹션 (새로 추가) -->
         <div id="statisticsSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📈 과목별 신청 통계 현황</h2>
@@ -539,12 +534,12 @@
             } else if (sectionId === 'enrollmentListSection') {
                 document.getElementById('searchGrade').value = 'none';
                 document.getElementById('searchClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
-                document.getElementById('enrollmentTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
+                document.getElementById('enrollmentTableBody').innerHTML = '<tr class="empty-row"><td colspan="4">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 loadEnrollments();
             } else if (sectionId === 'classStatusSection') {
                 document.getElementById('statusGrade').value = 'none';
                 document.getElementById('statusClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
-                document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요.</td></tr>';
+                document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="4">조회할 학년과 반을 선택해주세요.</td></tr>';
             } else if (sectionId === 'statisticsSection') {
                 document.getElementById('statGradeFilter').value = 'all';
                 generateStatistics();
@@ -636,7 +631,7 @@
             const grade = document.getElementById('statusGrade').value;
             const classSelect = document.getElementById('statusClass');
             classSelect.innerHTML = '<option value="none" disabled selected hidden>(로딩 중...)</option>';
-            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
+            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="4">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
 
             if (grade === 'none') return;
 
@@ -688,7 +683,7 @@
             tbody.innerHTML = '';
 
             if (grade === 'none' || cls === 'none') {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">조회할 학년과 반을 선택해주세요.</td></tr>';
                 return;
             }
 
@@ -696,9 +691,11 @@
             classStudents.sort((a, b) => String(a[gradeCol]).localeCompare(String(b[gradeCol])));
 
             if (classStudents.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">해당 반에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">해당 반에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
                 return;
             }
+
+            let serialNum = 1;
 
             classStudents.forEach(student => {
                 const sId = String(student[gradeCol]);
@@ -708,12 +705,14 @@
                 const tr = document.createElement('tr');
                 if (enrollment) {
                     tr.innerHTML = `
+                        <td>${serialNum++}</td>
                         <td>${sId}</td>
                         <td>${sName}</td>
                         <td style="color: #1565C0; font-weight: bold;">${enrollment.subject_name}</td>
                     `;
                 } else {
                     tr.innerHTML = `
+                        <td>${serialNum++}</td>
                         <td>${sId}</td>
                         <td>${sName}</td>
                         <td style="color: #f44336; font-weight: bold;">미선택</td>
@@ -1103,7 +1102,7 @@
             tbody.innerHTML = '';
 
             if (gradeFilter === 'none' || classFilter === 'none') {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 return;
             }
 
@@ -1122,13 +1121,16 @@
             });
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">해당 조건에 신청한 학생이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">해당 조건에 신청한 학생이 없습니다.</td></tr>';
                 return;
             }
+
+            let serialNum = 1;
 
             filteredData.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                <td>${serialNum++}</td>
                 <td>${item.student_id}</td>
                 <td>${item.student_name}</td>
                 <td>${item.subject_name}</td>
