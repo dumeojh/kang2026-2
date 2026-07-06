@@ -7,6 +7,8 @@
     <title>안성여고 소인수 강좌 시스템</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- 드래그 앤 드롭 순서 변경을 위한 SortableJS 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <style>
         body {
@@ -63,6 +65,10 @@
             background-color: #217346;
         }
 
+        .btn-save-order {
+            background-color: #FF9800;
+        }
+
         /* 신청 내역 버튼 색상 */
         .btn-back {
             background-color: #e0e0e0;
@@ -91,6 +97,14 @@
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #eee;
+            background-color: #fff;
+            cursor: grab;
+            /* 마우스 오버 시 잡는 커서 표시 */
+        }
+
+        .subject-item:active {
+            cursor: grabbing;
+            /* 드래그 중일 때 커서 */
         }
 
         .subject-item button {
@@ -106,6 +120,12 @@
 
         .btn-delete {
             background-color: #f44336;
+        }
+
+        /* 드래그할 때 생기는 배경색 */
+        .sortable-ghost {
+            background-color: #e3f2fd;
+            opacity: 0.8;
         }
 
         /* 테이블 (표) 스타일 추가 */
@@ -131,6 +151,14 @@
         .empty-row td {
             color: #888;
             padding: 20px;
+        }
+
+        /* 필터 박스 스타일 */
+        .filter-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -164,6 +192,19 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 관리)</h2>
 
+            <!-- 관리자용 학년 필터링 박스 추가 -->
+            <div class="filter-box">
+                <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
+                <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
+                    <option value="1">1학년</option>
+                    <option value="2">2학년</option>
+                    <option value="3">3학년</option>
+                </select>
+            </div>
+
+            <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+
+            <h3>새 과목 추가</h3>
             <select id="gradeSelect">
                 <option value="1">1학년</option>
                 <option value="2">2학년</option>
@@ -172,7 +213,11 @@
             <input type="text" id="subjectInput" placeholder="추가할 과목 이름">
             <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
 
-            <h3 style="margin-top: 30px;">등록된 과목 목록</h3>
+            <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
+            <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서 이동한 후 반드시 저장
+                버튼을 누르세요.</p>
+            <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
+
             <div id="subjectList"></div>
         </div>
 
@@ -201,8 +246,8 @@
         const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
 
-        // 식별자 충돌 방지를 위해 supabase -> supabaseClient 로 변경
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let sortableInstance = null; // Sortable 객체를 저장할 변수
 
         // [화면 전환 기능]
         function showSection(sectionId) {
@@ -213,7 +258,6 @@
 
             document.getElementById(sectionId).classList.remove('hidden');
 
-            // 해당 화면에 들어갈 때 자동으로 데이터 불러오기
             if (sectionId === 'adminSection') {
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
@@ -229,9 +273,19 @@
 
             if (studentId.length === 5) {
                 const grade = parseInt(studentId.charAt(0));
-                const { data, error } = await supabaseClient.from('settings').select('*').eq('grade', grade);
 
-                if (error) return;
+                // display_order 순서대로 학생들에게 보여지도록 정렬 추가
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('*')
+                    .eq('grade', grade)
+                    .order('display_order', { ascending: true });
+
+                if (error) {
+                    console.error("오류:", error);
+                    return;
+                }
+
                 subjectSelect.innerHTML = '';
 
                 if (data.length === 0) {
@@ -281,8 +335,19 @@
         // ---------------- [환경설정(과목 관리) 기능] ----------------
 
         async function loadSubjects() {
-            const { data, error } = await supabaseClient.from('settings').select('*').order('grade', { ascending: true });
-            if (error) return;
+            const filterGrade = document.getElementById('adminGradeFilter').value;
+
+            // 필터링된 학년만 가져오고, 저장된 순서(display_order)대로 정렬
+            const { data, error } = await supabaseClient
+                .from('settings')
+                .select('*')
+                .eq('grade', parseInt(filterGrade))
+                .order('display_order', { ascending: true });
+
+            if (error) {
+                console.error("데이터 로드 오류:", error);
+                return;
+            }
 
             const list = document.getElementById('subjectList');
             list.innerHTML = '';
@@ -290,6 +355,7 @@
             data.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'subject-item';
+                div.setAttribute('data-id', item.id); // 순서 저장을 위한 고유 ID 부여
                 div.innerHTML = `
                 <span><b>${item.grade}학년</b> - ${item.subject_name}</span>
                 <div>
@@ -299,6 +365,47 @@
             `;
                 list.appendChild(div);
             });
+
+            // 기존에 연결된 Sortable 객체가 있다면 초기화
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            // 드래그 앤 드롭 라이브러리 활성화
+            sortableInstance = new Sortable(list, {
+                animation: 150,
+                ghostClass: 'sortable-ghost' // 드래그 중인 아이템 스타일
+            });
+        }
+
+        async function saveOrder() {
+            // 화면에 보이는 과목 요소들을 모두 가져옴
+            const items = document.querySelectorAll('#subjectList .subject-item');
+            const updates = [];
+
+            // 위에서부터 순서대로 인덱스 번호(0, 1, 2...)를 매겨 업데이트 배열 생성
+            items.forEach((item, index) => {
+                const id = item.getAttribute('data-id');
+                updates.push({ id: parseInt(id), display_order: index });
+            });
+
+            if (updates.length === 0) {
+                alert("저장할 과목이 없습니다.");
+                return;
+            }
+
+            try {
+                // 여러 개의 과목 순서를 동시에 데이터베이스에 업데이트
+                await Promise.all(updates.map(u =>
+                    supabaseClient.from('settings').update({ display_order: u.display_order }).eq('id', u.id)
+                ));
+
+                alert("과목 순서가 성공적으로 저장되었습니다!");
+                loadSubjects(); // 저장 후 목록 새로고침
+            } catch (err) {
+                console.error("순서 저장 중 오류:", err);
+                alert("순서 저장 중 오류가 발생했습니다.");
+            }
         }
 
         async function addSubject() {
@@ -310,11 +417,19 @@
                 return;
             }
 
-            const { error } = await supabaseClient.from('settings').insert([{ grade: parseInt(grade), subject_name: subjectName }]);
+            // 새 과목 추가 시 순서를 맨 뒤로 보내기 위해 display_order를 임의로 큰 숫자(999)로 설정
+            const { error } = await supabaseClient.from('settings').insert([
+                { grade: parseInt(grade), subject_name: subjectName, display_order: 999 }
+            ]);
 
             if (!error) {
                 document.getElementById('subjectInput').value = '';
+                // 추가한 후, 관리자가 보고 있는 학년 탭을 방금 추가한 학년으로 자동 전환
+                document.getElementById('adminGradeFilter').value = grade;
                 loadSubjects();
+            } else {
+                console.error(error);
+                alert("과목 추가 실패 (데이터베이스 설정에 display_order 컬럼을 추가했는지 확인해주세요.)");
             }
         }
 
