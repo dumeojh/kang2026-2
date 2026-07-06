@@ -485,6 +485,15 @@
             추가/제거).
             2개 이상 선택하면 화면 아래 <b>"🔗 묶기"</b> 버튼이 나타나요 (또는 Ctrl+G). 묶음을 풀고 싶으면 묶음 박스 오른쪽 위의 <b>✕</b> 버튼을 누르세요.
             묶음 안의 과목 하나만 빼고 싶다면 그 과목에 마우스를 올리면 작은 ✕가 나타납니다.
+            <br>💡 각 박스 위의 <b>색 점</b>은 그 과목을 신청한 <b>학년</b>을 나타냅니다. 묶음을 만든 뒤 입력칸에 <b>새 최종 과목명</b>을 입력하고 <b>저장</b>을
+            누르면, 해당 과목(들)을 신청한 <b>모든 학생</b>의 최종선택과목이 일괄 저장됩니다.
+        </div>
+
+        <div class="grade-legend" id="gradeLegend">
+            <span class="legend-title">🏷️ 학년 구분:</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#2196F3;"></span>1학년</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#4CAF50;"></span>2학년</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#FF9800;"></span>3학년</span>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -529,6 +538,9 @@
         const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ---- 학년별 색상 ----
+        const GRADE_COLORS = { '1': '#2196F3', '2': '#4CAF50', '3': '#FF9800' };
 
         // ---- 상태 ----
         let rootNodes = [];      // 캔버스 최상위 노드들 (type: 'subject' | 'group')
@@ -577,9 +589,12 @@
                 if (gradeFilter !== 'all' && grade !== gradeFilter) return;
 
                 if (!stats[subject]) {
-                    stats[subject] = { total: 0, details: {} };
+                    stats[subject] = { total: 0, details: {}, grades: new Set(), finalSubject: item.final_subject || null };
+                } else if (!stats[subject].finalSubject && item.final_subject) {
+                    stats[subject].finalSubject = item.final_subject;
                 }
                 stats[subject].total += 1;
+                stats[subject].grades.add(grade);
 
                 const classKey = `${grade}학년 ${cls}반`;
                 if (!stats[subject].details[classKey]) stats[subject].details[classKey] = 0;
@@ -615,7 +630,9 @@
                 freshMap[name] = {
                     subject: name,
                     count: stats[name].total,
-                    details: stats[name].details
+                    details: stats[name].details,
+                    grades: Array.from(stats[name].grades).sort(),
+                    finalSubject: stats[name].finalSubject || ''
                 };
             });
 
@@ -730,15 +747,39 @@
             el.dataset.id = node.id;
 
             if (node.type === 'subject') {
+                const grades = node.grades || [];
+                const badges = grades.map(g => `<div class="grade-dot" style="background:${GRADE_COLORS[g] || '#999'};" title="${g}학년"></div>`).join('');
+                const borderColor = grades.length === 1 ? (GRADE_COLORS[grades[0]] || '#bbb') : '#bbb';
+
                 el.innerHTML = `
-                    <div class="subject-box" title="${escapeHtml(detailString(node.details))}">
+                    <div class="grade-badges">${badges}</div>
+                    <div class="subject-box" style="border-color:${borderColor};" title="${escapeHtml(detailString(node.details))}">
                         <div class="s-name">${escapeHtml(node.subject)}</div>
                         <div class="s-count">${node.count} 명</div>
+                        <div class="final-row">
+                            <input type="text" id="final_${node.id}" value="${escapeHtml(node.finalSubject || '')}" placeholder="최종 과목명">
+                            <button type="button" class="final-save-btn">저장</button>
+                        </div>
                     </div>
                 `;
+                const saveBtn = el.querySelector('.final-save-btn');
+                saveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    saveFinalSubject([node.subject], node.id);
+                });
+                const finalInput = el.querySelector('.final-row input');
+                finalInput.addEventListener('click', (e) => e.stopPropagation());
                 attachDrag(el, node);
             } else {
                 const total = sumGroup(node);
+                const groupGrades = collectGrades(node);
+                const badges = groupGrades.map(g => `<div class="grade-dot" style="background:${GRADE_COLORS[g] || '#999'};" title="${g}학년"></div>`).join('');
+
+                const badgeWrap = document.createElement('div');
+                badgeWrap.className = 'grade-badges';
+                badgeWrap.innerHTML = badges;
+                el.appendChild(badgeWrap);
+
                 const box = document.createElement('div');
                 box.className = 'group-box';
 
@@ -760,8 +801,24 @@
                     childrenWrap.appendChild(createChildChip(node, child));
                 });
 
+                const groupSubjectNames = collectSubjectNames(node);
+                const gfs = groupFinalSubject(node);
+                const finalRow = document.createElement('div');
+                finalRow.className = 'final-row group-final-row';
+                finalRow.innerHTML = `
+                    <input type="text" id="final_${node.id}" value="${escapeHtml(gfs)}" placeholder="새 최종 과목명 입력 (예: 문학과매체 합반)">
+                    <button type="button" class="final-save-btn">저장</button>
+                `;
+                const groupSaveBtn = finalRow.querySelector('.final-save-btn');
+                groupSaveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    saveFinalSubject(groupSubjectNames, node.id);
+                });
+                finalRow.querySelector('input').addEventListener('click', (e) => e.stopPropagation());
+
                 box.appendChild(header);
                 box.appendChild(childrenWrap);
+                box.appendChild(finalRow);
                 el.appendChild(box);
 
                 attachDrag(el, node, header);
@@ -797,6 +854,69 @@
             return node.children.reduce((s, c) => s + sumGroup(c), 0);
         }
 
+        // 노드(과목 또는 묶음)에 포함된 모든 학년 목록 수집
+        function collectGrades(node) {
+            const set = new Set();
+            (function walk(n) {
+                if (n.type === 'subject') {
+                    (n.grades || []).forEach(g => set.add(g));
+                } else {
+                    n.children.forEach(walk);
+                }
+            })(node);
+            return Array.from(set).sort();
+        }
+
+        // 묶음(또는 단일 과목) 안에 포함된 원본 과목명 전체 수집
+        function collectSubjectNames(node) {
+            const names = [];
+            (function walk(n) {
+                if (n.type === 'subject') names.push(n.subject);
+                else n.children.forEach(walk);
+            })(node);
+            return names;
+        }
+
+        // 묶음 안의 과목들이 이미 동일한 최종선택과목으로 저장되어 있으면 그 값을 반환
+        function groupFinalSubject(node) {
+            const values = [];
+            (function walk(n) {
+                if (n.type === 'subject') values.push(n.finalSubject || '');
+                else n.children.forEach(walk);
+            })(node);
+            const nonEmpty = values.filter(v => v !== '');
+            if (nonEmpty.length === 0) return '';
+            return nonEmpty.every(v => v === nonEmpty[0]) ? nonEmpty[0] : '';
+        }
+
+        // ---------------- 최종선택과목 저장 (수파베이스 enrollments.final_subject) ----------------
+        async function saveFinalSubject(subjectNames, nodeId) {
+            const input = document.getElementById(`final_${nodeId}`);
+            if (!input) return;
+            const inputVal = input.value.trim();
+            const displayVal = inputVal === '' ? '(비어있음)' : inputVal;
+            const listStr = subjectNames.join(', ');
+
+            if (!confirm(`[${listStr}] 과목을 신청한 모든 학생(전체 학년 포함)의 최종선택과목을\n[ ${displayVal} ] (으)로 일괄 저장하시겠습니까?`)) {
+                return;
+            }
+
+            const dbValue = inputVal === '' ? null : inputVal;
+
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .update({ final_subject: dbValue })
+                .in('subject_name', subjectNames);
+
+            if (error) {
+                console.error(error);
+                alert("저장 중 오류가 발생했습니다: " + error.message);
+            } else {
+                alert("✅ 최종선택과목이 성공적으로 저장되었습니다.");
+                generateStatistics();
+            }
+        }
+
         function detailString(details) {
             if (!details) return '';
             return Object.entries(details).map(([k, v]) => `${k}(${v}명)`).sort().join(' / ');
@@ -816,7 +936,7 @@
         }
 
         function onNodeMouseDown(e, node) {
-            if (e.target.closest('.child-remove-btn') || e.target.closest('.group-ungroup-btn')) return;
+            if (e.target.closest('.child-remove-btn') || e.target.closest('.group-ungroup-btn') || e.target.closest('.final-row')) return;
             // 그룹인 경우 헤더에서만 드래그 시작 (자식 영역 클릭은 드래그 방지)
             if (node.type === 'group' && !e.target.closest('.group-header')) {
                 // 자식 클릭 시에는 선택만 처리하지 않음(그룹 자체 선택으로 처리)
