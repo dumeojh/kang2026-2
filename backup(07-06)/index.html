@@ -314,28 +314,46 @@
 
 <body>
 
-    <div class="container" id="lockScreen">
-        <h1>🔒 교사용 관리 시스템</h1>
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">이 화면은 교사 전용입니다. 비밀번호를 입력해주세요.</p>
-        <input type="password" id="teacherPin" placeholder="비밀번호" style="text-align:center; letter-spacing: 3px;"
-            onkeydown="if(event.key === 'Enter') checkTeacherPin();">
-        <button class="btn-auth" onclick="checkTeacherPin()">입장하기</button>
-        <p style="text-align: center; font-size: 13px;">
-            <a href="student.html">👨‍🎓 학생이신가요? 학생용 신청 페이지로 이동</a>
-        </p>
-    </div>
-
-    <div class="container hidden" id="mainContainer">
+    <div class="container" id="mainContainer">
         <div id="mainMenu">
-            <h1>🏫 소인수 강좌 관리 시스템</h1>
-            <p style="text-align: center; margin-bottom: 10px; color: #666;">교사용 관리 메뉴입니다.</p>
-            <p style="text-align: center; margin-bottom: 30px; font-size: 13px;">
-                <a href="student.html" target="_blank">👨‍🎓 학생용 신청 페이지 바로가기 →</a>
-            </p>
+            <h1>소인수 강좌 시스템</h1>
+            <p style="text-align: center; margin-bottom: 30px;">원하시는 메뉴를 선택해주세요.</p>
+            <button class="btn-student" onclick="showSection('studentSection')">👨‍🎓 학생 소인수 과목 선택</button>
             <button class="btn-status" onclick="showSection('classStatusSection')">📊 반별 신청 현황 (미신청자 확인)</button>
             <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (전체 명단)</button>
             <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 과목 환경설정 (관리자)</button>
             <button class="btn-stat" onclick="location.href='statistics.html'">📈 통계 현황 (과목별 인원)</button>
+        </div>
+
+        <div id="studentSection" class="hidden">
+            <button class="btn-back" onclick="resetStudentSection(); showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>소인수 과목 신청</h2>
+
+            <div id="step1Auth">
+                <p style="text-align: center; color: #666; margin-bottom: 15px;">본인의 학번과 이름을 먼저 입력하여 인증해주세요.</p>
+
+                <div class="input-group">
+                    <label for="studentId">학번</label>
+                    <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)">
+                </div>
+                <div class="input-group">
+                    <label for="studentName">이름</label>
+                    <input type="text" id="studentName" placeholder="이름">
+                </div>
+
+                <button class="btn-auth" onclick="verifyStudent()">🔍 학생 확인하기</button>
+            </div>
+
+            <div id="step2Subject" class="hidden">
+                <div id="authSuccessMessage" class="auth-message"></div>
+
+                <div class="input-group">
+                    <label for="subjectSelect">과목</label>
+                    <select id="subjectSelect"></select>
+                </div>
+
+                <button class="btn-student" id="btnSubmitApp" onclick="submitApplication()">✅ 최종 신청하기</button>
+            </div>
         </div>
 
         <div id="classStatusSection" class="hidden">
@@ -487,6 +505,44 @@
             </table>
         </div>
 
+        <div id="statisticsSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>📈 과목별 신청 통계 현황 (최종결정)</h2>
+            <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">인원수를
+                확인하고 <strong>최종결정 과목명</strong>(예: 화학1/물리1 합반, 폐강 등)을 입력 후 저장하세요.</p>
+
+            <div class="filter-box search-box" style="margin-bottom: 15px;">
+                <label style="font-weight: bold; font-size: 14px;">학년 필터 (무학년제 파악 시 전체 조회 권장):</label>
+                <select id="statGradeFilter" onchange="generateStatistics()"
+                    style="margin-bottom: 0; margin-top: 5px; width: 100%;">
+                    <option value="all">전체 학년 모두 보기</option>
+                    <option value="1">1학년만 보기</option>
+                    <option value="2">2학년만 보기</option>
+                    <option value="3">3학년만 보기</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadStatExcel()">📥 엑셀 다운로드</button>
+                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 통계 인쇄하기</button>
+            </div>
+
+            <table id="statisticsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">과목명</th>
+                        <th style="width: 15%;">총 신청 인원</th>
+                        <th style="width: 35%;">학년/반별 세부 인원</th>
+                        <th style="width: 25%;">최종결정 (일괄저장)</th>
+                    </tr>
+                </thead>
+                <tbody id="statisticsTableBody">
+                    <tr>
+                        <td colspan="4">데이터를 불러오는 중입니다...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -495,30 +551,9 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let sortableInstance = null;
-
-        // ---------------- [교사용 PIN 잠금] ----------------
-        // ⚠️ 이 PIN은 학생의 우연한 접근을 막기 위한 간단한 장치이며, 강력한 보안은 아닙니다.
-        const TEACHER_PIN = "0000"; // 필요 시 이 값을 원하는 비밀번호로 변경하세요.
-
-        function checkTeacherPin() {
-            const val = document.getElementById('teacherPin').value;
-            if (val === TEACHER_PIN) {
-                sessionStorage.setItem('teacherAuthed', 'true');
-                unlockTeacherScreen();
-            } else {
-                alert("비밀번호가 올바르지 않습니다.");
-                document.getElementById('teacherPin').value = '';
-            }
-        }
-
-        function unlockTeacherScreen() {
-            document.getElementById('lockScreen').classList.add('hidden');
-            document.getElementById('mainContainer').classList.remove('hidden');
-        }
-
-        if (sessionStorage.getItem('teacherAuthed') === 'true') {
-            unlockTeacherScreen();
-        }
+        let verifiedStudentId = "";
+        let verifiedStudentName = "";
+        let isUpdating = false;
 
         let allEnrollments = [];
         let currentStatusStudents = [];
@@ -526,13 +561,15 @@
 
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('studentSection').classList.add('hidden');
             document.getElementById('adminSection').classList.add('hidden');
             document.getElementById('enrollmentListSection').classList.add('hidden');
             document.getElementById('classStatusSection').classList.add('hidden');
+            document.getElementById('statisticsSection').classList.add('hidden');
 
             document.getElementById(sectionId).classList.remove('hidden');
 
-            if (sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection') {
+            if (sectionId === 'statisticsSection' || sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection') {
                 document.getElementById('mainContainer').classList.add('wide');
             } else {
                 document.getElementById('mainContainer').classList.remove('wide');
@@ -550,7 +587,118 @@
                 document.getElementById('statusGrade').value = 'none';
                 document.getElementById('statusClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
                 document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
+            } else if (sectionId === 'statisticsSection') {
+                document.getElementById('statGradeFilter').value = 'all';
+                generateStatistics();
             }
+        }
+
+        // ---------------- [통계 현황 (과목별 인원) 및 최종선택 기능] ----------------
+
+        async function generateStatistics() {
+            const tbody = document.getElementById('statisticsTableBody');
+            tbody.innerHTML = '<tr><td colspan="4">데이터 분석 중...</td></tr>';
+
+            const gradeFilter = document.getElementById('statGradeFilter').value;
+
+            const { data, error } = await supabaseClient.from('enrollments').select('*');
+            if (error) {
+                alert("데이터를 불러오는데 실패했습니다.");
+                return;
+            }
+
+            const stats = {};
+
+            data.forEach(item => {
+                const sId = String(item.student_id);
+                if (sId.length !== 5) return;
+
+                const grade = sId.charAt(0);
+                const cls = parseInt(sId.substring(1, 3), 10);
+                const subject = item.subject_name;
+
+                if (gradeFilter !== 'all' && grade !== gradeFilter) return;
+
+                if (!stats[subject]) {
+                    // DB에서 불러온 최종 과목명이 있으면 저장
+                    stats[subject] = { total: 0, details: {}, final_subject: item.final_subject || "" };
+                } else if (!stats[subject].final_subject && item.final_subject) {
+                    stats[subject].final_subject = item.final_subject;
+                }
+
+                stats[subject].total += 1;
+
+                const classKey = `${grade}학년 ${cls}반`;
+                if (!stats[subject].details[classKey]) {
+                    stats[subject].details[classKey] = 0;
+                }
+                stats[subject].details[classKey] += 1;
+            });
+
+            tbody.innerHTML = '';
+            const subjectNames = Object.keys(stats).sort();
+
+            if (subjectNames.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">신청 데이터가 없습니다.</td></tr>';
+                return;
+            }
+
+            subjectNames.forEach((sub, index) => {
+                const tr = document.createElement('tr');
+                const total = stats[sub].total;
+                const finalSubValue = stats[sub].final_subject;
+
+                const detailsArr = [];
+                for (const [clsName, count] of Object.entries(stats[sub].details)) {
+                    detailsArr.push(`${clsName}(${count}명)`);
+                }
+                detailsArr.sort();
+                const detailsStr = detailsArr.join(' / ');
+
+                tr.innerHTML = `
+                    <td style="font-weight: bold; color: #333;">${sub}</td>
+                    <td class="stat-total">${total} 명</td>
+                    <td class="stat-class-detail">${detailsStr}</td>
+                    <td>
+                        <div class="final-subject-input">
+                            <input type="text" id="final_input_${index}" value="${finalSubValue}" placeholder="예: 폐강, 합반 등">
+                            <button class="btn-admin" onclick="updateFinalSubject('${sub}', ${index})">저장</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 수파베이스에 최종선택 과목 일괄 업데이트
+        async function updateFinalSubject(originalSubject, index) {
+            const inputVal = document.getElementById(`final_input_${index}`).value.trim();
+            const displayVal = inputVal === "" ? "(비어있음)" : inputVal;
+
+            if (!confirm(`[${originalSubject}] 과목을 신청한 모든 학생의 최종결정을\n[ ${displayVal} ] (으)로 일괄 저장하시겠습니까?`)) {
+                return;
+            }
+
+            const dbValue = inputVal === "" ? null : inputVal;
+
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .update({ final_subject: dbValue })
+                .eq('subject_name', originalSubject);
+
+            if (error) {
+                console.error(error);
+                alert("저장 중 오류가 발생했습니다: " + error.message);
+            } else {
+                alert("✅ 성공적으로 일괄 저장되었습니다.");
+                generateStatistics(); // 데이터 갱신
+            }
+        }
+
+        function downloadStatExcel() {
+            const table = document.getElementById('statisticsTable');
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "통계현황" });
+            XLSX.writeFile(workbook, '소인수강좌_통계현황.xlsx');
         }
 
         // ---------------- [반별 신청 현황 (미신청자 확인) 기능] ----------------
@@ -664,6 +812,178 @@
 
             const workbook = XLSX.utils.table_to_book(table, { sheet: "반별_신청현황" });
             XLSX.writeFile(workbook, '소인수강좌_반별현황.xlsx');
+        }
+
+        // ---------------- [학생 기능] ----------------
+
+        function resetStudentSection() {
+            document.getElementById('step1Auth').classList.remove('hidden');
+            document.getElementById('step2Subject').classList.add('hidden');
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('subjectSelect').innerHTML = '';
+            document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기';
+            verifiedStudentId = "";
+            verifiedStudentName = "";
+            isUpdating = false;
+        }
+
+        async function verifyStudent() {
+            const sId = document.getElementById('studentId').value.trim();
+            const sName = document.getElementById('studentName').value.trim();
+
+            if (sId.length !== 5 || !sName) {
+                alert("학번 5자리와 이름을 정확히 입력해주세요.");
+                return;
+            }
+
+            const { data: configData, error: configError } = await supabaseClient
+                .from('app_config')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (configError || !configData) {
+                alert("시스템 환경설정이 완료되지 않았습니다. 관리자 메뉴에서 [시스템 설정 저장하기]를 먼저 눌러주세요.");
+                return;
+            }
+
+            const studentGrade = parseInt(sId.charAt(0));
+            if (isNaN(studentGrade) || studentGrade < 1 || studentGrade > 3) {
+                alert("학번 형식이 올바르지 않습니다. (1, 2, 3학년 중 하나로 시작해야 합니다)");
+                return;
+            }
+
+            const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
+
+            const { data: studentData, error: studentError } = await supabaseClient
+                .from('students')
+                .select('*')
+                .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
+
+            if (studentError) {
+                console.error("DB 조회 오류:", studentError);
+                alert("데이터베이스 조회 중 오류가 발생했습니다: " + studentError.message);
+                return;
+            }
+
+            if (!studentData || studentData.length === 0) {
+                const { data: nameData } = await supabaseClient.from('students').select('*').eq('name', sName);
+                if (nameData && nameData.length > 0) {
+                    alert(`'${sName}' 학생은 명단에 존재하지만, 입력하신 학번(${sId})이 DB에 등록된 정보와 다릅니다. 확인해주세요.`);
+                } else {
+                    alert(`입력하신 학번(${sId})과 이름('${sName}') 모두 DB에서 찾을 수 없습니다.`);
+                }
+                return;
+            }
+
+            const inputNameClean = sName.replace(/\s+/g, '');
+            const matchedStudent = studentData.find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
+
+            if (!matchedStudent) {
+                alert(`입력하신 학번(${sId})은 확인되나, 입력하신 이름('${sName}')과 DB에 등록된 이름이 다릅니다.`);
+                return;
+            }
+
+            if (matchedStudent.admission_year && Number(matchedStudent.admission_year) !== expectedAdmissionYear) {
+                alert(`[입학년도 불일치]\n시스템상 예상 입학년도는 ${expectedAdmissionYear}년이지만, DB에는 ${matchedStudent.admission_year}년으로 등록되어 있습니다. DB 데이터를 확인해주세요.`);
+                return;
+            }
+
+            verifiedStudentId = sId;
+            verifiedStudentName = matchedStudent.name;
+
+            const { data: enrollData } = await supabaseClient
+                .from('enrollments')
+                .select('*')
+                .eq('student_id', sId);
+
+            if (enrollData && enrollData.length > 0) {
+                const existingSubject = enrollData[0].subject_name;
+                const wantUpdate = confirm(`이미 [ ${existingSubject} ] 과목을 신청하셨습니다.\n신청 내역을 수정하시겠습니까?`);
+
+                if (!wantUpdate) {
+                    resetStudentSection();
+                    return;
+                }
+
+                isUpdating = true;
+                document.getElementById('btnSubmitApp').innerText = '✅ 신청 수정하기';
+                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생 (기존 신청: ${existingSubject})`;
+            } else {
+                isUpdating = false;
+                document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기';
+                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
+            }
+
+            document.getElementById('step1Auth').classList.add('hidden');
+            document.getElementById('step2Subject').classList.remove('hidden');
+
+            loadSubjectsForStudent(studentGrade);
+        }
+
+        async function loadSubjectsForStudent(grade) {
+            const subjectSelect = document.getElementById('subjectSelect');
+
+            const { data, error } = await supabaseClient
+                .from('settings')
+                .select('*')
+                .eq('grade', grade)
+                .order('display_order', { ascending: true });
+
+            if (error) {
+                console.error("오류:", error);
+                return;
+            }
+
+            subjectSelect.innerHTML = '';
+
+            if (data.length === 0) {
+                subjectSelect.innerHTML = '<option value="">등록된 과목이 없습니다.</option>';
+            } else {
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.subject_name;
+                    option.innerText = item.subject_name;
+                    subjectSelect.appendChild(option);
+                });
+            }
+        }
+
+        async function submitApplication() {
+            const subject = document.getElementById('subjectSelect').value;
+
+            if (!subject || subject === "등록된 과목이 없습니다.") {
+                alert("신청할 과목을 올바르게 선택해주세요.");
+                return;
+            }
+
+            if (isUpdating) {
+                const { error } = await supabaseClient
+                    .from('enrollments')
+                    .update({ subject_name: subject, student_name: verifiedStudentName })
+                    .eq('student_id', verifiedStudentId);
+
+                if (error) {
+                    alert("수정 중 오류가 발생했습니다.");
+                } else {
+                    alert(`🎉 ${verifiedStudentName} 학생의 수강신청이 성공적으로 수정되었습니다!`);
+                    resetStudentSection();
+                    showSection('mainMenu');
+                }
+            } else {
+                const { error } = await supabaseClient.from('enrollments').insert([
+                    { student_id: verifiedStudentId, student_name: verifiedStudentName, subject_name: subject }
+                ]);
+
+                if (error) {
+                    alert("저장 중 오류가 발생했습니다.");
+                } else {
+                    alert(`🎉 ${verifiedStudentName} 학생의 수강신청이 완료되었습니다!`);
+                    resetStudentSection();
+                    showSection('mainMenu');
+                }
+            }
         }
 
         // ---------------- [환경설정(과목 관리 및 시스템 관리) 기능] ----------------
