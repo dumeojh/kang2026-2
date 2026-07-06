@@ -76,7 +76,6 @@
             margin-bottom: 20px;
         }
 
-        /* 새로 추가된 입력칸 정렬 스타일 */
         .input-group {
             display: flex;
             align-items: center;
@@ -221,7 +220,6 @@
             <div id="step1Auth">
                 <p style="text-align: center; color: #666; margin-bottom: 15px;">본인의 학번과 이름을 먼저 입력하여 인증해주세요.</p>
 
-                <!-- 새로 적용된 입력창 UI -->
                 <div class="input-group">
                     <label for="studentId">학번</label>
                     <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)">
@@ -242,7 +240,8 @@
                     <select id="subjectSelect"></select>
                 </div>
 
-                <button class="btn-student" onclick="submitApplication()">✅ 최종 신청하기</button>
+                <!-- 제출 버튼에 ID 추가 -->
+                <button class="btn-student" id="btnSubmitApp" onclick="submitApplication()">✅ 최종 신청하기</button>
             </div>
         </div>
 
@@ -251,7 +250,6 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 및 시스템 관리)</h2>
 
-            <!-- 시스템 기본 설정 -->
             <div class="system-box">
                 <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
                 <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면, 나머지 학년의
@@ -275,7 +273,6 @@
                     onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
             </div>
 
-            <!-- 보기 필터 -->
             <div class="filter-box">
                 <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
                 <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
@@ -331,6 +328,7 @@
         let sortableInstance = null;
         let verifiedStudentId = "";
         let verifiedStudentName = "";
+        let isUpdating = false; // 수정 상태 여부를 확인하는 변수 추가
 
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
@@ -356,8 +354,10 @@
             document.getElementById('studentId').value = '';
             document.getElementById('studentName').value = '';
             document.getElementById('subjectSelect').innerHTML = '';
+            document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기'; // 버튼 초기화
             verifiedStudentId = "";
             verifiedStudentName = "";
+            isUpdating = false;
         }
 
         async function verifyStudent() {
@@ -387,10 +387,10 @@
                 return;
             }
 
-            // 계산된 예상 입학년도
+            // 예상 입학년도 계산
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
 
-            // 2. 수파베이스 조회: '학번' 기준으로 먼저 찾기 (1, 2, 3학년 학번 컬럼 모두 확인)
+            // 2. 수파베이스 조회: '학번' 기준으로 먼저 찾기
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
@@ -403,7 +403,6 @@
             }
 
             if (!studentData || studentData.length === 0) {
-                // 학번이 없는 경우, 이름으로 검색해서 무엇이 문제인지 알려줌
                 const { data: nameData } = await supabaseClient.from('students').select('*').eq('name', sName);
                 if (nameData && nameData.length > 0) {
                     alert(`'${sName}' 학생은 명단에 존재하지만, 입력하신 학번(${sId})이 DB에 등록된 정보와 다릅니다. 확인해주세요.`);
@@ -413,7 +412,7 @@
                 return;
             }
 
-            // 3. 학번이 일치하는 데이터 중에서 '이름' 일치 확인 (띄어쓰기 무시하여 유연하게 검증)
+            // 3. 학번이 일치하는 데이터 중에서 '이름' 일치 확인 (띄어쓰기 무시)
             const inputNameClean = sName.replace(/\s+/g, '');
             const matchedStudent = studentData.find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
 
@@ -422,7 +421,7 @@
                 return;
             }
 
-            // 4. 입학년도 검증 (DB에 입학년도가 실제로 입력된 경우에만 깐깐하게 비교)
+            // 4. 입학년도 검증
             if (matchedStudent.admission_year && Number(matchedStudent.admission_year) !== expectedAdmissionYear) {
                 alert(`[입학년도 불일치]\n시스템상 예상 입학년도는 ${expectedAdmissionYear}년이지만, DB에는 ${matchedStudent.admission_year}년으로 등록되어 있습니다. DB 데이터를 확인해주세요.`);
                 return;
@@ -432,9 +431,33 @@
             verifiedStudentId = sId;
             verifiedStudentName = matchedStudent.name; // DB의 정확한 이름 사용
 
+            // 5. [추가된 기능] 이미 신청한 내역이 있는지 검사
+            const { data: enrollData } = await supabaseClient
+                .from('enrollments')
+                .select('*')
+                .eq('student_id', sId);
+
+            if (enrollData && enrollData.length > 0) {
+                const existingSubject = enrollData[0].subject_name;
+                const wantUpdate = confirm(`이미 [ ${existingSubject} ] 과목을 신청하셨습니다.\n신청 내역을 수정하시겠습니까?`);
+
+                if (!wantUpdate) {
+                    resetStudentSection();
+                    return; // 취소 시 이전 화면으로 돌아감
+                }
+
+                // 수정을 원할 경우 텍스트 및 상태 변경
+                isUpdating = true;
+                document.getElementById('btnSubmitApp').innerText = '✅ 신청 수정하기';
+                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생 (기존 신청: ${existingSubject})`;
+            } else {
+                isUpdating = false;
+                document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기';
+                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
+            }
+
             document.getElementById('step1Auth').classList.add('hidden');
             document.getElementById('step2Subject').classList.remove('hidden');
-            document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
 
             loadSubjectsForStudent(studentGrade);
         }
@@ -475,16 +498,33 @@
                 return;
             }
 
-            const { error } = await supabaseClient.from('enrollments').insert([
-                { student_id: verifiedStudentId, student_name: verifiedStudentName, subject_name: subject }
-            ]);
+            if (isUpdating) {
+                // 수정 모드인 경우 UPDATE 쿼리 실행
+                const { error } = await supabaseClient
+                    .from('enrollments')
+                    .update({ subject_name: subject, student_name: verifiedStudentName })
+                    .eq('student_id', verifiedStudentId);
 
-            if (error) {
-                alert("저장 중 오류가 발생했습니다.");
+                if (error) {
+                    alert("수정 중 오류가 발생했습니다.");
+                } else {
+                    alert(`🎉 ${verifiedStudentName} 학생의 수강신청이 성공적으로 수정되었습니다!`);
+                    resetStudentSection();
+                    showSection('mainMenu');
+                }
             } else {
-                alert(`🎉 ${verifiedStudentName} 학생의 수강신청이 완료되었습니다!`);
-                resetStudentSection();
-                showSection('mainMenu');
+                // 신규 신청인 경우 INSERT 쿼리 실행
+                const { error } = await supabaseClient.from('enrollments').insert([
+                    { student_id: verifiedStudentId, student_name: verifiedStudentName, subject_name: subject }
+                ]);
+
+                if (error) {
+                    alert("저장 중 오류가 발생했습니다.");
+                } else {
+                    alert(`🎉 ${verifiedStudentName} 학생의 수강신청이 완료되었습니다!`);
+                    resetStudentSection();
+                    showSection('mainMenu');
+                }
             }
         }
 
