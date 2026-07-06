@@ -50,12 +50,17 @@
             background-color: #4CAF50;
         }
 
-        .btn-admin {
-            background-color: #607D8B;
+        .btn-status {
+            background-color: #00897B;
         }
 
+        /* 미신청자 확인(반별) 버튼 색상 */
         .btn-list {
             background-color: #9C27B0;
+        }
+
+        .btn-admin {
+            background-color: #607D8B;
         }
 
         .btn-excel {
@@ -245,7 +250,8 @@
             <h1>소인수 강좌 시스템</h1>
             <p style="text-align: center; margin-bottom: 30px;">원하시는 메뉴를 선택해주세요.</p>
             <button class="btn-student" onclick="showSection('studentSection')">👨‍🎓 학생 소인수 과목 선택</button>
-            <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (관리자)</button>
+            <button class="btn-status" onclick="showSection('classStatusSection')">📊 반별 신청 현황 (미신청자 확인)</button>
+            <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (전체 명단)</button>
             <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 과목 환경설정 (관리자)</button>
         </div>
 
@@ -279,6 +285,54 @@
 
                 <button class="btn-student" id="btnSubmitApp" onclick="submitApplication()">✅ 최종 신청하기</button>
             </div>
+        </div>
+
+        <!-- 반별 신청 현황 (미신청자 확인) 섹션 -->
+        <div id="classStatusSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
+            <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">DB에 등록된
+                명단을 바탕으로 미신청자를 한눈에 확인합니다.</p>
+
+            <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 14px;">학년 선택:</label>
+                    <select id="statusGrade" onchange="loadClassStatusDropdown()"
+                        style="margin-bottom: 0; margin-top: 5px;">
+                        <option value="none" disabled selected hidden>(학년 선택)</option>
+                        <option value="1">1학년</option>
+                        <option value="2">2학년</option>
+                        <option value="3">3학년</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 14px;">반 선택:</label>
+                    <select id="statusClass" onchange="renderClassStatusTable()"
+                        style="margin-bottom: 0; margin-top: 5px;">
+                        <option value="none" disabled selected hidden>(반 선택)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadStatusExcel()">📥 엑셀 다운로드</button>
+                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
+            </div>
+
+            <table id="statusTable">
+                <thead>
+                    <tr>
+                        <th>학번</th>
+                        <th>이름</th>
+                        <th>신청 과목</th>
+                    </tr>
+                </thead>
+                <tbody id="statusTableBody">
+                    <tr class="empty-row">
+                        <td colspan="3">조회할 학년과 반을 선택해주세요.</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- 관리자: 환경설정 섹션 -->
@@ -335,18 +389,17 @@
             <div id="subjectList"></div>
         </div>
 
-        <!-- 관리자: 신청 내역 확인 섹션 -->
+        <!-- 관리자: 신청 내역 확인 (전체 명단) 섹션 -->
         <div id="enrollmentListSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
-            <h2>📋 수강 신청 내역</h2>
+            <h2>📋 수강 신청 내역 (전체 명단)</h2>
 
-            <!-- 학년/반 검색 영역 -->
             <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
                 <div style="flex: 1;">
                     <label style="font-weight: bold; font-size: 14px;">학년 검색:</label>
                     <select id="searchGrade" onchange="updateClassDropdown()"
                         style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" selected>(학년 선택)</option>
+                        <option value="none" selected disabled hidden>(학년 선택)</option>
                         <option value="all">전체학년</option>
                         <option value="1">1학년</option>
                         <option value="2">2학년</option>
@@ -356,12 +409,11 @@
                 <div style="flex: 1;">
                     <label style="font-weight: bold; font-size: 14px;">반 검색:</label>
                     <select id="searchClass" onchange="filterEnrollments()" style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" selected>(반 선택)</option>
+                        <option value="none" selected disabled hidden>(반 선택)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- 버튼 영역: 다운로드 & 인쇄 -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadExcel()">📥 엑셀 다운로드</button>
                 <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
@@ -376,6 +428,9 @@
                     </tr>
                 </thead>
                 <tbody id="enrollmentTableBody">
+                    <tr class="empty-row">
+                        <td colspan="3">조회할 학년과 반을 선택해주세요.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -393,11 +448,16 @@
 
         let allEnrollments = [];
 
+        // 반별 미신청자 확인을 위한 전역 변수
+        let currentStatusStudents = [];
+        let currentStatusEnrollments = [];
+
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
             document.getElementById('studentSection').classList.add('hidden');
             document.getElementById('adminSection').classList.add('hidden');
             document.getElementById('enrollmentListSection').classList.add('hidden');
+            document.getElementById('classStatusSection').classList.add('hidden'); // 새로 추가된 섹션
 
             document.getElementById(sectionId).classList.remove('hidden');
 
@@ -405,11 +465,133 @@
                 loadSystemSettings();
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
-                // 진입 시 학년/반을 '선택 대기' 상태로 초기화하고 데이터를 불러옵니다.
                 document.getElementById('searchGrade').value = 'none';
+                document.getElementById('searchClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
+                document.getElementById('enrollmentTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 loadEnrollments();
+            } else if (sectionId === 'classStatusSection') {
+                document.getElementById('statusGrade').value = 'none';
+                document.getElementById('statusClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
+                document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요.</td></tr>';
             }
         }
+
+        // ---------------- [반별 신청 현황 (미신청자 확인) 기능] ----------------
+
+        async function loadClassStatusDropdown() {
+            const grade = document.getElementById('statusGrade').value;
+            const classSelect = document.getElementById('statusClass');
+            classSelect.innerHTML = '<option value="none" disabled selected hidden>(로딩 중...)</option>';
+            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="3">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
+
+            if (grade === 'none') return;
+
+            // 1. 시스템 설정 불러와서 입학년도 역산
+            const { data: configData } = await supabaseClient.from('app_config').select('*').eq('id', 1).single();
+            if (!configData) {
+                alert("시스템 환경설정이 완료되지 않았습니다. 관리자 메뉴에서 [시스템 설정 저장하기]를 먼저 눌러주세요.");
+                return;
+            }
+
+            const expectedYear = Number(configData.admission_year) - (Number(grade) - Number(configData.target_grade));
+            const gradeCol = `grade${grade}_id`;
+
+            // 2. 해당 입학년도의 전체 학생 불러오기
+            const { data: studentsData, error } = await supabaseClient
+                .from('students')
+                .select(`name, ${gradeCol}, admission_year`)
+                .eq('admission_year', expectedYear);
+
+            if (error) {
+                console.error(error);
+                alert("학생 명단을 불러오는데 실패했습니다.");
+                classSelect.innerHTML = '<option value="none" disabled selected hidden>(반 선택)</option>';
+                return;
+            }
+
+            // 학번이 존재하는 학생만 필터링
+            currentStatusStudents = studentsData.filter(s => s[gradeCol] && String(s[gradeCol]).length === 5);
+
+            // 반 목록 추출
+            const classes = new Set();
+            currentStatusStudents.forEach(s => {
+                classes.add(String(s[gradeCol]).substring(1, 3));
+            });
+
+            classSelect.innerHTML = '<option value="none" disabled selected hidden>(반 선택)</option>';
+            Array.from(classes).sort().forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = parseInt(c, 10) + '반';
+                classSelect.appendChild(opt);
+            });
+
+            // 학생들의 수강신청 내역도 미리 불러오기
+            const { data: enrollData } = await supabaseClient.from('enrollments').select('*');
+            currentStatusEnrollments = enrollData || [];
+        }
+
+        function renderClassStatusTable() {
+            const grade = document.getElementById('statusGrade').value;
+            const cls = document.getElementById('statusClass').value;
+            const gradeCol = `grade${grade}_id`;
+            const tbody = document.getElementById('statusTableBody');
+            tbody.innerHTML = '';
+
+            if (grade === 'none' || cls === 'none') {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요.</td></tr>';
+                return;
+            }
+
+            // 선택한 반의 학생들만 필터링
+            const classStudents = currentStatusStudents.filter(s => String(s[gradeCol]).substring(1, 3) === cls);
+
+            // 학번 오름차순으로 정렬
+            classStudents.sort((a, b) => String(a[gradeCol]).localeCompare(String(b[gradeCol])));
+
+            if (classStudents.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">해당 반에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
+                return;
+            }
+
+            classStudents.forEach(student => {
+                const sId = String(student[gradeCol]);
+                const sName = student.name;
+
+                // 수강신청 여부 확인
+                const enrollment = currentStatusEnrollments.find(e => String(e.student_id) === sId);
+
+                const tr = document.createElement('tr');
+                if (enrollment) {
+                    tr.innerHTML = `
+                        <td>${sId}</td>
+                        <td>${sName}</td>
+                        <td style="color: #1565C0; font-weight: bold;">${enrollment.subject_name}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td>${sId}</td>
+                        <td>${sName}</td>
+                        <td style="color: #f44336; font-weight: bold;">미선택</td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function downloadStatusExcel() {
+            const table = document.getElementById('statusTable');
+            const tbody = document.getElementById('statusTableBody');
+
+            if (tbody.innerText.includes('선택해주세요') || tbody.innerText.includes('명단이 없습니다')) {
+                alert("다운로드할 데이터가 없습니다.");
+                return;
+            }
+
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "반별_신청현황" });
+            XLSX.writeFile(workbook, '소인수강좌_반별현황(미신청자).xlsx');
+        }
+
 
         // ---------------- [학생 기능] ----------------
 
@@ -724,7 +906,7 @@
             }
         }
 
-        // ---------------- [수강신청 내역 확인 기능 (검색 및 필터링 최적화)] ----------------
+        // ---------------- [전체 신청 내역 확인 기능] ----------------
 
         async function loadEnrollments() {
             const { data, error } = await supabaseClient
@@ -746,11 +928,9 @@
             const gradeFilter = document.getElementById('searchGrade').value;
             const classSelect = document.getElementById('searchClass');
 
-            // 학년이 변경될 때마다 반 선택은 다시 'none'으로 초기화됩니다.
-            classSelect.innerHTML = '<option value="none" selected>(반 선택)</option>';
+            classSelect.innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
             classSelect.innerHTML += '<option value="all">전체반</option>';
 
-            // 학년이 선택되었을 때만 존재하는 반 목록을 추가합니다.
             if (gradeFilter !== 'none') {
                 const classes = new Set();
                 allEnrollments.forEach(item => {
@@ -779,7 +959,6 @@
             const tbody = document.getElementById('enrollmentTableBody');
             tbody.innerHTML = '';
 
-            // ⛔ 학년 또는 반이 선택되지 않았으면 데이터 조회를 하지 않고 안내 문구만 보여줍니다.
             if (gradeFilter === 'none' || classFilter === 'none') {
                 tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 return;
@@ -787,7 +966,6 @@
 
             const filteredData = allEnrollments.filter(item => {
                 const sId = String(item.student_id);
-                // 학번이 5자리가 아닌 예외 데이터
                 if (sId.length !== 5) return true;
 
                 const grade = sId.charAt(0);
