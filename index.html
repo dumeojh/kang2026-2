@@ -340,13 +340,14 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📋 수강 신청 내역</h2>
 
-            <!-- 학년/반 검색 영역 추가 -->
+            <!-- 학년/반 검색 영역 -->
             <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
                 <div style="flex: 1;">
                     <label style="font-weight: bold; font-size: 14px;">학년 검색:</label>
                     <select id="searchGrade" onchange="updateClassDropdown()"
                         style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="all">(학년 선택)</option>
+                        <option value="none" selected>(학년 선택)</option>
+                        <option value="all">전체학년</option>
                         <option value="1">1학년</option>
                         <option value="2">2학년</option>
                         <option value="3">3학년</option>
@@ -355,12 +356,12 @@
                 <div style="flex: 1;">
                     <label style="font-weight: bold; font-size: 14px;">반 검색:</label>
                     <select id="searchClass" onchange="filterEnrollments()" style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="all">(반 선택)</option>
+                        <option value="none" selected>(반 선택)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- 버튼 영역 수정: 다운로드 & 인쇄 -->
+            <!-- 버튼 영역: 다운로드 & 인쇄 -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadExcel()">📥 엑셀 다운로드</button>
                 <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
@@ -404,7 +405,8 @@
                 loadSystemSettings();
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
-                document.getElementById('searchGrade').value = 'all';
+                // 진입 시 학년/반을 '선택 대기' 상태로 초기화하고 데이터를 불러옵니다.
+                document.getElementById('searchGrade').value = 'none';
                 loadEnrollments();
             }
         }
@@ -467,7 +469,7 @@
                 if (nameData && nameData.length > 0) {
                     alert(`'${sName}' 학생은 명단에 존재하지만, 입력하신 학번(${sId})이 DB에 등록된 정보와 다릅니다. 확인해주세요.`);
                 } else {
-                    alert(`입력하신 학번(${sId})과 이름('${sName}') 모두 DB에서 찾을 수 셀 수 없습니다.`);
+                    alert(`입력하신 학번(${sId})과 이름('${sName}') 모두 DB에서 찾을 수 없습니다.`);
                 }
                 return;
             }
@@ -722,7 +724,7 @@
             }
         }
 
-        // ---------------- [수강신청 내역 확인 기능 (검색 및 필터링 추가)] ----------------
+        // ---------------- [수강신청 내역 확인 기능 (검색 및 필터링 최적화)] ----------------
 
         async function loadEnrollments() {
             const { data, error } = await supabaseClient
@@ -743,24 +745,30 @@
         function updateClassDropdown() {
             const gradeFilter = document.getElementById('searchGrade').value;
             const classSelect = document.getElementById('searchClass');
-            classSelect.innerHTML = '<option value="all">(반 선택)</option>';
 
-            const classes = new Set();
-            allEnrollments.forEach(item => {
-                const sId = String(item.student_id);
-                if (sId.length === 5) {
-                    if (gradeFilter === 'all' || sId.charAt(0) === gradeFilter) {
-                        classes.add(sId.substring(1, 3));
+            // 학년이 변경될 때마다 반 선택은 다시 'none'으로 초기화됩니다.
+            classSelect.innerHTML = '<option value="none" selected>(반 선택)</option>';
+            classSelect.innerHTML += '<option value="all">전체반</option>';
+
+            // 학년이 선택되었을 때만 존재하는 반 목록을 추가합니다.
+            if (gradeFilter !== 'none') {
+                const classes = new Set();
+                allEnrollments.forEach(item => {
+                    const sId = String(item.student_id);
+                    if (sId.length === 5) {
+                        if (gradeFilter === 'all' || sId.charAt(0) === gradeFilter) {
+                            classes.add(sId.substring(1, 3));
+                        }
                     }
-                }
-            });
+                });
 
-            Array.from(classes).sort().forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.innerText = parseInt(c, 10) + '반';
-                classSelect.appendChild(opt);
-            });
+                Array.from(classes).sort().forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = parseInt(c, 10) + '반';
+                    classSelect.appendChild(opt);
+                });
+            }
 
             filterEnrollments();
         }
@@ -771,8 +779,15 @@
             const tbody = document.getElementById('enrollmentTableBody');
             tbody.innerHTML = '';
 
+            // ⛔ 학년 또는 반이 선택되지 않았으면 데이터 조회를 하지 않고 안내 문구만 보여줍니다.
+            if (gradeFilter === 'none' || classFilter === 'none') {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
+                return;
+            }
+
             const filteredData = allEnrollments.filter(item => {
                 const sId = String(item.student_id);
+                // 학번이 5자리가 아닌 예외 데이터
                 if (sId.length !== 5) return true;
 
                 const grade = sId.charAt(0);
@@ -786,7 +801,7 @@
             });
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조건에 맞는 학생이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">해당 조건에 신청한 학생이 없습니다.</td></tr>';
                 return;
             }
 
@@ -805,7 +820,7 @@
             const table = document.getElementById('enrollmentTable');
             const tbody = document.getElementById('enrollmentTableBody');
 
-            if (tbody.innerText.includes('조건에 맞는 학생이 없습니다.') || tbody.innerText.includes('아직 신청한 학생이 없습니다.')) {
+            if (tbody.innerText.includes('선택해주세요') || tbody.innerText.includes('학생이 없습니다')) {
                 alert("다운로드할 데이터가 없습니다.");
                 return;
             }
