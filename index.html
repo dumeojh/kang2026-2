@@ -70,6 +70,12 @@
             background-color: #03A9F4;
         }
 
+        .btn-print {
+            background-color: #3F51B5;
+        }
+
+        /* 인쇄 버튼 색상 */
+
         .btn-back {
             background-color: #e0e0e0;
             color: #333;
@@ -197,6 +203,40 @@
             background-color: #e8f5e9;
             border-radius: 8px;
         }
+
+        /* 🖨️ 인쇄 시 화면 레이아웃 최적화 CSS */
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            /* 인쇄 시 불필요한 버튼 및 검색창 숨기기 */
+            button,
+            .filter-box,
+            .btn-back {
+                display: none !important;
+            }
+
+            /* 표 테두리 선명하게 설정 */
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            th,
+            td {
+                border: 1px solid #000;
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -240,7 +280,6 @@
                     <select id="subjectSelect"></select>
                 </div>
 
-                <!-- 제출 버튼에 ID 추가 -->
                 <button class="btn-student" id="btnSubmitApp" onclick="submitApplication()">✅ 최종 신청하기</button>
             </div>
         </div>
@@ -304,7 +343,29 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📋 수강 신청 내역</h2>
 
-            <button class="btn-excel" onclick="downloadExcel()">📥 엑셀 파일로 다운로드</button>
+            <!-- 학년/반 검색 영역 추가 -->
+            <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 14px;">학년 검색:</label>
+                    <select id="searchGrade" onchange="filterEnrollments()" style="margin-bottom: 0; margin-top: 5px;">
+                        <option value="all">전체 학년</option>
+                        <option value="1">1학년</option>
+                        <option value="2">2학년</option>
+                        <option value="3">3학년</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 14px;">반 검색 (숫자):</label>
+                    <input type="number" id="searchClass" placeholder="예: 1 또는 01" oninput="filterEnrollments()"
+                        style="margin-bottom: 0; margin-top: 5px;">
+                </div>
+            </div>
+
+            <!-- 버튼 영역 수정: 다운로드 & 인쇄 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
+            </div>
 
             <table id="enrollmentTable">
                 <thead>
@@ -328,7 +389,10 @@
         let sortableInstance = null;
         let verifiedStudentId = "";
         let verifiedStudentName = "";
-        let isUpdating = false; // 수정 상태 여부를 확인하는 변수 추가
+        let isUpdating = false;
+
+        // 전체 신청 내역을 임시 저장할 변수 (검색 기능용)
+        let allEnrollments = [];
 
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
@@ -342,6 +406,9 @@
                 loadSystemSettings();
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
+                // 신청 내역 탭 진입 시 검색창 초기화 및 데이터 로드
+                document.getElementById('searchGrade').value = 'all';
+                document.getElementById('searchClass').value = '';
                 loadEnrollments();
             }
         }
@@ -354,7 +421,7 @@
             document.getElementById('studentId').value = '';
             document.getElementById('studentName').value = '';
             document.getElementById('subjectSelect').innerHTML = '';
-            document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기'; // 버튼 초기화
+            document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기';
             verifiedStudentId = "";
             verifiedStudentName = "";
             isUpdating = false;
@@ -369,7 +436,6 @@
                 return;
             }
 
-            // 1. 관리자가 설정한 시스템 기준 불러오기
             const { data: configData, error: configError } = await supabaseClient
                 .from('app_config')
                 .select('*')
@@ -387,10 +453,8 @@
                 return;
             }
 
-            // 예상 입학년도 계산
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
 
-            // 2. 수파베이스 조회: '학번' 기준으로 먼저 찾기
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
@@ -412,7 +476,6 @@
                 return;
             }
 
-            // 3. 학번이 일치하는 데이터 중에서 '이름' 일치 확인 (띄어쓰기 무시)
             const inputNameClean = sName.replace(/\s+/g, '');
             const matchedStudent = studentData.find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
 
@@ -421,17 +484,14 @@
                 return;
             }
 
-            // 4. 입학년도 검증
             if (matchedStudent.admission_year && Number(matchedStudent.admission_year) !== expectedAdmissionYear) {
                 alert(`[입학년도 불일치]\n시스템상 예상 입학년도는 ${expectedAdmissionYear}년이지만, DB에는 ${matchedStudent.admission_year}년으로 등록되어 있습니다. DB 데이터를 확인해주세요.`);
                 return;
             }
 
-            // 인증 성공
             verifiedStudentId = sId;
-            verifiedStudentName = matchedStudent.name; // DB의 정확한 이름 사용
+            verifiedStudentName = matchedStudent.name;
 
-            // 5. [추가된 기능] 이미 신청한 내역이 있는지 검사
             const { data: enrollData } = await supabaseClient
                 .from('enrollments')
                 .select('*')
@@ -443,10 +503,9 @@
 
                 if (!wantUpdate) {
                     resetStudentSection();
-                    return; // 취소 시 이전 화면으로 돌아감
+                    return;
                 }
 
-                // 수정을 원할 경우 텍스트 및 상태 변경
                 isUpdating = true;
                 document.getElementById('btnSubmitApp').innerText = '✅ 신청 수정하기';
                 document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생 (기존 신청: ${existingSubject})`;
@@ -499,7 +558,6 @@
             }
 
             if (isUpdating) {
-                // 수정 모드인 경우 UPDATE 쿼리 실행
                 const { error } = await supabaseClient
                     .from('enrollments')
                     .update({ subject_name: subject, student_name: verifiedStudentName })
@@ -513,7 +571,6 @@
                     showSection('mainMenu');
                 }
             } else {
-                // 신규 신청인 경우 INSERT 쿼리 실행
                 const { error } = await supabaseClient.from('enrollments').insert([
                     { student_id: verifiedStudentId, student_name: verifiedStudentName, subject_name: subject }
                 ]);
@@ -669,7 +726,7 @@
             }
         }
 
-        // ---------------- [수강신청 내역 확인 기능] ----------------
+        // ---------------- [수강신청 내역 확인 기능 (검색 및 필터링 추가)] ----------------
 
         async function loadEnrollments() {
             const { data, error } = await supabaseClient
@@ -683,15 +740,48 @@
                 return;
             }
 
+            allEnrollments = data || []; // 서버에서 불러온 전체 데이터를 저장
+            filterEnrollments(); // 화면에 렌더링
+        }
+
+        function filterEnrollments() {
+            const gradeFilter = document.getElementById('searchGrade').value;
+            let classFilter = document.getElementById('searchClass').value.trim();
+
+            // 사용자가 '1'이라고 입력하면 자동으로 '01'로 변환 (학번 중간 2자리와 비교하기 위함)
+            if (classFilter.length === 1) {
+                classFilter = '0' + classFilter;
+            }
+
             const tbody = document.getElementById('enrollmentTableBody');
             tbody.innerHTML = '';
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">아직 신청한 학생이 없습니다.</td></tr>';
+            const filteredData = allEnrollments.filter(item => {
+                const sId = String(item.student_id);
+                // 학번이 5자리가 아닌 예외 데이터는 기본적으로 보여줌 (원치 않으시면 false 반환)
+                if (sId.length !== 5) return true;
+
+                // 첫 번째 자리: 학년, 두 번째~세 번째 자리: 반
+                const grade = sId.charAt(0);
+                const cls = sId.substring(1, 3);
+
+                let isMatch = true;
+
+                // 학년 필터가 'all'이 아닌데 일치하지 않으면 제외
+                if (gradeFilter !== 'all' && grade !== gradeFilter) isMatch = false;
+
+                // 반 필터에 값이 입력되었는데 일치하지 않으면 제외
+                if (classFilter !== '' && cls !== classFilter) isMatch = false;
+
+                return isMatch;
+            });
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">조건에 맞는 학생이 없습니다.</td></tr>';
                 return;
             }
 
-            data.forEach(item => {
+            filteredData.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                 <td>${item.student_id}</td>
@@ -702,11 +792,12 @@
             });
         }
 
+        // 엑셀 다운로드 (화면에 필터링되어 보이는 표만 그대로 다운로드됨)
         function downloadExcel() {
             const table = document.getElementById('enrollmentTable');
             const tbody = document.getElementById('enrollmentTableBody');
 
-            if (tbody.innerText.includes('아직 신청한 학생이 없습니다.')) {
+            if (tbody.innerText.includes('조건에 맞는 학생이 없습니다.') || tbody.innerText.includes('아직 신청한 학생이 없습니다.')) {
                 alert("다운로드할 데이터가 없습니다.");
                 return;
             }
