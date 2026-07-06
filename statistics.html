@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안성여고 소인수 강좌 - 통계 현황</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        /* 통계화면 전용 넓은 컨테이너 (컴퓨터 화면용) */
+        .container.wide {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            transition: 0.3s;
+        }
+
+        .btn-excel {
+            background-color: #217346;
+            width: 100%;
+        }
+
+        .btn-print {
+            background-color: #3F51B5;
+            width: 100%;
+        }
+
+        .btn-back {
+            background-color: #e0e0e0;
+            color: #333;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #ffe0b2;
+            font-weight: bold;
+        }
+
+        .empty-row td {
+            color: #888;
+            padding: 20px;
+        }
+
+        .filter-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .stat-total {
+            font-weight: bold;
+            color: #d32f2f;
+            font-size: 1.1em;
+        }
+
+        .stat-class-detail {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        /* 🖨️ 인쇄 시 화면 레이아웃 최적화 CSS */
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            button,
+            .filter-box,
+            .btn-back {
+                display: none !important;
+            }
+
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            th,
+            td {
+                border: 1px solid #000;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container wide">
+        <button class="btn-back" onclick="location.href='index.html'">🔙 메인 메뉴로 돌아가기</button>
+
+        <h2>📈 과목별 신청 통계 현황</h2>
+        <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">폐강 및
+            합반(무학년제) 결정을 위해 전체 과목별 인원을 한눈에 파악합니다.</p>
+
+        <div class="filter-box search-box" style="margin-bottom: 15px;">
+            <label style="font-weight: bold; font-size: 14px;">학년 필터 (무학년제 파악 시 전체 조회 권장):</label>
+            <select id="statGradeFilter" onchange="generateStatistics()" style="margin-bottom: 0; margin-top: 5px;">
+                <option value="all">전체 학년 모두 보기</option>
+                <option value="1">1학년만 보기</option>
+                <option value="2">2학년만 보기</option>
+                <option value="3">3학년만 보기</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="btn-excel" onclick="downloadStatExcel()">📥 엑셀 다운로드</button>
+            <button class="btn-print" onclick="window.print()">🖨️ 통계 인쇄하기</button>
+        </div>
+
+        <table id="statisticsTable">
+            <thead>
+                <tr>
+                    <th style="width: 40%;">과목명</th>
+                    <th style="width: 20%;">총 신청 인원</th>
+                    <th style="width: 40%;">학년/반별 세부 인원</th>
+                </tr>
+            </thead>
+            <tbody id="statisticsTableBody">
+                <tr>
+                    <td colspan="3">데이터를 불러오는 중입니다...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 페이지가 열리면 자동으로 통계 생성 시작
+        window.onload = () => {
+            generateStatistics();
+        };
+
+        async function generateStatistics() {
+            const tbody = document.getElementById('statisticsTableBody');
+            tbody.innerHTML = '<tr><td colspan="3">데이터 분석 중...</td></tr>';
+
+            const gradeFilter = document.getElementById('statGradeFilter').value;
+
+            // 1. 전체 수강신청 데이터 불러오기
+            const { data, error } = await supabaseClient.from('enrollments').select('*');
+            if (error) {
+                alert("데이터를 불러오는데 실패했습니다.");
+                return;
+            }
+
+            // 2. 필터 및 통계 로직 연산
+            const stats = {};
+
+            data.forEach(item => {
+                const sId = String(item.student_id);
+                if (sId.length !== 5) return;
+
+                const grade = sId.charAt(0);
+                const cls = parseInt(sId.substring(1, 3), 10);
+                const subject = item.subject_name;
+
+                if (gradeFilter !== 'all' && grade !== gradeFilter) return;
+
+                if (!stats[subject]) {
+                    stats[subject] = { total: 0, details: {} };
+                }
+
+                stats[subject].total += 1;
+
+                const classKey = `${grade}학년 ${cls}반`;
+                if (!stats[subject].details[classKey]) {
+                    stats[subject].details[classKey] = 0;
+                }
+                stats[subject].details[classKey] += 1;
+            });
+
+            // 3. 통계 결과를 화면에 렌더링
+            tbody.innerHTML = '';
+            const subjectNames = Object.keys(stats).sort();
+
+            if (subjectNames.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">신청 데이터가 없습니다.</td></tr>';
+                return;
+            }
+
+            subjectNames.forEach(sub => {
+                const tr = document.createElement('tr');
+                const total = stats[sub].total;
+
+                const detailsArr = [];
+                for (const [clsName, count] of Object.entries(stats[sub].details)) {
+                    detailsArr.push(`${clsName}(${count}명)`);
+                }
+                detailsArr.sort();
+                const detailsStr = detailsArr.join(' / ');
+
+                tr.innerHTML = `
+                    <td style="font-weight: bold; color: #333;">${sub}</td>
+                    <td class="stat-total">${total} 명</td>
+                    <td class="stat-class-detail">${detailsStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function downloadStatExcel() {
+            const table = document.getElementById('statisticsTable');
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "통계현황" });
+            XLSX.writeFile(workbook, '소인수강좌_통계현황.xlsx');
+        }
+    </script>
+</body>
+
+</html>
