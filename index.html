@@ -88,6 +88,27 @@
             font-size: 16px;
         }
 
+        /* 입력 그룹 정렬 스타일 추가 */
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            width: 60px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group select {
+            flex: 1;
+            margin-bottom: 0;
+            /* 기존 margin 덮어쓰기 */
+        }
+
         .hidden {
             display: none;
         }
@@ -195,14 +216,28 @@
 
             <div id="step1Auth">
                 <p style="text-align: center; color: #666; margin-bottom: 15px;">본인의 학번과 이름을 먼저 입력하여 인증해주세요.</p>
-                <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)">
-                <input type="text" id="studentName" placeholder="이름">
+
+                <!-- 라벨이 추가된 입력 영역 -->
+                <div class="input-group">
+                    <label for="studentId">학번</label>
+                    <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)">
+                </div>
+                <div class="input-group">
+                    <label for="studentName">이름</label>
+                    <input type="text" id="studentName" placeholder="이름">
+                </div>
+
                 <button class="btn-auth" onclick="verifyStudent()">🔍 학생 확인하기</button>
             </div>
 
             <div id="step2Subject" class="hidden">
                 <div id="authSuccessMessage" class="auth-message"></div>
-                <select id="subjectSelect"></select>
+
+                <div class="input-group">
+                    <label for="subjectSelect">과목</label>
+                    <select id="subjectSelect"></select>
+                </div>
+
                 <button class="btn-student" onclick="submitApplication()">✅ 최종 신청하기</button>
             </div>
         </div>
@@ -249,7 +284,10 @@
             <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
 
             <h3>새 과목 추가</h3>
-            <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
+                <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
+            </div>
             <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
 
             <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
@@ -349,7 +387,7 @@
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
             const gradeColumn = `grade${studentGrade}_id`;
 
-            // 2. 수파베이스의 엄격한 타입 체크 우회를 위해 '이름'으로만 먼저 DB 검색 (오류 방지 핵심 로직)
+            // 2. 수파베이스의 엄격한 타입 체크 우회를 위해 '이름'으로만 먼저 DB 검색
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
@@ -376,7 +414,6 @@
             if (!matchedStudent) {
                 let dbInfo = "";
                 studentData.forEach(s => {
-                    // 칼럼 자체가 없으면 '칼럼없음' 출력하여 오타(grade2-id 등) 파악
                     const dbId = s[gradeColumn] !== undefined ? s[gradeColumn] : "칼럼 없음(수파베이스 칼럼명 확인 요망)";
                     dbInfo += `\n- DB입학년도: ${s.admission_year}, DB학번(${gradeColumn}): ${dbId}`;
                 });
