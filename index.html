@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안성여고 소인수 강좌 시스템</title>
+    <!-- Supabase 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        /* 버튼 공통 스타일 */
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: white;
+            transition: 0.3s;
+        }
+
+        /* 메인 메뉴 버튼 색상 */
+        .btn-student {
+            background-color: #4CAF50;
+        }
+
+        .btn-student:hover {
+            background-color: #45a049;
+        }
+
+        .btn-admin {
+            background-color: #607D8B;
+        }
+
+        .btn-admin:hover {
+            background-color: #546E7A;
+        }
+
+        /* 뒤로가기 버튼 */
+        .btn-back {
+            background-color: #e0e0e0;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 입력창 스타일 */
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* 화면 숨김 처리용 클래스 */
+        .hidden {
+            display: none;
+        }
+
+        /* 환경설정 리스트 스타일 */
+        .subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .subject-item button {
+            width: auto;
+            padding: 8px 12px;
+            margin: 0 0 0 5px;
+            font-size: 14px;
+        }
+
+        .btn-edit {
+            background-color: #2196F3;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- 1. 메인 메뉴 화면 -->
+        <div id="mainMenu">
+            <h1>소인수 강좌 시스템</h1>
+            <p style="text-align: center; margin-bottom: 30px;">원하시는 메뉴를 선택해주세요.</p>
+            <button class="btn-student" onclick="showSection('studentSection')">👨‍🎓 학생 소인수 과목 선택</button>
+            <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 환경설정 (관리자용)</button>
+        </div>
+
+        <!-- 2. 학생 수강신청 화면 -->
+        <div id="studentSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>소인수 과목 신청</h2>
+
+            <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)" oninput="checkGrade()">
+            <input type="text" id="studentName" placeholder="이름">
+
+            <select id="subjectSelect">
+                <option>먼저 학번을 입력해주세요</option>
+            </select>
+
+            <button class="btn-student" onclick="submitApplication()">신청하기</button>
+        </div>
+
+        <!-- 3. 관리자 환경설정 화면 -->
+        <div id="adminSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>환경설정 (과목 관리)</h2>
+
+            <select id="gradeSelect">
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+            </select>
+            <input type="text" id="subjectInput" placeholder="추가할 과목 이름">
+            <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
+
+            <h3 style="margin-top: 30px;">등록된 과목 목록</h3>
+            <div id="subjectList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 설정 (본인 정보로 반드시 변경하세요)
+        const SUPABASE_URL = '본인의_SUPABASE_URL';
+        const SUPABASE_KEY = '본인의_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // [화면 전환 기능]
+        function showSection(sectionId) {
+            // 모든 섹션 숨기기
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('studentSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+
+            // 선택한 섹션만 보이기
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            // 환경설정 화면에 들어갈 때 자동으로 과목 목록 불러오기
+            if (sectionId === 'adminSection') {
+                loadSubjects();
+            }
+        }
+
+        // ---------------- [학생 기능] ----------------
+
+        async function checkGrade() {
+            const studentId = document.getElementById('studentId').value;
+            const subjectSelect = document.getElementById('subjectSelect');
+
+            if (studentId.length === 5) {
+                const grade = parseInt(studentId.charAt(0));
+                const { data, error } = await supabase.from('settings').select('*').eq('grade', grade);
+
+                if (error) return;
+                subjectSelect.innerHTML = '';
+
+                if (data.length === 0) {
+                    subjectSelect.innerHTML = '<option>등록된 과목이 없습니다.</option>';
+                } else {
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.subject_name;
+                        option.innerText = item.subject_name;
+                        subjectSelect.appendChild(option);
+                    });
+                }
+            } else {
+                subjectSelect.innerHTML = '<option>먼저 학번(5자리)을 입력해주세요</option>';
+            }
+        }
+
+        async function submitApplication() {
+            const sId = document.getElementById('studentId').value;
+            const sName = document.getElementById('studentName').value;
+            const subject = document.getElementById('subjectSelect').value;
+
+            if (!sId || !sName) {
+                alert("학번과 이름을 모두 입력해주세요.");
+                return;
+            }
+
+            const { error } = await supabase.from('enrollments').insert([
+                { student_id: sId, student_name: sName, subject_name: subject }
+            ]);
+
+            if (error) {
+                alert("저장 중 오류가 발생했습니다.");
+            } else {
+                alert(`🎉 ${sName} 학생의 신청이 완료되었습니다!`);
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                document.getElementById('subjectSelect').innerHTML = '<option>먼저 학번(5자리)을 입력해주세요</option>';
+                showSection('mainMenu'); // 완료 후 메인 메뉴로 이동
+            }
+        }
+
+        // ---------------- [관리자 기능] ----------------
+
+        async function loadSubjects() {
+            const { data, error } = await supabase.from('settings').select('*').order('grade', { ascending: true });
+            if (error) return;
+
+            const list = document.getElementById('subjectList');
+            list.innerHTML = '';
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'subject-item';
+                div.innerHTML = `
+                <span><b>${item.grade}학년</b> - ${item.subject_name}</span>
+                <div>
+                    <button class="btn-edit" onclick="editSubject(${item.id}, '${item.subject_name}')">수정</button>
+                    <button class="btn-delete" onclick="deleteSubject(${item.id})">삭제</button>
+                </div>
+            `;
+                list.appendChild(div);
+            });
+        }
+
+        async function addSubject() {
+            const grade = document.getElementById('gradeSelect').value;
+            const subjectName = document.getElementById('subjectInput').value;
+
+            if (!subjectName) {
+                alert("과목 이름을 입력해주세요.");
+                return;
+            }
+
+            const { error } = await supabase.from('settings').insert([{ grade: parseInt(grade), subject_name: subjectName }]);
+
+            if (!error) {
+                document.getElementById('subjectInput').value = '';
+                loadSubjects();
+            }
+        }
+
+        async function deleteSubject(id) {
+            if (confirm("삭제하시겠습니까?")) {
+                await supabase.from('settings').delete().eq('id', id);
+                loadSubjects();
+            }
+        }
+
+        async function editSubject(id, oldName) {
+            const newName = prompt("새로운 과목 이름을 입력하세요:", oldName);
+            if (newName && newName !== oldName) {
+                await supabase.from('settings').update({ subject_name: newName }).eq('id', id);
+                loadSubjects();
+            }
+        }
+    </script>
+
+</body>
+
+</html>
