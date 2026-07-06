@@ -76,19 +76,7 @@
             margin-bottom: 20px;
         }
 
-        input[type="text"],
-        input[type="number"],
-        select {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        /* 입력 그룹 정렬 스타일 추가 */
+        /* 새로 추가된 입력칸 정렬 스타일 */
         .input-group {
             display: flex;
             align-items: center;
@@ -106,7 +94,23 @@
         .input-group select {
             flex: 1;
             margin-bottom: 0;
-            /* 기존 margin 덮어쓰기 */
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input[type="text"]:not(.input-group input),
+        input[type="number"]:not(.input-group input),
+        select:not(.input-group select) {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
         }
 
         .hidden {
@@ -217,7 +221,7 @@
             <div id="step1Auth">
                 <p style="text-align: center; color: #666; margin-bottom: 15px;">본인의 학번과 이름을 먼저 입력하여 인증해주세요.</p>
 
-                <!-- 라벨이 추가된 입력 영역 -->
+                <!-- 새로 적용된 입력창 UI -->
                 <div class="input-group">
                     <label for="studentId">학번</label>
                     <input type="text" id="studentId" placeholder="학번 5자리 (예: 10101)">
@@ -365,7 +369,7 @@
                 return;
             }
 
-            // 1. 관리자 시스템 기준 불러오기
+            // 1. 관리자가 설정한 시스템 기준 불러오기
             const { data: configData, error: configError } = await supabaseClient
                 .from('app_config')
                 .select('*')
@@ -373,7 +377,7 @@
                 .single();
 
             if (configError || !configData) {
-                alert("시스템 환경설정이 완료되지 않았습니다. 관리자에게 문의하세요.");
+                alert("시스템 환경설정이 완료되지 않았습니다. 관리자 메뉴에서 [시스템 설정 저장하기]를 먼저 눌러주세요.");
                 return;
             }
 
@@ -383,52 +387,54 @@
                 return;
             }
 
-            // 예상 입학년도 계산
+            // 계산된 예상 입학년도
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
-            const gradeColumn = `grade${studentGrade}_id`;
 
-            // 2. 수파베이스의 엄격한 타입 체크 우회를 위해 '이름'으로만 먼저 DB 검색
+            // 2. 수파베이스 조회: '학번' 기준으로 먼저 찾기 (1, 2, 3학년 학번 컬럼 모두 확인)
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
-                .eq('name', sName);
+                .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
 
             if (studentError) {
-                console.error("명단 확인 오류:", studentError);
-                alert("학생 정보 확인 중 오류가 발생했습니다.");
+                console.error("DB 조회 오류:", studentError);
+                alert("데이터베이스 조회 중 오류가 발생했습니다: " + studentError.message);
                 return;
             }
 
             if (!studentData || studentData.length === 0) {
-                alert(`'${sName}' 학생을 DB에서 찾을 수 없습니다. 이름 오타나 띄어쓰기를 확인해주세요.`);
+                // 학번이 없는 경우, 이름으로 검색해서 무엇이 문제인지 알려줌
+                const { data: nameData } = await supabaseClient.from('students').select('*').eq('name', sName);
+                if (nameData && nameData.length > 0) {
+                    alert(`'${sName}' 학생은 명단에 존재하지만, 입력하신 학번(${sId})이 DB에 등록된 정보와 다릅니다. 확인해주세요.`);
+                } else {
+                    alert(`입력하신 학번(${sId})과 이름('${sName}') 모두 DB에서 찾을 수 없습니다.`);
+                }
                 return;
             }
 
-            // 3. 자바스크립트에서 유연하게 문자/숫자를 일치시켜 검증 수행
-            const matchedStudent = studentData.find(student =>
-                Number(student.admission_year) === expectedAdmissionYear &&
-                String(student[gradeColumn]) === String(sId)
-            );
+            // 3. 학번이 일치하는 데이터 중에서 '이름' 일치 확인 (띄어쓰기 무시하여 유연하게 검증)
+            const inputNameClean = sName.replace(/\s+/g, '');
+            const matchedStudent = studentData.find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
 
-            // 4. 불일치할 경우 매우 상세한 디버깅용 에러 메시지 팝업
             if (!matchedStudent) {
-                let dbInfo = "";
-                studentData.forEach(s => {
-                    const dbId = s[gradeColumn] !== undefined ? s[gradeColumn] : "칼럼 없음(수파베이스 칼럼명 확인 요망)";
-                    dbInfo += `\n- DB입학년도: ${s.admission_year}, DB학번(${gradeColumn}): ${dbId}`;
-                });
-
-                alert(`'${sName}' 학생은 명단에 있지만, 학번이나 입학년도 조건이 맞지 않습니다.\n\n[입력된 계산 결과]\n- 예상 입학년도: ${expectedAdmissionYear}\n- 입력 학번: ${sId}\n\n[DB에 저장된 실제 정보]${dbInfo}`);
+                alert(`입력하신 학번(${sId})은 확인되나, 입력하신 이름('${sName}')과 DB에 등록된 이름이 다릅니다.`);
                 return;
             }
 
-            // 인증 성공 시 통과
+            // 4. 입학년도 검증 (DB에 입학년도가 실제로 입력된 경우에만 깐깐하게 비교)
+            if (matchedStudent.admission_year && Number(matchedStudent.admission_year) !== expectedAdmissionYear) {
+                alert(`[입학년도 불일치]\n시스템상 예상 입학년도는 ${expectedAdmissionYear}년이지만, DB에는 ${matchedStudent.admission_year}년으로 등록되어 있습니다. DB 데이터를 확인해주세요.`);
+                return;
+            }
+
+            // 인증 성공
             verifiedStudentId = sId;
-            verifiedStudentName = sName;
+            verifiedStudentName = matchedStudent.name; // DB의 정확한 이름 사용
 
             document.getElementById('step1Auth').classList.add('hidden');
             document.getElementById('step2Subject').classList.remove('hidden');
-            document.getElementById('authSuccessMessage').innerText = `인증 완료: ${sName} 학생, 신청할 과목을 선택해주세요.`;
+            document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
 
             loadSubjectsForStudent(studentGrade);
         }
