@@ -17,9 +17,8 @@
             color: #333;
         }
 
-        /* 통계화면 전용 넓은 컨테이너 (컴퓨터 화면용) */
         .container.wide {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             background: white;
             padding: 30px 20px;
@@ -32,6 +31,14 @@
             color: #2c3e50;
         }
 
+        .sub-desc {
+            text-align: center;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
         button {
             padding: 15px;
             border: none;
@@ -40,7 +47,7 @@
             font-size: 18px;
             font-weight: bold;
             color: white;
-            transition: 0.3s;
+            transition: 0.2s;
         }
 
         .btn-excel {
@@ -53,6 +60,11 @@
             width: 100%;
         }
 
+        .btn-reset {
+            background-color: #607D8B;
+            width: 100%;
+        }
+
         .btn-back {
             background-color: #e0e0e0;
             color: #333;
@@ -60,34 +72,11 @@
             margin-bottom: 20px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #ffe0b2;
-            font-weight: bold;
-        }
-
-        .empty-row td {
-            color: #888;
-            padding: 20px;
-        }
-
         .filter-box {
             background: #e9ecef;
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         select {
@@ -99,18 +88,221 @@
             font-size: 16px;
         }
 
-        .stat-total {
+        .help-box {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 13px;
+            color: #6d5300;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .help-box b {
+            color: #8a6500;
+        }
+
+        /* ---------------- 박스 캔버스 영역 ---------------- */
+        .stat-canvas-wrap {
+            border: 2px dashed #cfd8dc;
+            border-radius: 12px;
+            background-color: #fafcfb;
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 18px 18px;
+            overflow: auto;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        #canvas {
+            position: relative;
+            width: 100%;
+            min-height: 560px;
+            height: 560px;
+            user-select: none;
+        }
+
+        .node-box {
+            position: absolute;
+            cursor: grab;
+            box-sizing: border-box;
+        }
+
+        .node-box.dragging {
+            cursor: grabbing;
+            z-index: 50;
+            opacity: 0.9;
+        }
+
+        /* 단일 과목 박스 */
+        .subject-box {
+            min-width: 130px;
+            background: #ffffff;
+            border: 2px solid #ffcc80;
+            border-radius: 10px;
+            padding: 10px 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .subject-box .s-name {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+            word-break: keep-all;
+        }
+
+        .subject-box .s-count {
             font-weight: bold;
             color: #d32f2f;
-            font-size: 1.1em;
+            font-size: 16px;
         }
 
-        .stat-class-detail {
-            font-size: 0.9em;
-            color: #555;
+        .node-box.selected .subject-box,
+        .node-box.selected.group-box {
+            border-color: #1976D2 !important;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.25);
         }
 
-        /* 🖨️ 인쇄 시 화면 레이아웃 최적화 CSS */
+        /* 묶음(그룹) 박스 */
+        .group-box {
+            background: #e3f2fd;
+            border: 2px solid #90caf9;
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 200px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed #90caf9;
+            cursor: grab;
+        }
+
+        .group-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #0d47a1;
+        }
+
+        .group-total {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+
+        .group-ungroup-btn {
+            background: #ef5350;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 22px;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .group-children {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            cursor: default;
+        }
+
+        .child-chip {
+            position: relative;
+            background: white;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            text-align: center;
+            min-width: 70px;
+        }
+
+        .child-chip .c-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .child-chip .c-count {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .child-remove-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #9e9e9e;
+            color: white;
+            font-size: 10px;
+            line-height: 16px;
+            text-align: center;
+            cursor: pointer;
+            display: none;
+        }
+
+        .child-chip:hover .child-remove-btn {
+            display: block;
+        }
+
+        /* 마퀴(드래그 영역 선택) 사각형 */
+        #marquee {
+            position: absolute;
+            border: 1px dashed #1976D2;
+            background: rgba(25, 118, 210, 0.1);
+            pointer-events: none;
+            display: none;
+        }
+
+        /* 하단 플로팅 액션바 */
+        #floatingBar {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            background: #263238;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #floatingBar span {
+            font-size: 14px;
+        }
+
+        #floatingBar button {
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+
+        .btn-group-action {
+            background-color: #1976D2;
+        }
+
+        .btn-cancel-action {
+            background-color: #546e7a;
+        }
+
         @media print {
             body {
                 background-color: #fff;
@@ -126,20 +318,48 @@
 
             button,
             .filter-box,
-            .btn-back {
+            .btn-back,
+            .help-box,
+            #floatingBar,
+            .stat-canvas-wrap {
                 display: none !important;
             }
 
+            #printTableWrap {
+                display: block !important;
+            }
+
             table {
-                border-collapse: collapse;
                 width: 100%;
+                border-collapse: collapse;
             }
 
             th,
             td {
                 border: 1px solid #000;
                 padding: 10px;
+                text-align: center;
             }
+        }
+
+        #printTableWrap {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #ffe0b2;
         }
     </style>
 </head>
@@ -150,12 +370,11 @@
         <button class="btn-back" onclick="location.href='index.html'">🔙 메인 메뉴로 돌아가기</button>
 
         <h2>📈 과목별 신청 통계 현황</h2>
-        <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">폐강 및
-            합반(무학년제) 결정을 위해 전체 과목별 인원을 한눈에 파악합니다.</p>
+        <p class="sub-desc">박스를 자유롭게 배치하고, 합반(무학년제)으로 묶어볼 과목들을 직접 묶어보며 폐강/합반을 검토하세요.</p>
 
-        <div class="filter-box search-box" style="margin-bottom: 15px;">
+        <div class="filter-box">
             <label style="font-weight: bold; font-size: 14px;">학년 필터 (무학년제 파악 시 전체 조회 권장):</label>
-            <select id="statGradeFilter" onchange="generateStatistics()" style="margin-bottom: 0; margin-top: 5px;">
+            <select id="statGradeFilter" onchange="onFilterChange()" style="margin-bottom: 0; margin-top: 5px;">
                 <option value="all">전체 학년 모두 보기</option>
                 <option value="1">1학년만 보기</option>
                 <option value="2">2학년만 보기</option>
@@ -163,25 +382,49 @@
             </select>
         </div>
 
+        <div class="help-box">
+            💡 <b>사용법</b> — 박스를 마우스로 눌러서 이동할 수 있어요. <b>빈 공간을 드래그</b>하면 사각형 안에 걸리는 박스들이 한번에 선택됩니다(여러 개는 Shift+클릭으로
+            추가/제거).
+            2개 이상 선택하면 화면 아래 <b>"🔗 묶기"</b> 버튼이 나타나요 (또는 Ctrl+G). 묶음을 풀고 싶으면 묶음 박스 오른쪽 위의 <b>✕</b> 버튼을 누르세요.
+            묶음 안의 과목 하나만 빼고 싶다면 그 과목에 마우스를 올리면 작은 ✕가 나타납니다.
+        </div>
+
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button class="btn-excel" onclick="downloadStatExcel()">📥 엑셀 다운로드</button>
             <button class="btn-print" onclick="window.print()">🖨️ 통계 인쇄하기</button>
+            <button class="btn-reset" onclick="resetLayout()">🔄 레이아웃 초기화</button>
         </div>
 
-        <table id="statisticsTable">
-            <thead>
-                <tr>
-                    <th style="width: 40%;">과목명</th>
-                    <th style="width: 20%;">총 신청 인원</th>
-                    <th style="width: 40%;">학년/반별 세부 인원</th>
-                </tr>
-            </thead>
-            <tbody id="statisticsTableBody">
-                <tr>
-                    <td colspan="3">데이터를 불러오는 중입니다...</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="stat-canvas-wrap">
+            <div id="canvas">
+                <div id="marquee"></div>
+                <div id="emptyMsg"
+                    style="display:none; text-align:center; color:#888; padding-top: 220px; font-size: 15px;">
+                    데이터를 불러오는 중입니다...
+                </div>
+            </div>
+        </div>
+
+        <!-- 인쇄/엑셀용 숨김 표 (화면엔 안 보이고 인쇄/엑셀 변환 시에만 사용) -->
+        <div id="printTableWrap">
+            <table id="statisticsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">과목명</th>
+                        <th style="width: 15%;">신청 인원</th>
+                        <th style="width: 35%;">학년/반별 세부 인원</th>
+                        <th style="width: 20%;">묶음(합반) 그룹</th>
+                    </tr>
+                </thead>
+                <tbody id="statisticsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="floatingBar">
+        <span id="selCountText">0개 선택됨</span>
+        <button class="btn-group-action" onclick="groupSelected()">🔗 묶기 (Ctrl+G)</button>
+        <button class="btn-cancel-action" onclick="clearSelection()">선택 해제</button>
     </div>
 
     <script>
@@ -189,27 +432,42 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 페이지가 열리면 자동으로 통계 생성 시작
+        // ---- 상태 ----
+        let rootNodes = [];      // 캔버스 최상위 노드들 (type: 'subject' | 'group')
+        let selectedIds = new Set();
+        let nodeSeq = 1;
+        let groupSeq = 1;
+
+        const canvas = document.getElementById('canvas');
+        const marqueeEl = document.getElementById('marquee');
+
         window.onload = () => {
             generateStatistics();
         };
 
+        function onFilterChange() {
+            generateStatistics();
+        }
+
+        function storageKey() {
+            const g = document.getElementById('statGradeFilter').value;
+            return 'statLayout_' + g;
+        }
+
+        // ---------------- 데이터 로드 & 통계 연산 ----------------
         async function generateStatistics() {
-            const tbody = document.getElementById('statisticsTableBody');
-            tbody.innerHTML = '<tr><td colspan="3">데이터 분석 중...</td></tr>';
+            document.getElementById('emptyMsg').style.display = 'block';
+            document.getElementById('emptyMsg').innerText = '데이터 분석 중...';
 
             const gradeFilter = document.getElementById('statGradeFilter').value;
 
-            // 1. 전체 수강신청 데이터 불러오기
             const { data, error } = await supabaseClient.from('enrollments').select('*');
             if (error) {
                 alert("데이터를 불러오는데 실패했습니다.");
                 return;
             }
 
-            // 2. 필터 및 통계 로직 연산
             const stats = {};
-
             data.forEach(item => {
                 const sId = String(item.student_id);
                 if (sId.length !== 5) return;
@@ -223,46 +481,519 @@
                 if (!stats[subject]) {
                     stats[subject] = { total: 0, details: {} };
                 }
-
                 stats[subject].total += 1;
 
                 const classKey = `${grade}학년 ${cls}반`;
-                if (!stats[subject].details[classKey]) {
-                    stats[subject].details[classKey] = 0;
-                }
+                if (!stats[subject].details[classKey]) stats[subject].details[classKey] = 0;
                 stats[subject].details[classKey] += 1;
             });
 
-            // 3. 통계 결과를 화면에 렌더링
-            tbody.innerHTML = '';
             const subjectNames = Object.keys(stats).sort();
 
             if (subjectNames.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">신청 데이터가 없습니다.</td></tr>';
+                canvas.innerHTML = '';
+                document.getElementById('emptyMsg').innerText = '신청 데이터가 없습니다.';
+                canvas.appendChild(document.getElementById('emptyMsg'));
+                rootNodes = [];
+                renderPrintTable();
                 return;
             }
 
-            subjectNames.forEach(sub => {
-                const tr = document.createElement('tr');
-                const total = stats[sub].total;
+            document.getElementById('emptyMsg').style.display = 'none';
 
-                const detailsArr = [];
-                for (const [clsName, count] of Object.entries(stats[sub].details)) {
-                    detailsArr.push(`${clsName}(${count}명)`);
+            // 저장된 레이아웃 불러오기 시도
+            const saved = loadSavedLayout();
+            rootNodes = buildNodesFromStats(subjectNames, stats, saved);
+
+            renderCanvas();
+            renderPrintTable();
+        }
+
+        function buildNodesFromStats(subjectNames, stats, saved) {
+            // saved: { nodes: [...] } 구조. 저장된 배치/그룹을 최대한 유지하면서
+            // 새로 계산된 count/details 값만 최신으로 갱신한다.
+            const freshMap = {};
+            subjectNames.forEach(name => {
+                freshMap[name] = {
+                    subject: name,
+                    count: stats[name].total,
+                    details: stats[name].details
+                };
+            });
+
+            if (!saved || !saved.nodes) {
+                return autoLayout(subjectNames.map(name => ({
+                    id: 'n' + (nodeSeq++),
+                    type: 'subject',
+                    x: 0, y: 0,
+                    ...freshMap[name]
+                })));
+            }
+
+            // 저장된 구조를 순회하며 최신 데이터로 교체, 사라진 과목은 제외
+            const usedSubjects = new Set();
+            function rebuild(nodeList) {
+                const result = [];
+                nodeList.forEach(n => {
+                    if (n.type === 'subject') {
+                        if (freshMap[n.subject]) {
+                            usedSubjects.add(n.subject);
+                            result.push({
+                                id: n.id, type: 'subject', x: n.x, y: n.y,
+                                ...freshMap[n.subject]
+                            });
+                        }
+                    } else if (n.type === 'group') {
+                        const children = rebuild(n.children || []);
+                        if (children.length >= 1) {
+                            result.push({
+                                id: n.id, type: 'group', x: n.x, y: n.y,
+                                label: n.label, children
+                            });
+                        }
+                    }
+                });
+                return result;
+            }
+
+            let rebuilt = rebuild(saved.nodes);
+
+            // 새로 추가된 과목(저장된 레이아웃엔 없던 과목)은 빈 자리에 추가
+            const newOnes = subjectNames.filter(name => !usedSubjects.has(name));
+            const extra = newOnes.map(name => ({
+                id: 'n' + (nodeSeq++), type: 'subject', x: 0, y: 0, ...freshMap[name]
+            }));
+
+            if (extra.length > 0) {
+                const maxY = rebuilt.reduce((m, n) => Math.max(m, n.y || 0), 0);
+                extra.forEach((n, i) => {
+                    n.x = 20 + (i % 5) * 160;
+                    n.y = maxY + 140 + Math.floor(i / 5) * 110;
+                });
+            }
+
+            return rebuilt.concat(extra);
+        }
+
+        function autoLayout(nodes) {
+            const perRow = 5;
+            nodes.forEach((n, i) => {
+                n.x = 20 + (i % perRow) * 165;
+                n.y = 20 + Math.floor(i / perRow) * 110;
+            });
+            return nodes;
+        }
+
+        function resetLayout() {
+            if (!confirm('현재 화면의 배치와 그룹을 모두 초기화할까요?')) return;
+            localStorage.removeItem(storageKey());
+            generateStatistics();
+        }
+
+        // ---------------- 저장/로드 ----------------
+        function saveLayout() {
+            try {
+                localStorage.setItem(storageKey(), JSON.stringify({ nodes: rootNodes }));
+            } catch (e) { /* 저장 실패 시 무시 */ }
+        }
+
+        function loadSavedLayout() {
+            try {
+                const raw = localStorage.getItem(storageKey());
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ---------------- 렌더링 ----------------
+        function renderCanvas() {
+            // marquee, emptyMsg 요소는 유지하고 노드만 다시 그림
+            Array.from(canvas.querySelectorAll('.node-box')).forEach(el => el.remove());
+
+            let maxBottom = 560;
+
+            rootNodes.forEach(node => {
+                const el = createNodeElement(node);
+                canvas.appendChild(el);
+                const bottom = node.y + (el.offsetHeight || 90) + 30;
+                if (bottom > maxBottom) maxBottom = bottom;
+            });
+
+            canvas.style.height = maxBottom + 'px';
+            updateFloatingBar();
+        }
+
+        function createNodeElement(node) {
+            const el = document.createElement('div');
+            el.className = 'node-box' + (selectedIds.has(node.id) ? ' selected' : '');
+            el.style.left = node.x + 'px';
+            el.style.top = node.y + 'px';
+            el.dataset.id = node.id;
+
+            if (node.type === 'subject') {
+                el.innerHTML = `
+                    <div class="subject-box" title="${escapeHtml(detailString(node.details))}">
+                        <div class="s-name">${escapeHtml(node.subject)}</div>
+                        <div class="s-count">${node.count} 명</div>
+                    </div>
+                `;
+                attachDrag(el, node);
+            } else {
+                const total = sumGroup(node);
+                const box = document.createElement('div');
+                box.className = 'group-box';
+
+                const header = document.createElement('div');
+                header.className = 'group-header';
+                header.innerHTML = `
+                    <span class="group-title">🔗 묶음 (<span class="group-total">${total}명</span>)</span>
+                `;
+                const ungroupBtn = document.createElement('button');
+                ungroupBtn.className = 'group-ungroup-btn';
+                ungroupBtn.title = '묶음 전체 해제';
+                ungroupBtn.innerText = '✕';
+                ungroupBtn.onclick = (e) => { e.stopPropagation(); ungroupNode(node.id); };
+                header.appendChild(ungroupBtn);
+
+                const childrenWrap = document.createElement('div');
+                childrenWrap.className = 'group-children';
+                node.children.forEach(child => {
+                    childrenWrap.appendChild(createChildChip(node, child));
+                });
+
+                box.appendChild(header);
+                box.appendChild(childrenWrap);
+                el.appendChild(box);
+
+                attachDrag(el, node, header);
+            }
+
+            el.addEventListener('mousedown', (e) => onNodeMouseDown(e, node));
+            return el;
+        }
+
+        function createChildChip(group, child) {
+            const chip = document.createElement('div');
+            chip.className = 'child-chip';
+            if (child.type === 'subject') {
+                chip.innerHTML = `
+                    <div class="c-name" title="${escapeHtml(detailString(child.details))}">${escapeHtml(child.subject)}</div>
+                    <div class="c-count">${child.count}명</div>
+                `;
+            } else {
+                const t = sumGroup(child);
+                chip.innerHTML = `<div class="c-name">🔗 하위묶음</div><div class="c-count">${t}명</div>`;
+            }
+            const rm = document.createElement('div');
+            rm.className = 'child-remove-btn';
+            rm.innerText = '✕';
+            rm.title = '이 항목만 묶음에서 빼기';
+            rm.onclick = (e) => { e.stopPropagation(); removeChildFromGroup(group.id, child.id); };
+            chip.appendChild(rm);
+            return chip;
+        }
+
+        function sumGroup(node) {
+            if (node.type === 'subject') return node.count;
+            return node.children.reduce((s, c) => s + sumGroup(c), 0);
+        }
+
+        function detailString(details) {
+            if (!details) return '';
+            return Object.entries(details).map(([k, v]) => `${k}(${v}명)`).sort().join(' / ');
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.innerText = str;
+            return d.innerHTML;
+        }
+
+        // ---------------- 드래그(이동) ----------------
+        let dragState = null; // { node, startX, startY, origX, origY, moved }
+
+        function attachDrag(el, node, handleEl) {
+            // handleEl이 지정되면 그 부분(그룹 헤더)만 드래그 핸들, 없으면 el 전체
+        }
+
+        function onNodeMouseDown(e, node) {
+            if (e.target.closest('.child-remove-btn') || e.target.closest('.group-ungroup-btn')) return;
+            // 그룹인 경우 헤더에서만 드래그 시작 (자식 영역 클릭은 드래그 방지)
+            if (node.type === 'group' && !e.target.closest('.group-header')) {
+                // 자식 클릭 시에는 선택만 처리하지 않음(그룹 자체 선택으로 처리)
+            }
+            e.stopPropagation();
+            const canvasRect = canvas.getBoundingClientRect();
+            dragState = {
+                node,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                origX: node.x,
+                origY: node.y,
+                moved: false
+            };
+            document.addEventListener('mousemove', onNodeMouseMove);
+            document.addEventListener('mouseup', onNodeMouseUp);
+        }
+
+        function onNodeMouseMove(e) {
+            if (!dragState) return;
+            const dx = e.clientX - dragState.startClientX;
+            const dy = e.clientY - dragState.startClientY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+            if (!dragState.moved) return;
+
+            dragState.node.x = Math.max(0, dragState.origX + dx);
+            dragState.node.y = Math.max(0, dragState.origY + dy);
+
+            const el = canvas.querySelector(`.node-box[data-id="${dragState.node.id}"]`);
+            if (el) {
+                el.style.left = dragState.node.x + 'px';
+                el.style.top = dragState.node.y + 'px';
+                el.classList.add('dragging');
+            }
+        }
+
+        function onNodeMouseUp(e) {
+            document.removeEventListener('mousemove', onNodeMouseMove);
+            document.removeEventListener('mouseup', onNodeMouseUp);
+            if (!dragState) return;
+
+            const node = dragState.node;
+            const el = canvas.querySelector(`.node-box[data-id="${node.id}"]`);
+            if (el) el.classList.remove('dragging');
+
+            if (!dragState.moved) {
+                // 단순 클릭 -> 선택 토글
+                toggleSelect(node.id, e.shiftKey || e.ctrlKey || e.metaKey);
+            } else {
+                saveLayout();
+                const bottom = node.y + (el ? el.offsetHeight : 90) + 30;
+                if (bottom > canvas.offsetHeight) canvas.style.height = bottom + 'px';
+            }
+            dragState = null;
+        }
+
+        // ---------------- 선택(마퀴 + 클릭) ----------------
+        let marqueeState = null;
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.target !== canvas) return; // 빈 공간에서만 마퀴 시작
+            const rect = canvas.getBoundingClientRect();
+            marqueeState = {
+                startX: e.clientX - rect.left + canvas.scrollLeft,
+                startY: e.clientY - rect.top + canvas.scrollTop,
+                additive: e.shiftKey || e.ctrlKey || e.metaKey
+            };
+            if (!marqueeState.additive) clearSelection(false);
+            marqueeEl.style.display = 'block';
+            marqueeEl.style.left = marqueeState.startX + 'px';
+            marqueeEl.style.top = marqueeState.startY + 'px';
+            marqueeEl.style.width = '0px';
+            marqueeEl.style.height = '0px';
+            document.addEventListener('mousemove', onMarqueeMove);
+            document.addEventListener('mouseup', onMarqueeUp);
+        });
+
+        function onMarqueeMove(e) {
+            if (!marqueeState) return;
+            const rect = canvas.getBoundingClientRect();
+            const curX = e.clientX - rect.left + canvas.scrollLeft;
+            const curY = e.clientY - rect.top + canvas.scrollTop;
+
+            const x = Math.min(curX, marqueeState.startX);
+            const y = Math.min(curY, marqueeState.startY);
+            const w = Math.abs(curX - marqueeState.startX);
+            const h = Math.abs(curY - marqueeState.startY);
+
+            marqueeEl.style.left = x + 'px';
+            marqueeEl.style.top = y + 'px';
+            marqueeEl.style.width = w + 'px';
+            marqueeEl.style.height = h + 'px';
+
+            marqueeState.rect = { x, y, w, h };
+        }
+
+        function onMarqueeUp() {
+            document.removeEventListener('mousemove', onMarqueeMove);
+            document.removeEventListener('mouseup', onMarqueeUp);
+            marqueeEl.style.display = 'none';
+
+            if (marqueeState && marqueeState.rect && (marqueeState.rect.w > 4 || marqueeState.rect.h > 4)) {
+                const mRect = marqueeState.rect;
+                rootNodes.forEach(node => {
+                    const el = canvas.querySelector(`.node-box[data-id="${node.id}"]`);
+                    if (!el) return;
+                    const nx = node.x, ny = node.y;
+                    const nw = el.offsetWidth, nh = el.offsetHeight;
+                    const intersects = nx < mRect.x + mRect.w && nx + nw > mRect.x &&
+                        ny < mRect.y + mRect.h && ny + nh > mRect.y;
+                    if (intersects) selectedIds.add(node.id);
+                });
+                applySelectionClasses();
+            }
+            marqueeState = null;
+        }
+
+        function toggleSelect(id, additive) {
+            if (!additive) {
+                selectedIds.clear();
+                selectedIds.add(id);
+            } else {
+                if (selectedIds.has(id)) selectedIds.delete(id);
+                else selectedIds.add(id);
+            }
+            applySelectionClasses();
+        }
+
+        function clearSelection(update = true) {
+            selectedIds.clear();
+            if (update) applySelectionClasses();
+        }
+
+        function applySelectionClasses() {
+            canvas.querySelectorAll('.node-box').forEach(el => {
+                el.classList.toggle('selected', selectedIds.has(el.dataset.id));
+            });
+            updateFloatingBar();
+        }
+
+        function updateFloatingBar() {
+            const bar = document.getElementById('floatingBar');
+            if (selectedIds.size >= 2) {
+                bar.style.display = 'flex';
+                document.getElementById('selCountText').innerText = `${selectedIds.size}개 선택됨`;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        // ---------------- 그룹화 / 해제 ----------------
+        function groupSelected() {
+            if (selectedIds.size < 2) return;
+            const chosen = rootNodes.filter(n => selectedIds.has(n.id));
+            if (chosen.length < 2) return;
+
+            const minX = Math.min(...chosen.map(n => n.x));
+            const minY = Math.min(...chosen.map(n => n.y));
+
+            const groupNode = {
+                id: 'g' + (groupSeq++),
+                type: 'group',
+                x: minX,
+                y: minY,
+                label: '묶음' + groupSeq,
+                children: chosen
+            };
+
+            rootNodes = rootNodes.filter(n => !selectedIds.has(n.id));
+            rootNodes.push(groupNode);
+
+            selectedIds.clear();
+            selectedIds.add(groupNode.id);
+
+            renderCanvas();
+            renderPrintTable();
+            saveLayout();
+        }
+
+        function ungroupNode(groupId) {
+            const idx = rootNodes.findIndex(n => n.id === groupId);
+            if (idx === -1) return;
+            const group = rootNodes[idx];
+
+            const children = group.children.map((c, i) => ({
+                ...c,
+                x: group.x + (i % 4) * 165,
+                y: group.y + Math.floor(i / 4) * 110 + 100
+            }));
+
+            rootNodes.splice(idx, 1, ...children);
+            selectedIds.clear();
+
+            renderCanvas();
+            renderPrintTable();
+            saveLayout();
+        }
+
+        function removeChildFromGroup(groupId, childId) {
+            const group = rootNodes.find(n => n.id === groupId);
+            if (!group) return;
+
+            const childIdx = group.children.findIndex(c => c.id === childId);
+            if (childIdx === -1) return;
+            const child = group.children[childIdx];
+            group.children.splice(childIdx, 1);
+
+            const newNode = { ...child, x: group.x, y: group.y + 100 };
+            rootNodes.push(newNode);
+
+            if (group.children.length <= 1) {
+                // 묶음에 1개 이하 남으면 자동으로 묶음 해제
+                const gIdx = rootNodes.findIndex(n => n.id === groupId);
+                if (gIdx !== -1) {
+                    const remaining = rootNodes[gIdx].children;
+                    rootNodes.splice(gIdx, 1, ...remaining);
                 }
-                detailsArr.sort();
-                const detailsStr = detailsArr.join(' / ');
+            }
 
+            renderCanvas();
+            renderPrintTable();
+            saveLayout();
+        }
+
+        // ---------------- 키보드 단축키 ----------------
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                groupSelected();
+            } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                if (selectedIds.size === 1) {
+                    const id = Array.from(selectedIds)[0];
+                    const node = rootNodes.find(n => n.id === id);
+                    if (node && node.type === 'group') ungroupNode(id);
+                }
+            } else if (e.key === 'Escape') {
+                clearSelection();
+            }
+        });
+
+        // ---------------- 엑셀/인쇄용 표 생성 ----------------
+        function renderPrintTable() {
+            const tbody = document.getElementById('statisticsTableBody');
+            tbody.innerHTML = '';
+
+            function addRow(subject, count, details, groupLabel) {
+                const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-weight: bold; color: #333;">${sub}</td>
-                    <td class="stat-total">${total} 명</td>
-                    <td class="stat-class-detail">${detailsStr}</td>
+                    <td style="font-weight:bold;">${escapeHtml(subject)}</td>
+                    <td style="font-weight:bold; color:#d32f2f;">${count} 명</td>
+                    <td style="font-size:0.9em; color:#555;">${escapeHtml(detailString(details))}</td>
+                    <td>${groupLabel || '-'}</td>
                 `;
                 tbody.appendChild(tr);
-            });
+            }
+
+            function walk(nodes, groupLabel) {
+                nodes.forEach(n => {
+                    if (n.type === 'subject') {
+                        addRow(n.subject, n.count, n.details, groupLabel);
+                    } else {
+                        walk(n.children, n.label);
+                    }
+                });
+            }
+            walk(rootNodes, null);
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">신청 데이터가 없습니다.</td></tr>';
+            }
         }
 
         function downloadStatExcel() {
+            renderPrintTable();
             const table = document.getElementById('statisticsTable');
             const workbook = XLSX.utils.table_to_book(table, { sheet: "통계현황" });
             XLSX.writeFile(workbook, '소인수강좌_통계현황.xlsx');
