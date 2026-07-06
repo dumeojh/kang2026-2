@@ -137,9 +137,9 @@
 
         /* 단일 과목 박스 */
         .subject-box {
-            min-width: 160px;
+            min-width: 130px;
             background: #ffffff;
-            border: 3px solid #bbb;
+            border: 2px solid #ffcc80;
             border-radius: 10px;
             padding: 10px 12px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -162,106 +162,8 @@
 
         .node-box.selected .subject-box,
         .node-box.selected.group-box {
+            border-color: #1976D2 !important;
             box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.25);
-        }
-
-        /* ---------------- 학년별 색상 배지 (테두리로 학년 구분) ---------------- */
-        .grade-badges {
-            position: absolute;
-            top: -7px;
-            left: 10px;
-            display: flex;
-            gap: 3px;
-            z-index: 5;
-        }
-
-        .grade-dot {
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            border: 1.5px solid #fff;
-            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
-        }
-
-        .grade-legend {
-            display: flex;
-            gap: 18px;
-            flex-wrap: wrap;
-            align-items: center;
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 15px;
-            font-size: 13px;
-            color: #444;
-        }
-
-        .grade-legend .legend-title {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .grade-legend .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .grade-legend .legend-swatch {
-            width: 20px;
-            height: 0;
-            border-top-width: 4px;
-            border-top-style: solid;
-            display: inline-block;
-        }
-
-        /* ---------------- 최종선택과목 입력/저장 영역 ---------------- */
-        .final-row {
-            display: flex;
-            gap: 4px;
-            margin-top: 8px;
-            cursor: default;
-        }
-
-        .final-row input {
-            flex: 1;
-            min-width: 0;
-            padding: 5px 6px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 12px;
-            box-sizing: border-box;
-        }
-
-        .final-row .final-save-btn {
-            background: #1976D2;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 5px 10px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .final-row .final-save-btn:hover {
-            background: #1565c0;
-        }
-
-        .group-final-row {
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px dashed #90caf9;
-        }
-
-        .final-name-tag {
-            display: inline-block;
-            margin-top: 4px;
-            font-size: 11px;
-            color: #1976D2;
-            font-weight: bold;
         }
 
         /* 묶음(그룹) 박스 */
