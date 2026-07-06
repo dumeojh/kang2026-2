@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안성여고 소인수 강좌 시스템</title>
-    <!-- Supabase 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -45,31 +47,30 @@
             transition: 0.3s;
         }
 
-        /* 메인 메뉴 버튼 색상 */
         .btn-student {
             background-color: #4CAF50;
-        }
-
-        .btn-student:hover {
-            background-color: #45a049;
         }
 
         .btn-admin {
             background-color: #607D8B;
         }
 
-        .btn-admin:hover {
-            background-color: #546E7A;
+        .btn-list {
+            background-color: #9C27B0;
         }
 
-        /* 뒤로가기 버튼 */
+        /* 엑셀 다운로드 버튼 스타일 */
+        .btn-excel {
+            background-color: #217346;
+        }
+
+        /* 신청 내역 버튼 색상 */
         .btn-back {
             background-color: #e0e0e0;
             color: #333;
             margin-bottom: 20px;
         }
 
-        /* 입력창 스타일 */
         input[type="text"],
         select {
             width: 100%;
@@ -81,12 +82,10 @@
             font-size: 16px;
         }
 
-        /* 화면 숨김 처리용 클래스 */
         .hidden {
             display: none;
         }
 
-        /* 환경설정 리스트 스타일 */
         .subject-item {
             display: flex;
             justify-content: space-between;
@@ -109,21 +108,45 @@
         .btn-delete {
             background-color: #f44336;
         }
+
+        /* 테이블 (표) 스타일 추가 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        /* 표 데이터가 없을 때 표시할 행 */
+        .empty-row td {
+            color: #888;
+            padding: 20px;
+        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <!-- 1. 메인 메뉴 화면 -->
         <div id="mainMenu">
             <h1>소인수 강좌 시스템</h1>
             <p style="text-align: center; margin-bottom: 30px;">원하시는 메뉴를 선택해주세요.</p>
             <button class="btn-student" onclick="showSection('studentSection')">👨‍🎓 학생 소인수 과목 선택</button>
-            <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 환경설정 (관리자용)</button>
+            <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (관리자)</button>
+            <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 과목 환경설정 (관리자)</button>
         </div>
 
-        <!-- 2. 학생 수강신청 화면 -->
         <div id="studentSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>소인수 과목 신청</h2>
@@ -138,7 +161,6 @@
             <button class="btn-student" onclick="submitApplication()">신청하기</button>
         </div>
 
-        <!-- 3. 관리자 환경설정 화면 -->
         <div id="adminSection" class="hidden">
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 관리)</h2>
@@ -154,27 +176,54 @@
             <h3 style="margin-top: 30px;">등록된 과목 목록</h3>
             <div id="subjectList"></div>
         </div>
+
+        <div id="enrollmentListSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
+            <h2>📋 수강 신청 내역</h2>
+
+            <button class="btn-excel" onclick="downloadExcel()">📥 엑셀 파일로 다운로드</button>
+
+            <table id="enrollmentTable">
+                <thead>
+                    <tr>
+                        <th>학번</th>
+                        <th>이름</th>
+                        <th>신청 과목</th>
+                    </tr>
+                </thead>
+                <tbody id="enrollmentTableBody">
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
         // Supabase 설정 (본인 정보로 반드시 변경하세요)
-        const SUPABASE_URL = '본인의_SUPABASE_URL';
-        const SUPABASE_KEY = '본인의_SUPABASE_ANON_KEY';
+        const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co/rest/v1/';
+
+        //https://zfywndoukwuxseloxogj.supabase.co/rest/v1/
+
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+
+        //eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw
+
+
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // [화면 전환 기능]
         function showSection(sectionId) {
-            // 모든 섹션 숨기기
             document.getElementById('mainMenu').classList.add('hidden');
             document.getElementById('studentSection').classList.add('hidden');
             document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('enrollmentListSection').classList.add('hidden');
 
-            // 선택한 섹션만 보이기
             document.getElementById(sectionId).classList.remove('hidden');
 
-            // 환경설정 화면에 들어갈 때 자동으로 과목 목록 불러오기
+            // 해당 화면에 들어갈 때 자동으로 데이터 불러오기
             if (sectionId === 'adminSection') {
                 loadSubjects();
+            } else if (sectionId === 'enrollmentListSection') {
+                loadEnrollments();
             }
         }
 
@@ -215,6 +264,10 @@
                 alert("학번과 이름을 모두 입력해주세요.");
                 return;
             }
+            if (subject === "먼저 학번(5자리)을 입력해주세요" || subject === "등록된 과목이 없습니다." || subject === "") {
+                alert("신청할 과목을 올바르게 선택해주세요.");
+                return;
+            }
 
             const { error } = await supabase.from('enrollments').insert([
                 { student_id: sId, student_name: sName, subject_name: subject }
@@ -227,11 +280,11 @@
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
                 document.getElementById('subjectSelect').innerHTML = '<option>먼저 학번(5자리)을 입력해주세요</option>';
-                showSection('mainMenu'); // 완료 후 메인 메뉴로 이동
+                showSection('mainMenu');
             }
         }
 
-        // ---------------- [관리자 기능] ----------------
+        // ---------------- [환경설정(과목 관리) 기능] ----------------
 
         async function loadSubjects() {
             const { data, error } = await supabase.from('settings').select('*').order('grade', { ascending: true });
@@ -285,8 +338,55 @@
                 loadSubjects();
             }
         }
-    </script>
 
+        // ---------------- [수강신청 내역 확인 기능] ----------------
+
+        async function loadEnrollments() {
+            const { data, error } = await supabase
+                .from('enrollments')
+                .select('*')
+                .order('student_id', { ascending: true });
+
+            if (error) {
+                alert("신청 내역을 불러오는데 실패했습니다.");
+                console.error(error);
+                return;
+            }
+
+            const tbody = document.getElementById('enrollmentTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="3">아직 신청한 학생이 없습니다.</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${item.student_id}</td>
+                <td>${item.student_name}</td>
+                <td>${item.subject_name}</td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ---------------- [엑셀 다운로드 기능] ----------------
+
+        function downloadExcel() {
+            const table = document.getElementById('enrollmentTable');
+            const tbody = document.getElementById('enrollmentTableBody');
+
+            if (tbody.innerText.includes('아직 신청한 학생이 없습니다.')) {
+                alert("다운로드할 데이터가 없습니다.");
+                return;
+            }
+
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "신청명단" });
+            XLSX.writeFile(workbook, '소인수강좌_신청명단.xlsx');
+        }
+    </script>
 </body>
 
 </html>
