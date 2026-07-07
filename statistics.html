@@ -18,7 +18,8 @@
         }
 
         .container.wide {
-            max-width: 1100px;
+            max-width: 96%;
+            /* 화면을 넓게 쓰기 위해 96%로 변경 */
             margin: 0 auto;
             background: white;
             padding: 30px 20px;
@@ -115,8 +116,9 @@
         #canvas {
             position: relative;
             width: 100%;
-            min-height: 560px;
-            height: 560px;
+            min-height: 700px;
+            /* 작업 공간 세로 길이 확대 */
+            height: 700px;
             user-select: none;
         }
 
@@ -233,7 +235,6 @@
 
         .final-row .final-save-btn {
             width: auto;
-            /* 🔥 핵심: 기본 버튼의 width: 100% 속성을 덮어써서 무효화시킴 */
             background: #1976D2;
             color: white;
             border: none;
@@ -713,7 +714,7 @@
         function renderCanvas() {
             Array.from(canvas.querySelectorAll('.node-box')).forEach(el => el.remove());
 
-            let maxBottom = 560;
+            let maxBottom = 700;
 
             rootNodes.forEach(node => {
                 const el = createNodeElement(node);
