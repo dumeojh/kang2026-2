@@ -1008,3 +1008,178 @@
             if (marqueeState && marqueeState.rect && (marqueeState.rect.w > 4 || marqueeState.rect.h > 4)) {
                 const mRect = marqueeState.rect;
                 rootNodes.forEach(node => {
+                    const el = canvas.querySelector(`.node-box[data-id="${node.id}"]`);
+                    if (!el) return;
+                    const nx = node.x, ny = node.y;
+                    const nw = el.offsetWidth, nh = el.offsetHeight;
+                    const intersects = nx < mRect.x + mRect.w && nx + nw > mRect.x &&
+                        ny < mRect.y + mRect.h && ny + nh > mRect.y;
+                    if (intersects) selectedIds.add(node.id);
+                });
+                applySelectionClasses();
+            }
+            marqueeState = null;
+        }
+
+        function toggleSelect(id, additive) {
+            if (!additive) {
+                selectedIds.clear();
+                selectedIds.add(id);
+            } else {
+                if (selectedIds.has(id)) selectedIds.delete(id);
+                else selectedIds.add(id);
+            }
+            applySelectionClasses();
+        }
+
+        function clearSelection(update = true) {
+            selectedIds.clear();
+            if (update) applySelectionClasses();
+        }
+
+        function applySelectionClasses() {
+            canvas.querySelectorAll('.node-box').forEach(el => {
+                el.classList.toggle('selected', selectedIds.has(el.dataset.id));
+            });
+            updateFloatingBar();
+        }
+
+        function updateFloatingBar() {
+            const bar = document.getElementById('floatingBar');
+            if (selectedIds.size >= 2) {
+                bar.style.display = 'flex';
+                document.getElementById('selCountText').innerText = `${selectedIds.size}개 선택됨`;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function groupSelected() {
+            if (selectedIds.size < 2) return;
+            const chosen = rootNodes.filter(n => selectedIds.has(n.id));
+            if (chosen.length < 2) return;
+
+            const minX = Math.min(...chosen.map(n => n.x));
+            const minY = Math.min(...chosen.map(n => n.y));
+
+            const groupNode = {
+                id: 'g' + (groupSeq++),
+                type: 'group',
+                x: minX,
+                y: minY,
+                label: '묶음' + groupSeq,
+                children: chosen
+            };
+
+            rootNodes = rootNodes.filter(n => !selectedIds.has(n.id));
+            rootNodes.push(groupNode);
+
+            selectedIds.clear();
+            selectedIds.add(groupNode.id);
+
+            refreshAfterStructureChange();
+        }
+
+        function ungroupNode(groupId) {
+            const idx = rootNodes.findIndex(n => n.id === groupId);
+            if (idx === -1) return;
+            const group = rootNodes[idx];
+
+            const children = group.children.map((c, i) => ({
+                ...c,
+                x: group.x + (i % 4) * 165,
+                y: group.y + Math.floor(i / 4) * 110 + 100
+            }));
+
+            rootNodes.splice(idx, 1, ...children);
+            selectedIds.clear();
+
+            refreshAfterStructureChange();
+        }
+
+        function removeChildFromGroup(groupId, childId) {
+            const group = rootNodes.find(n => n.id === groupId);
+            if (!group) return;
+
+            const childIdx = group.children.findIndex(c => c.id === childId);
+            if (childIdx === -1) return;
+            const child = group.children[childIdx];
+            group.children.splice(childIdx, 1);
+
+            const newNode = { ...child, x: group.x, y: group.y + 100 };
+            rootNodes.push(newNode);
+
+            if (group.children.length <= 1) {
+                const gIdx = rootNodes.findIndex(n => n.id === groupId);
+                if (gIdx !== -1) {
+                    const remaining = rootNodes[gIdx].children;
+                    rootNodes.splice(gIdx, 1, ...remaining);
+                }
+            }
+
+            refreshAfterStructureChange();
+        }
+
+        function refreshAfterStructureChange() {
+            renderCanvas();
+            renderPrintTable();
+            saveLayout();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                groupSelected();
+            } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                if (selectedIds.size === 1) {
+                    const id = Array.from(selectedIds)[0];
+                    const node = rootNodes.find(n => n.id === id);
+                    if (node && node.type === 'group') ungroupNode(id);
+                }
+            } else if (e.key === 'Escape') {
+                clearSelection();
+            }
+        });
+
+        function renderPrintTable() {
+            const tbody = document.getElementById('statisticsTableBody');
+            tbody.innerHTML = '';
+
+            function addRow(subject, count, details, groupLabel) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:bold;">${escapeHtml(subject)}</td>
+                    <td style="font-weight:bold; color:#d32f2f;">${count} 명</td>
+                    <td style="font-size:0.9em; color:#555;">${escapeHtml(detailString(details))}</td>
+                    <td>${groupLabel || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            function walk(nodes, groupLabel) {
+                nodes.forEach(n => {
+                    if (n.type === 'subject') {
+                        addRow(n.subject, n.count, n.details, groupLabel);
+                    } else {
+                        walk(n.children, n.label);
+                    }
+                });
+            }
+            walk(rootNodes, null);
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">신청 데이터가 없습니다.</td></tr>';
+            }
+        }
+
+        function downloadStatExcel() {
+            renderPrintTable();
+            const table = document.getElementById('statisticsTable');
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "통계현황" });
+            XLSX.writeFile(workbook, '소인수강좌_통계현황.xlsx');
+        }
+    </script>
+</body>
+
+</html>
