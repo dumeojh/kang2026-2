@@ -224,10 +224,10 @@
         .final-row input {
             flex: 1;
             min-width: 0;
-            padding: 5px 6px;
+            padding: 8px 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 14px;
             box-sizing: border-box;
         }
 
@@ -236,11 +236,12 @@
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 5px 10px;
+            padding: 6px 12px;
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .final-row .final-save-btn:hover {
@@ -267,7 +268,7 @@
             border: 2px solid #90caf9;
             border-radius: 12px;
             padding: 10px;
-            min-width: 200px;
+            min-width: 250px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
@@ -503,7 +504,6 @@
             </div>
         </div>
 
-        <!-- 인쇄/엑셀용 숨김 표 (화면엔 안 보이고 인쇄/엑셀 변환 시에만 사용) -->
         <div id="printTableWrap">
             <table id="statisticsTable">
                 <thead>
