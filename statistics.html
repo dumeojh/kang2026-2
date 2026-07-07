@@ -48,27 +48,24 @@
             font-weight: bold;
             color: white;
             transition: 0.2s;
+            width: 100%;
         }
 
         .btn-excel {
             background-color: #217346;
-            width: 100%;
         }
 
         .btn-print {
             background-color: #3F51B5;
-            width: 100%;
         }
 
         .btn-reset {
             background-color: #607D8B;
-            width: 100%;
         }
 
         .btn-back {
             background-color: #e0e0e0;
             color: #333;
-            width: 100%;
             margin-bottom: 20px;
         }
 
@@ -401,6 +398,26 @@
             background-color: #546e7a;
         }
 
+        #printTableWrap {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #ffe0b2;
+        }
+
         @media print {
             body {
                 background-color: #fff;
@@ -427,37 +444,11 @@
                 display: block !important;
             }
 
-            table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
+            /* 인쇄 시에는 표 테두리만 진하게 덮어씀 (기본 표 스타일은 위에서 재사용) */
             th,
             td {
-                border: 1px solid #000;
-                padding: 10px;
-                text-align: center;
+                border-color: #000;
             }
-        }
-
-        #printTableWrap {
-            display: none;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #ffe0b2;
         }
     </style>
 </head>
@@ -756,20 +747,10 @@
                     <div class="subject-box" style="border-color:${borderColor};" title="${escapeHtml(detailString(node.details))}">
                         <div class="s-name">${escapeHtml(node.subject)}</div>
                         <div class="s-count">${node.count} 명</div>
-                        <div class="final-row">
-                            <input type="text" id="final_${node.id}" value="${escapeHtml(node.finalSubject || '')}" placeholder="최종 과목명">
-                            <button type="button" class="final-save-btn">저장</button>
-                        </div>
+                        <div class="final-row">${buildFinalRowHtml(node.id, node.finalSubject, '최종 과목명')}</div>
                     </div>
                 `;
-                const saveBtn = el.querySelector('.final-save-btn');
-                saveBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    saveFinalSubject([node.subject], node.id);
-                });
-                const finalInput = el.querySelector('.final-row input');
-                finalInput.addEventListener('click', (e) => e.stopPropagation());
-                attachDrag(el, node);
+                wireFinalRow(el.querySelector('.final-row'), node.id, [node.subject]);
             } else {
                 const total = sumGroup(node);
                 const groupGrades = collectGrades(node);
@@ -805,27 +786,33 @@
                 const gfs = groupFinalSubject(node);
                 const finalRow = document.createElement('div');
                 finalRow.className = 'final-row group-final-row';
-                finalRow.innerHTML = `
-                    <input type="text" id="final_${node.id}" value="${escapeHtml(gfs)}" placeholder="새 최종 과목명 입력 (예: 문학과매체 합반)">
-                    <button type="button" class="final-save-btn">저장</button>
-                `;
-                const groupSaveBtn = finalRow.querySelector('.final-save-btn');
-                groupSaveBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    saveFinalSubject(groupSubjectNames, node.id);
-                });
-                finalRow.querySelector('input').addEventListener('click', (e) => e.stopPropagation());
+                finalRow.innerHTML = buildFinalRowHtml(node.id, gfs, '새 최종 과목명 입력 (예: 문학과매체 합반)');
+                wireFinalRow(finalRow, node.id, groupSubjectNames);
 
                 box.appendChild(header);
                 box.appendChild(childrenWrap);
                 box.appendChild(finalRow);
                 el.appendChild(box);
-
-                attachDrag(el, node, header);
             }
 
             el.addEventListener('mousedown', (e) => onNodeMouseDown(e, node));
             return el;
+        }
+
+        // 최종선택과목 입력창 + 저장버튼 UI를 단일 과목/묶음 박스에서 공통으로 사용
+        function buildFinalRowHtml(nodeId, value, placeholder) {
+            return `
+                <input type="text" id="final_${nodeId}" value="${escapeHtml(value || '')}" placeholder="${placeholder}">
+                <button type="button" class="final-save-btn">저장</button>
+            `;
+        }
+
+        function wireFinalRow(rowEl, nodeId, subjectNamesForSave) {
+            rowEl.querySelector('.final-save-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                saveFinalSubject(subjectNamesForSave, nodeId);
+            });
+            rowEl.querySelector('input').addEventListener('click', (e) => e.stopPropagation());
         }
 
         function createChildChip(group, child) {
@@ -929,11 +916,9 @@
         }
 
         // ---------------- 드래그(이동) ----------------
+        // 드래그 시작은 각 노드의 mousedown 리스너(onNodeMouseDown)에서 처리한다.
+        // (그룹은 group-header 클릭만 드래그로 인정하도록 그 안에서 분기)
         let dragState = null; // { node, startX, startY, origX, origY, moved }
-
-        function attachDrag(el, node, handleEl) {
-            // handleEl이 지정되면 그 부분(그룹 헤더)만 드래그 핸들, 없으면 el 전체
-        }
 
         function onNodeMouseDown(e, node) {
             if (e.target.closest('.child-remove-btn') || e.target.closest('.group-ungroup-btn') || e.target.closest('.final-row')) return;
@@ -1111,9 +1096,7 @@
             selectedIds.clear();
             selectedIds.add(groupNode.id);
 
-            renderCanvas();
-            renderPrintTable();
-            saveLayout();
+            refreshAfterStructureChange();
         }
 
         function ungroupNode(groupId) {
@@ -1130,9 +1113,7 @@
             rootNodes.splice(idx, 1, ...children);
             selectedIds.clear();
 
-            renderCanvas();
-            renderPrintTable();
-            saveLayout();
+            refreshAfterStructureChange();
         }
 
         function removeChildFromGroup(groupId, childId) {
@@ -1156,6 +1137,11 @@
                 }
             }
 
+            refreshAfterStructureChange();
+        }
+
+        // 캔버스 구조(그룹/해제 등)가 바뀐 뒤 화면/표/저장을 한번에 갱신
+        function refreshAfterStructureChange() {
             renderCanvas();
             renderPrintTable();
             saveLayout();
