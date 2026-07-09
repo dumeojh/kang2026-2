@@ -224,6 +224,72 @@
             background-color: #ffe0b2;
         }
 
+        /* ---------------- [통계현황 표로보기] ---------------- */
+        #statTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+        }
+
+        #statTable th,
+        #statTable td {
+            border: 1px solid #e3e3e3;
+            padding: 9px 8px;
+            text-align: center;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        #statTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+        }
+
+        .stat-subject-cell {
+            text-align: left !important;
+            font-weight: bold;
+            color: #263238;
+            padding-left: 14px !important;
+            position: sticky;
+            left: 0;
+            background-color: #fff;
+            z-index: 2;
+            border-right: 2px solid #cfd8dc !important;
+            white-space: nowrap;
+        }
+
+        #statTableWrap thead th.stat-subject-cell {
+            z-index: 4;
+        }
+
+        #statTableBody tr:nth-child(even) td:not(.stat-subject-cell) {
+            background-color: #fafbfc;
+        }
+
+        #statTableBody tr:hover td:not(.stat-subject-cell) {
+            background-color: #eef5ff;
+        }
+
+        #statTableBody tr:hover td.stat-subject-cell {
+            background-color: #eef5ff;
+        }
+
+        .stat-total-row td {
+            border-top: 2px solid #9e9e9e;
+            background-color: #fff8e1;
+            font-weight: bold;
+        }
+
+        .stat-total-row td.stat-subject-cell {
+            background-color: #fff8e1;
+        }
+
+        .stat-empty-cell {
+            color: #cfd8dc;
+        }
+
         .stat-total {
             font-weight: bold;
             color: #d32f2f;
@@ -498,8 +564,27 @@
             <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📑 통계현황 표로보기</h2>
             <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
-                환경설정에 등록된 과목(1·2학년)을 기준으로, 반별 신청 인원을 한 눈에 볼 수 있는 표입니다. (3학년 제외)
+                환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
             </p>
+
+            <div class="filter-box" style="display: flex; gap: 25px; align-items: center; justify-content: center;">
+                <span style="font-weight: bold; color: #333;">🏷️ 표시할 학년:</span>
+                <label
+                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer;">
+                    <input type="checkbox" id="statGrade1" checked onchange="loadStatTable()"
+                        style="width:18px; height:18px; margin:0;"> 1학년
+                </label>
+                <label
+                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer;">
+                    <input type="checkbox" id="statGrade2" checked onchange="loadStatTable()"
+                        style="width:18px; height:18px; margin:0;"> 2학년
+                </label>
+                <label
+                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer;">
+                    <input type="checkbox" id="statGrade3" checked onchange="loadStatTable()"
+                        style="width:18px; height:18px; margin:0;"> 3학년
+                </label>
+            </div>
 
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadStatTableExcel()">📥 엑셀
@@ -507,31 +592,12 @@
                 <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 표 인쇄하기</button>
             </div>
 
-            <div style="overflow-x: auto;">
-                <table id="statTable" style="width: 100%; table-layout: fixed;">
-                    <thead>
-                        <tr>
-                            <th style="width: 14%;">과목</th>
-                            <th>1-1</th>
-                            <th>1-2</th>
-                            <th>1-3</th>
-                            <th>1-4</th>
-                            <th>1-5</th>
-                            <th>1-6</th>
-                            <th style="background-color:#ffcc80;">1학년 계</th>
-                            <th>2-1</th>
-                            <th>2-2</th>
-                            <th>2-3</th>
-                            <th>2-4</th>
-                            <th>2-5</th>
-                            <th>2-6</th>
-                            <th style="background-color:#ffcc80;">2학년 계</th>
-                            <th style="background-color:#ffab91;">과목 합계</th>
-                        </tr>
-                    </thead>
+            <div id="statTableWrap" style="overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <table id="statTable">
+                    <thead id="statTableHead"></thead>
                     <tbody id="statTableBody">
                         <tr class="empty-row">
-                            <td colspan="15">데이터를 불러오는 중입니다...</td>
+                            <td colspan="2">데이터를 불러오는 중입니다...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -723,44 +789,86 @@
 
         // ---------------- [통계현황 표로보기 기능] ----------------
 
+        const STAT_GRADE_COLOR = { '1': '#1976D2', '2': '#2E7D32', '3': '#E65100' };
+        const STAT_GRADE_BG = { '1': '#E3F2FD', '2': '#E8F5E9', '3': '#FFF3E0' };
+        const STAT_GRADE_TEXT = { '1': '#1565C0', '2': '#2E7D32', '3': '#E65100' };
+
         function escapeHtmlStat(str) {
             const d = document.createElement('div');
             d.innerText = str == null ? '' : str;
             return d.innerHTML;
         }
 
+        function getSelectedStatGrades() {
+            const grades = [];
+            if (document.getElementById('statGrade1').checked) grades.push('1');
+            if (document.getElementById('statGrade2').checked) grades.push('2');
+            if (document.getElementById('statGrade3').checked) grades.push('3');
+            return grades;
+        }
+
         async function loadStatTable() {
+            const theadEl = document.getElementById('statTableHead');
             const tbody = document.getElementById('statTableBody');
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="15">데이터를 불러오는 중입니다...</td></tr>';
+            const grades = getSelectedStatGrades();
 
-            // 1. 환경설정(settings)에 등록된 1학년/2학년 과목 목록을 순서대로 가져오기
-            const { data: subj1, error: subj1Err } = await supabaseClient
-                .from('settings').select('*').eq('grade', 1).order('display_order', { ascending: true });
-            const { data: subj2, error: subj2Err } = await supabaseClient
-                .from('settings').select('*').eq('grade', 2).order('display_order', { ascending: true });
+            if (grades.length === 0) {
+                theadEl.innerHTML = '<tr><th>과목</th></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td>위에서 학년을 하나 이상 선택해주세요.</td></tr>';
+                return;
+            }
 
-            if (subj1Err || subj2Err) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="15">과목 목록을 불러오는데 실패했습니다.</td></tr>';
+            theadEl.innerHTML = '';
+            tbody.innerHTML = '<tr class="empty-row"><td>데이터를 불러오는 중입니다...</td></tr>';
+
+            // 1. 환경설정(settings)에 등록된 선택 학년들의 과목 목록을 순서대로 가져와 합치기
+            const subjectResults = await Promise.all(
+                grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+            );
+
+            if (subjectResults.some(r => r.error)) {
+                tbody.innerHTML = '<tr class="empty-row"><td>과목 목록을 불러오는데 실패했습니다.</td></tr>';
                 return;
             }
 
             const subjectNames = [];
-            (subj1 || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
-            (subj2 || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
+            subjectResults.forEach(r => {
+                (r.data || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
+            });
 
             if (subjectNames.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="15">환경설정(과목 관리)에 등록된 1·2학년 과목이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td>환경설정(과목 관리)에 등록된 과목이 없습니다.</td></tr>';
                 return;
             }
 
-            // 2. 전체 신청 내역 가져오기
+            // 2. 학생 명단에서 선택 학년별 실제 반 구성(반 번호 목록) 가져오기
+            const { data: studentsData, error: studentsError } = await supabaseClient.from('students').select('*');
+            if (studentsError) {
+                tbody.innerHTML = '<tr class="empty-row"><td>학생 명단을 불러오는데 실패했습니다.</td></tr>';
+                return;
+            }
+
+            const gradeClasses = {};
+            grades.forEach(g => {
+                const col = `grade${g}_id`;
+                const set = new Set();
+                (studentsData || []).forEach(s => {
+                    const v = s[col];
+                    if (v && String(v).length === 5) set.add(parseInt(String(v).substring(1, 3), 10));
+                });
+                let list = Array.from(set).sort((a, b) => a - b);
+                if (list.length === 0) list = [1, 2, 3, 4, 5, 6]; // 학생 명단이 없을 때의 기본값
+                gradeClasses[g] = list;
+            });
+
+            // 3. 전체 신청 내역 가져오기
             const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
             if (enrollError) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="15">신청 내역을 불러오는데 실패했습니다.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td>신청 내역을 불러오는데 실패했습니다.</td></tr>';
                 return;
             }
 
-            // 3. 과목별/학년별/반별 인원 집계 (3학년은 제외)
+            // 4. 과목별/학년별/반별 인원 집계
             const counts = {};
             subjectNames.forEach(name => { counts[name] = {}; });
 
@@ -769,7 +877,7 @@
                 if (sId.length !== 5) return;
 
                 const grade = sId.charAt(0);
-                if (grade !== '1' && grade !== '2') return;
+                if (!grades.includes(grade)) return;
 
                 const cls = parseInt(sId.substring(1, 3), 10);
                 const subject = item.subject_name;
@@ -780,53 +888,73 @@
                 counts[subject][key] = (counts[subject][key] || 0) + 1;
             });
 
-            // 4. 표 렌더링
-            const colTotals = {};
-            for (let c = 1; c <= 6; c++) { colTotals[`1-${c}`] = 0; colTotals[`2-${c}`] = 0; }
-            let grade1Grand = 0, grade2Grand = 0;
+            renderStatHeader(grades, gradeClasses);
+            renderStatRows(subjectNames, grades, gradeClasses, counts);
+        }
 
+        function renderStatHeader(grades, gradeClasses) {
+            let row1 = `<tr><th class="stat-subject-cell" rowspan="2" style="min-width:130px;">과목</th>`;
+            let row2 = '<tr>';
+
+            grades.forEach(g => {
+                const classes = gradeClasses[g];
+                row1 += `<th colspan="${classes.length + 1}" style="background-color:${STAT_GRADE_COLOR[g]}; color:#fff;">${g}학년</th>`;
+                classes.forEach(c => {
+                    row2 += `<th style="background-color:${STAT_GRADE_BG[g]};">${c}반</th>`;
+                });
+                row2 += `<th style="background-color:${STAT_GRADE_COLOR[g]}; color:#fff;">${g}학년 계</th>`;
+            });
+
+            row1 += `<th rowspan="2" style="background-color:#B71C1C; color:#fff; min-width:90px;">과목 합계</th></tr>`;
+            row2 += '</tr>';
+
+            document.getElementById('statTableHead').innerHTML = row1 + row2;
+        }
+
+        function renderStatRows(subjectNames, grades, gradeClasses, counts) {
+            const colTotals = {};
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => { colTotals[`${g}-${c}`] = 0; });
+                colTotals[`${g}-total`] = 0;
+            });
+            let grandTotal = 0;
             let html = '';
 
             subjectNames.forEach(name => {
-                let g1Total = 0, g2Total = 0;
-                let cellsHtml = '';
+                let rowHtml = `<td class="stat-subject-cell">${escapeHtmlStat(name)}</td>`;
+                let subjectTotal = 0;
 
-                for (let c = 1; c <= 6; c++) {
-                    const val = counts[name][`1-${c}`] || 0;
-                    g1Total += val;
-                    colTotals[`1-${c}`] += val;
-                    cellsHtml += `<td style="${val > 0 ? 'font-weight:bold;color:#1565C0;' : 'color:#bbb;'}">${val > 0 ? val : '-'}</td>`;
-                }
-                cellsHtml += `<td style="background-color:#fff3e0; font-weight:bold; color:#d32f2f;">${g1Total > 0 ? g1Total : '-'}</td>`;
+                grades.forEach(g => {
+                    let gTotal = 0;
+                    gradeClasses[g].forEach(c => {
+                        const val = counts[name][`${g}-${c}`] || 0;
+                        gTotal += val;
+                        colTotals[`${g}-${c}`] += val;
+                        rowHtml += val > 0
+                            ? `<td style="font-weight:bold; color:${STAT_GRADE_TEXT[g]};">${val}</td>`
+                            : `<td class="stat-empty-cell">-</td>`;
+                    });
+                    colTotals[`${g}-total`] += gTotal;
+                    subjectTotal += gTotal;
+                    rowHtml += `<td style="background-color:${STAT_GRADE_BG[g]}; font-weight:bold; color:${STAT_GRADE_TEXT[g]};">${gTotal > 0 ? gTotal : '-'}</td>`;
+                });
 
-                for (let c = 1; c <= 6; c++) {
-                    const val = counts[name][`2-${c}`] || 0;
-                    g2Total += val;
-                    colTotals[`2-${c}`] += val;
-                    cellsHtml += `<td style="${val > 0 ? 'font-weight:bold;color:#2E7D32;' : 'color:#bbb;'}">${val > 0 ? val : '-'}</td>`;
-                }
-                cellsHtml += `<td style="background-color:#fff3e0; font-weight:bold; color:#d32f2f;">${g2Total > 0 ? g2Total : '-'}</td>`;
+                rowHtml += `<td style="background-color:#FFEBEE; font-weight:bold; color:#C62828;">${subjectTotal > 0 ? subjectTotal : '-'}</td>`;
+                grandTotal += subjectTotal;
 
-                const subjectTotal = g1Total + g2Total;
-                cellsHtml += `<td style="background-color:#ffebee; font-weight:bold; color:#d32f2f;">${subjectTotal > 0 ? subjectTotal : '-'}</td>`;
-
-                grade1Grand += g1Total;
-                grade2Grand += g2Total;
-
-                html += `<tr><td style="text-align:left; font-weight:bold;">${escapeHtmlStat(name)}</td>${cellsHtml}</tr>`;
+                html += `<tr>${rowHtml}</tr>`;
             });
 
-            // 합계(맨 아래) 행
-            let totalCellsHtml = '';
-            for (let c = 1; c <= 6; c++) totalCellsHtml += `<td>${colTotals[`1-${c}`]}</td>`;
-            totalCellsHtml += `<td style="background-color:#ffcc80;">${grade1Grand}</td>`;
-            for (let c = 1; c <= 6; c++) totalCellsHtml += `<td>${colTotals[`2-${c}`]}</td>`;
-            totalCellsHtml += `<td style="background-color:#ffcc80;">${grade2Grand}</td>`;
-            totalCellsHtml += `<td style="background-color:#ffab91;">${grade1Grand + grade2Grand}</td>`;
+            let totalRow = `<td class="stat-subject-cell">합계</td>`;
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => { totalRow += `<td>${colTotals[`${g}-${c}`]}</td>`; });
+                totalRow += `<td style="background-color:${STAT_GRADE_BG[g]};">${colTotals[`${g}-total`]}</td>`;
+            });
+            totalRow += `<td style="background-color:#FFCDD2;">${grandTotal}</td>`;
 
-            html += `<tr style="background-color:#f1f8e9;"><td style="text-align:left; font-weight:bold;">합계</td>${totalCellsHtml}</tr>`;
+            html += `<tr class="stat-total-row">${totalRow}</tr>`;
 
-            tbody.innerHTML = html;
+            document.getElementById('statTableBody').innerHTML = html;
         }
 
         function downloadStatTableExcel() {
