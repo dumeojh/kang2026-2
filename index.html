@@ -32,6 +32,11 @@
             max-width: 1000px;
         }
 
+        /* 통계현황 표(1~2학년 전체)를 노트북 화면 전체 폭으로 넓게 보기 위한 컨테이너 */
+        .container.full-wide {
+            max-width: 98%;
+        }
+
         h1,
         h2 {
             text-align: center;
@@ -503,10 +508,10 @@
             </div>
 
             <div style="overflow-x: auto;">
-                <table id="statTable" style="min-width: 1200px;">
+                <table id="statTable" style="width: 100%; table-layout: fixed;">
                     <thead>
                         <tr>
-                            <th style="min-width: 140px;">과목</th>
+                            <th style="width: 14%;">과목</th>
                             <th>1-1</th>
                             <th>1-2</th>
                             <th>1-3</th>
@@ -579,10 +584,11 @@
 
             document.getElementById(sectionId).classList.remove('hidden');
 
-            if (sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection' || sectionId === 'statTableSection') {
+            document.getElementById('mainContainer').classList.remove('wide', 'full-wide');
+            if (sectionId === 'statTableSection') {
+                document.getElementById('mainContainer').classList.add('full-wide');
+            } else if (sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection') {
                 document.getElementById('mainContainer').classList.add('wide');
-            } else {
-                document.getElementById('mainContainer').classList.remove('wide');
             }
 
             if (sectionId === 'adminSection') {
