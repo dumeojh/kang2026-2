@@ -13,149 +13,28 @@
         body {
             font-family: 'Malgun Gothic', sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f4f7f6;
             color: #333;
-            min-height: 100vh;
         }
 
-        /* 로그인 화면용 카드 (교사 PIN 입력) */
         .container {
-            max-width: 440px;
-            margin: 90px auto;
+            max-width: 600px;
+            margin: 0 auto;
             background: white;
-            padding: 40px 30px;
+            padding: 30px 20px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        /* ---------------- 상단 메뉴바 (컴퓨터 화면용 고정 헤더) ---------------- */
-        .topbar {
-            background: #1f2937;
-            padding: 0 32px;
-            min-height: 68px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            position: sticky;
-            top: 0;
-            z-index: 200;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+        /* 통계화면 전용 넓은 컨테이너 (컴퓨터 화면용) */
+        .container.wide {
+            max-width: 1000px;
         }
 
-        .topbar .brand {
-            color: #fff;
-            font-size: 18px;
-            font-weight: bold;
-            white-space: nowrap;
-            padding: 14px 0;
-        }
-
-        .topbar nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 10px 0;
-        }
-
-        .topbar nav button,
-        .topbar nav a {
-            width: auto;
-            margin-bottom: 0;
-            background: transparent;
-            border: none;
-            color: #cfd8dc;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: 0.2s;
-        }
-
-        .topbar nav button:hover,
-        .topbar nav a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        .topbar nav button.active {
-            background: #E64A19;
-            color: #fff;
-        }
-
-        .topbar nav a.ext {
-            color: #80cbc4;
-        }
-
-        /* ---------------- 본문 콘텐츠 영역 ---------------- */
-        .content-wrap {
-            max-width: 1040px;
-            margin: 32px auto;
-            padding: 0 24px 60px;
-            box-sizing: border-box;
-        }
-
-        .content-wrap.wide {
-            max-width: 1240px;
-        }
-
-        .content-wrap.full-wide {
+        /* 통계현황 표(1~2학년 전체)를 노트북 화면 전체 폭으로 넓게 보기 위한 컨테이너 */
+        .container.full-wide {
             max-width: 98%;
-        }
-
-        .section-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
-            padding: 34px 38px;
-            box-sizing: border-box;
-        }
-
-        /* ---------------- 홈 화면 바로가기 카드 ---------------- */
-        .quick-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 18px;
-            margin-bottom: 10px;
-        }
-
-        .quick-card {
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 26px 18px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .quick-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            border-color: #b0bec5;
-        }
-
-        .quick-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .quick-title {
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 6px;
-            font-size: 15px;
-        }
-
-        .quick-desc {
-            font-size: 13px;
-            color: #666;
-            line-height: 1.4;
         }
 
         h1,
@@ -452,20 +331,12 @@
                 margin: 0;
             }
 
-            .container,
-            .section-card {
+            .container {
                 box-shadow: none;
                 padding: 0;
                 max-width: 100%;
             }
 
-            .content-wrap {
-                margin: 0;
-                padding: 0;
-                max-width: 100%;
-            }
-
-            .topbar,
             button,
             .filter-box,
             .btn-back,
@@ -525,58 +396,23 @@
         </p>
     </div>
 
-    <div class="hidden" id="mainContainer">
-        <header class="topbar">
-            <div class="brand">🏫 소인수 강좌 관리 시스템</div>
-            <nav>
-                <button data-section="mainMenu" class="active" onclick="showSection('mainMenu')">🏠 홈</button>
-                <button data-section="classStatusSection" onclick="showSection('classStatusSection')">📊 반별 신청 현황</button>
-                <button data-section="enrollmentListSection" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인</button>
-                <button data-section="adminSection" onclick="showSection('adminSection')">⚙️ 과목 환경설정</button>
-                <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
-                <a href="statistics.html">📈 통계 현황 (박스형)</a>
-                <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
-            </nav>
-        </header>
-
-        <main class="content-wrap" id="contentWrap">
-
-        <div id="mainMenu" class="section-card">
+    <div class="container hidden" id="mainContainer">
+        <div id="mainMenu">
             <h1>🏫 소인수 강좌 관리 시스템</h1>
-            <p style="text-align: center; margin-bottom: 30px; color: #666;">위쪽 메뉴 또는 아래 카드를 선택해 이용하세요.</p>
-            <div class="quick-grid">
-                <div class="quick-card" onclick="showSection('classStatusSection')">
-                    <div class="quick-icon">📊</div>
-                    <div class="quick-title">반별 신청 현황</div>
-                    <div class="quick-desc">미신청자를 한눈에 확인합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('enrollmentListSection')">
-                    <div class="quick-icon">📋</div>
-                    <div class="quick-title">신청 내역 확인</div>
-                    <div class="quick-desc">전체 신청 명단을 조회합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('adminSection')">
-                    <div class="quick-icon">⚙️</div>
-                    <div class="quick-title">과목 환경설정</div>
-                    <div class="quick-desc">과목과 시스템 기준을 관리합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('statTableSection')">
-                    <div class="quick-icon">📑</div>
-                    <div class="quick-title">통계현황 표로보기</div>
-                    <div class="quick-desc">학년·반별 신청 인원을 표로 봅니다.</div>
-                </div>
-                <div class="quick-card" onclick="location.href='statistics.html'">
-                    <div class="quick-icon">📈</div>
-                    <div class="quick-title">통계 현황 (박스형)</div>
-                    <div class="quick-desc">과목별 인원을 자유롭게 배치해 폐강/합반을 검토합니다.</div>
-                </div>
-            </div>
-            <p style="text-align: center; margin-top: 10px; font-size: 13px;">
+            <p style="text-align: center; margin-bottom: 10px; color: #666;">교사용 관리 메뉴입니다.</p>
+            <p style="text-align: center; margin-bottom: 30px; font-size: 13px;">
                 <a href="student.html" target="_blank">👨‍🎓 학생용 신청 페이지 바로가기 →</a>
             </p>
+            <button class="btn-status" onclick="showSection('classStatusSection')">📊 반별 신청 현황 (미신청자 확인)</button>
+            <button class="btn-list" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인 (전체 명단)</button>
+            <button class="btn-admin" onclick="showSection('adminSection')">⚙️ 과목 환경설정 (관리자)</button>
+            <button class="btn-stat" onclick="location.href='statistics.html'">📈 통계 현황 (과목별 인원)</button>
+            <button class="btn-stat" style="background-color:#8E24AA;" onclick="showSection('statTableSection')">📑 통계현황
+                표로보기</button>
         </div>
 
-        <div id="classStatusSection" class="hidden section-card">
+        <div id="classStatusSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
             <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">DB에 등록된
                 명단을 바탕으로 미신청자를 한눈에 확인합니다.</p>
@@ -624,7 +460,8 @@
             </table>
         </div>
 
-        <div id="adminSection" class="hidden section-card">
+        <div id="adminSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>환경설정 (과목 및 시스템 관리)</h2>
 
             <div class="system-box">
@@ -676,7 +513,8 @@
             <div id="subjectList"></div>
         </div>
 
-        <div id="enrollmentListSection" class="hidden section-card">
+        <div id="enrollmentListSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📋 수강 신청 내역 (전체 명단)</h2>
 
             <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
@@ -722,7 +560,8 @@
             </table>
         </div>
 
-        <div id="statTableSection" class="hidden section-card">
+        <div id="statTableSection" class="hidden">
+            <button class="btn-back" onclick="showSection('mainMenu')">🔙 메인 메뉴로 돌아가기</button>
             <h2>📑 통계현황 표로보기</h2>
             <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
                 환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
@@ -765,7 +604,6 @@
             </div>
         </div>
 
-        </main>
     </div>
 
     <script>
@@ -793,17 +631,6 @@
         function unlockTeacherScreen() {
             document.getElementById('lockScreen').classList.add('hidden');
             document.getElementById('mainContainer').classList.remove('hidden');
-            openSectionFromQuery();
-        }
-
-        // statistics.html 등 다른 페이지에서 ?section=xxx 형태로 들어왔을 때 해당 메뉴를 바로 열어줍니다.
-        function openSectionFromQuery() {
-            const params = new URLSearchParams(window.location.search);
-            const section = params.get('section');
-            const validSections = ['mainMenu', 'classStatusSection', 'enrollmentListSection', 'adminSection', 'statTableSection'];
-            if (section && validSections.includes(section)) {
-                showSection(section);
-            }
         }
 
         if (sessionStorage.getItem('teacherAuthed') === 'true') {
@@ -823,18 +650,12 @@
 
             document.getElementById(sectionId).classList.remove('hidden');
 
-            document.querySelectorAll('.topbar nav button').forEach(b => b.classList.remove('active'));
-            const navBtn = document.querySelector(`.topbar nav button[data-section="${sectionId}"]`);
-            if (navBtn) navBtn.classList.add('active');
-
-            document.getElementById('contentWrap').classList.remove('wide', 'full-wide');
+            document.getElementById('mainContainer').classList.remove('wide', 'full-wide');
             if (sectionId === 'statTableSection') {
-                document.getElementById('contentWrap').classList.add('full-wide');
+                document.getElementById('mainContainer').classList.add('full-wide');
             } else if (sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection') {
-                document.getElementById('contentWrap').classList.add('wide');
+                document.getElementById('mainContainer').classList.add('wide');
             }
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
 
             if (sectionId === 'adminSection') {
                 loadSystemSettings();

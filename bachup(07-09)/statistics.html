@@ -12,90 +12,19 @@
         body {
             font-family: 'Malgun Gothic', sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f4f7f6;
             color: #333;
-            min-height: 100vh;
         }
 
-        /* ---------------- 상단 메뉴바 (index.html과 동일한 스타일) ---------------- */
-        .topbar {
-            background: #1f2937;
-            padding: 0 32px;
-            min-height: 68px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            position: sticky;
-            top: 0;
-            z-index: 200;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-        }
-
-        .topbar .brand {
-            color: #fff;
-            font-size: 18px;
-            font-weight: bold;
-            white-space: nowrap;
-            padding: 14px 0;
-        }
-
-        .topbar nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 10px 0;
-        }
-
-        .topbar nav a,
-        .topbar nav span {
-            width: auto;
-            margin-bottom: 0;
-            background: transparent;
-            border: none;
-            color: #cfd8dc;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: 0.2s;
-            display: inline-block;
-        }
-
-        .topbar nav a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        .topbar nav span.active {
-            background: #E64A19;
-            color: #fff;
-            cursor: default;
-        }
-
-        .topbar nav a.ext {
-            color: #80cbc4;
-        }
-
-        /* ---------------- 본문 콘텐츠 영역 ---------------- */
-        .content-wrap {
-            max-width: 98%;
-            margin: 32px auto;
-            padding: 0 24px 60px;
-            box-sizing: border-box;
-        }
-
-        .section-card {
-            background: #fff;
+        .container.wide {
+            max-width: 96%;
+            /* 화면을 넓게 쓰기 위해 96%로 변경 */
+            margin: 0 auto;
+            background: white;
+            padding: 30px 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
-            padding: 34px 38px;
-            box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         h2 {
@@ -502,19 +431,12 @@
                 margin: 0;
             }
 
-            .section-card {
+            .container {
                 box-shadow: none;
                 padding: 0;
                 max-width: 100%;
             }
 
-            .content-wrap {
-                margin: 0;
-                padding: 0;
-                max-width: 100%;
-            }
-
-            .topbar,
             button,
             .filter-box,
             .btn-back,
@@ -538,21 +460,8 @@
 
 <body>
 
-    <header class="topbar">
-        <div class="brand">🏫 소인수 강좌 관리 시스템</div>
-        <nav>
-            <a href="index.html?section=mainMenu">🏠 홈</a>
-            <a href="index.html?section=classStatusSection">📊 반별 신청 현황</a>
-            <a href="index.html?section=enrollmentListSection">📋 신청 내역 확인</a>
-            <a href="index.html?section=adminSection">⚙️ 과목 환경설정</a>
-            <a href="index.html?section=statTableSection">📑 통계현황 표로보기</a>
-            <span class="active">📈 통계 현황 (박스형)</span>
-            <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
-        </nav>
-    </header>
-
-    <main class="content-wrap">
-    <div class="section-card">
+    <div class="container wide">
+        <button class="btn-back" onclick="location.href='index.html'">🔙 메인 메뉴로 돌아가기</button>
 
         <h2>📈 과목별 신청 통계 현황</h2>
         <p class="sub-desc">박스를 자유롭게 배치하고, 합반(무학년제)으로 묶어볼 과목들을 직접 묶어보며 폐강/합반을 검토하세요.</p>
@@ -613,7 +522,6 @@
             </table>
         </div>
     </div>
-    </main>
 
     <div id="floatingBar">
         <span id="selCountText">0개 선택됨</span>
