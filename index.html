@@ -627,6 +627,7 @@
             padding: 4px;
             text-align: center;
             font-size: 13px;
+            box-sizing: border-box;
         }
 
         table.attendance-table thead th {
@@ -648,8 +649,9 @@
 
         .att-head-label {
             display: block;
-            font-size: 11px;
-            color: #b0bec5;
+            font-size: 10px;
+            font-weight: normal;
+            color: #dde1e4;
             line-height: 1.2;
         }
 
@@ -716,6 +718,28 @@
             .attendance-table-wrap {
                 overflow: visible;
                 border: none;
+            }
+
+            table.attendance-table {
+                width: 100%;
+                table-layout: fixed;
+            }
+
+            table.attendance-table th,
+            table.attendance-table td {
+                padding: 3px 1px;
+                font-size: 11px;
+            }
+
+            .attendance-id-header {
+                min-width: 0;
+            }
+
+            .attendance-date-header,
+            .attendance-sign-header,
+            .attendance-check-cell {
+                min-width: 0;
+                width: auto;
             }
 
             .final-subject-input input {
