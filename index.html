@@ -649,15 +649,23 @@
         .att-head-label {
             display: block;
             font-size: 11px;
-            color: #455a64;
+            color: #b0bec5;
             line-height: 1.2;
         }
 
         .att-session-no {
             display: block;
-            font-size: 10px;
-            color: #90a4ae;
-            font-weight: normal;
+            font-size: 11px;
+            color: #455a64;
+            font-weight: bold;
+        }
+
+        .att-slash {
+            display: block;
+            font-size: 15px;
+            font-weight: bold;
+            color: #263238;
+            line-height: 1.4;
         }
 
         .attendance-check-cell {
@@ -1855,7 +1863,7 @@
                 let coTeacherHeaderCells = '';
                 let instructorHeaderCells = '';
                 for (let session = startSession; session <= endSession; session++) {
-                    dateHeaderCells += `<th class="attendance-date-header"><span class="att-head-label">날짜</span><span class="att-session-no">${session}회차</span></th>`;
+                    dateHeaderCells += `<th class="attendance-date-header"><span class="att-session-no">${session}회차</span><span class="att-slash">/</span></th>`;
                     coTeacherHeaderCells += `<th class="attendance-sign-header"><span class="att-head-label">협력교사<br>사인</span></th>`;
                     instructorHeaderCells += `<th class="attendance-sign-header"><span class="att-head-label">강사<br>사인</span></th>`;
                 }
