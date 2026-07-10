@@ -323,6 +323,57 @@
             margin-bottom: 20px;
         }
 
+        /* ---------------- 한 줄 툴바 (필터 + 액션버튼) ---------------- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #eef1f2;
+            border: 1px solid #e0e3e5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar-filters {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .toolbar-filters label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #546e7a;
+            white-space: nowrap;
+        }
+
+        .toolbar-filters select {
+            width: auto;
+            min-width: 130px;
+            margin-bottom: 0;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-actions button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 9px 16px;
+            font-size: 14px;
+        }
+
         .system-box {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -530,8 +581,10 @@
             <div class="brand">🏫 소인수 강좌 관리 시스템</div>
             <nav>
                 <button data-section="mainMenu" class="active" onclick="showSection('mainMenu')">🏠 홈</button>
-                <button data-section="classStatusSection" onclick="showSection('classStatusSection')">📊 반별 신청 현황</button>
-                <button data-section="enrollmentListSection" onclick="showSection('enrollmentListSection')">📋 신청 내역 확인</button>
+                <button data-section="classStatusSection" onclick="showSection('classStatusSection')">📊 반별 신청
+                    현황</button>
+                <button data-section="enrollmentListSection" onclick="showSection('enrollmentListSection')">📋 신청 내역
+                    확인</button>
                 <button data-section="adminSection" onclick="showSection('adminSection')">⚙️ 과목 환경설정</button>
                 <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
                 <a href="statistics.html">📈 통계 현황 (박스형)</a>
@@ -541,229 +594,223 @@
 
         <main class="content-wrap" id="contentWrap">
 
-        <div id="mainMenu" class="section-card">
-            <h1>🏫 소인수 강좌 관리 시스템</h1>
-            <p style="text-align: center; margin-bottom: 30px; color: #666;">위쪽 메뉴 또는 아래 카드를 선택해 이용하세요.</p>
-            <div class="quick-grid">
-                <div class="quick-card" onclick="showSection('classStatusSection')">
-                    <div class="quick-icon">📊</div>
-                    <div class="quick-title">반별 신청 현황</div>
-                    <div class="quick-desc">미신청자를 한눈에 확인합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('enrollmentListSection')">
-                    <div class="quick-icon">📋</div>
-                    <div class="quick-title">신청 내역 확인</div>
-                    <div class="quick-desc">전체 신청 명단을 조회합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('adminSection')">
-                    <div class="quick-icon">⚙️</div>
-                    <div class="quick-title">과목 환경설정</div>
-                    <div class="quick-desc">과목과 시스템 기준을 관리합니다.</div>
-                </div>
-                <div class="quick-card" onclick="showSection('statTableSection')">
-                    <div class="quick-icon">📑</div>
-                    <div class="quick-title">통계현황 표로보기</div>
-                    <div class="quick-desc">학년·반별 신청 인원을 표로 봅니다.</div>
-                </div>
-                <div class="quick-card" onclick="location.href='statistics.html'">
-                    <div class="quick-icon">📈</div>
-                    <div class="quick-title">통계 현황 (박스형)</div>
-                    <div class="quick-desc">과목별 인원을 자유롭게 배치해 폐강/합반을 검토합니다.</div>
-                </div>
-            </div>
-            <p style="text-align: center; margin-top: 10px; font-size: 13px;">
-                <a href="student.html" target="_blank">👨‍🎓 학생용 신청 페이지 바로가기 →</a>
-            </p>
-        </div>
-
-        <div id="classStatusSection" class="hidden section-card">
-            <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
-            <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">DB에 등록된
-                명단을 바탕으로 미신청자를 한눈에 확인합니다.</p>
-
-            <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
-                <div style="flex: 1;">
-                    <label style="font-weight: bold; font-size: 14px;">학년 선택:</label>
-                    <select id="statusGrade" onchange="loadClassStatusDropdown()"
-                        style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" disabled selected hidden>(학년 선택)</option>
-                        <option value="1">1학년</option>
-                        <option value="2">2학년</option>
-                        <option value="3">3학년</option>
-                    </select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="font-weight: bold; font-size: 14px;">반 선택:</label>
-                    <select id="statusClass" onchange="renderClassStatusTable()"
-                        style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" disabled selected hidden>(반 선택)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadStatusExcel()">📥 엑셀 다운로드</button>
-                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
-            </div>
-
-            <table id="statusTable">
-                <thead>
-                    <tr>
-                        <th>연번</th>
-                        <th>학번</th>
-                        <th>이름</th>
-                        <th>신청 과목</th>
-                        <th>최종선택</th>
-                    </tr>
-                </thead>
-                <tbody id="statusTableBody">
-                    <tr class="empty-row">
-                        <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div id="adminSection" class="hidden section-card">
-            <h2>환경설정 (과목 및 시스템 관리)</h2>
-
-            <div class="system-box">
-                <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
-                <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면, 나머지 학년의
-                    입학년도는 <strong>자동으로 계산되어</strong> 학생 명단을 대조합니다.</p>
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label style="font-weight: bold; font-size: 14px;">기준 입학년도:</label>
-                        <input type="number" id="sysAdmissionYear" placeholder="예: 2026" style="margin-bottom: 10px;">
+            <div id="mainMenu" class="section-card">
+                <h1>🏫 소인수 강좌 관리 시스템</h1>
+                <p style="text-align: center; margin-bottom: 30px; color: #666;">위쪽 메뉴 또는 아래 카드를 선택해 이용하세요.</p>
+                <div class="quick-grid">
+                    <div class="quick-card" onclick="showSection('classStatusSection')">
+                        <div class="quick-icon">📊</div>
+                        <div class="quick-title">반별 신청 현황</div>
+                        <div class="quick-desc">미신청자를 한눈에 확인합니다.</div>
                     </div>
-                    <div style="flex: 1;">
-                        <label style="font-weight: bold; font-size: 14px;">기준 학년:</label>
-                        <select id="sysTargetGrade" style="margin-bottom: 10px;">
+                    <div class="quick-card" onclick="showSection('enrollmentListSection')">
+                        <div class="quick-icon">📋</div>
+                        <div class="quick-title">신청 내역 확인</div>
+                        <div class="quick-desc">전체 신청 명단을 조회합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('adminSection')">
+                        <div class="quick-icon">⚙️</div>
+                        <div class="quick-title">과목 환경설정</div>
+                        <div class="quick-desc">과목과 시스템 기준을 관리합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('statTableSection')">
+                        <div class="quick-icon">📑</div>
+                        <div class="quick-title">통계현황 표로보기</div>
+                        <div class="quick-desc">학년·반별 신청 인원을 표로 봅니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="location.href='statistics.html'">
+                        <div class="quick-icon">📈</div>
+                        <div class="quick-title">통계 현황 (박스형)</div>
+                        <div class="quick-desc">과목별 인원을 자유롭게 배치해 폐강/합반을 검토합니다.</div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 10px; font-size: 13px;">
+                    <a href="student.html" target="_blank">👨‍🎓 학생용 신청 페이지 바로가기 →</a>
+                </p>
+            </div>
+
+            <div id="classStatusSection" class="hidden section-card">
+                <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
+                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">DB에
+                    등록된
+                    명단을 바탕으로 미신청자를 한눈에 확인합니다.</p>
+
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <label for="statusGrade">학년</label>
+                        <select id="statusGrade" onchange="loadClassStatusDropdown()">
+                            <option value="none" disabled selected hidden>(학년 선택)</option>
                             <option value="1">1학년</option>
                             <option value="2">2학년</option>
                             <option value="3">3학년</option>
                         </select>
+                        <label for="statusClass">반</label>
+                        <select id="statusClass" onchange="renderClassStatusTable()">
+                            <option value="none" disabled selected hidden>(반 선택)</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn-excel" onclick="downloadStatusExcel()">📥 엑셀 다운로드</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ 명단 인쇄하기</button>
                     </div>
                 </div>
-                <button class="btn-admin"
-                    style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
-                    onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
+
+                <table id="statusTable">
+                    <thead>
+                        <tr>
+                            <th>연번</th>
+                            <th>학번</th>
+                            <th>이름</th>
+                            <th>신청 과목</th>
+                            <th>최종선택</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statusTableBody">
+                        <tr class="empty-row">
+                            <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
-            <div class="filter-box">
-                <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
-                <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
-                    <option value="1">1학년</option>
-                    <option value="2">2학년</option>
-                    <option value="3">3학년</option>
-                </select>
-            </div>
+            <div id="adminSection" class="hidden section-card">
+                <h2>환경설정 (과목 및 시스템 관리)</h2>
 
-            <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+                <div class="system-box">
+                    <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
+                    <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면, 나머지 학년의
+                        입학년도는 <strong>자동으로 계산되어</strong> 학생 명단을 대조합니다.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold; font-size: 14px;">기준 입학년도:</label>
+                            <input type="number" id="sysAdmissionYear" placeholder="예: 2026"
+                                style="margin-bottom: 10px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold; font-size: 14px;">기준 학년:</label>
+                            <select id="sysTargetGrade" style="margin-bottom: 10px;">
+                                <option value="1">1학년</option>
+                                <option value="2">2학년</option>
+                                <option value="3">3학년</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-admin"
+                        style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
+                        onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
+                </div>
 
-            <h3>새 과목 추가</h3>
-            <div class="input-group" style="margin-bottom: 15px;">
-                <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
-                <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
-            </div>
-            <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
-
-            <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
-            <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서 이동한 후 반드시 저장
-                버튼을 누르세요.</p>
-            <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
-
-            <div id="subjectList"></div>
-        </div>
-
-        <div id="enrollmentListSection" class="hidden section-card">
-            <h2>📋 수강 신청 내역 (전체 명단)</h2>
-
-            <div class="filter-box search-box" style="display: flex; gap: 10px; align-items: flex-end;">
-                <div style="flex: 1;">
-                    <label style="font-weight: bold; font-size: 14px;">학년 검색:</label>
-                    <select id="searchGrade" onchange="updateClassDropdown()"
-                        style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" selected disabled hidden>(학년 선택)</option>
-                        <option value="all">전체학년</option>
+                <div class="filter-box">
+                    <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
+                    <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
                         <option value="1">1학년</option>
                         <option value="2">2학년</option>
                         <option value="3">3학년</option>
                     </select>
                 </div>
-                <div style="flex: 1;">
-                    <label style="font-weight: bold; font-size: 14px;">반 검색:</label>
-                    <select id="searchClass" onchange="filterEnrollments()" style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="none" selected disabled hidden>(반 선택)</option>
-                    </select>
+
+                <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+
+                <h3>새 과목 추가</h3>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
+                    <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
                 </div>
+                <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
+
+                <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
+                <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서 이동한 후 반드시
+                    저장
+                    버튼을 누르세요.</p>
+                <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
+
+                <div id="subjectList"></div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadExcel()">📥 엑셀 다운로드</button>
-                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 명단 인쇄하기</button>
-            </div>
+            <div id="enrollmentListSection" class="hidden section-card">
+                <h2>📋 수강 신청 내역 (전체 명단)</h2>
 
-            <table id="enrollmentTable">
-                <thead>
-                    <tr>
-                        <th>연번</th>
-                        <th>학번</th>
-                        <th>이름</th>
-                        <th>신청 과목</th>
-                        <th>최종선택</th>
-                    </tr>
-                </thead>
-                <tbody id="enrollmentTableBody">
-                    <tr class="empty-row">
-                        <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <label for="searchGrade">학년</label>
+                        <select id="searchGrade" onchange="updateClassDropdown()">
+                            <option value="none" selected disabled hidden>(학년 선택)</option>
+                            <option value="all">전체학년</option>
+                            <option value="1">1학년</option>
+                            <option value="2">2학년</option>
+                            <option value="3">3학년</option>
+                        </select>
+                        <label for="searchClass">반</label>
+                        <select id="searchClass" onchange="filterEnrollments()">
+                            <option value="none" selected disabled hidden>(반 선택)</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn-excel" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ 명단 인쇄하기</button>
+                    </div>
+                </div>
 
-        <div id="statTableSection" class="hidden section-card">
-            <h2>📑 통계현황 표로보기</h2>
-            <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
-                환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
-            </p>
-
-            <div class="filter-box" style="display: flex; gap: 25px; align-items: center; justify-content: center;">
-                <span style="font-weight: bold; color: #333;">🏷️ 표시할 학년:</span>
-                <label
-                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer;">
-                    <input type="checkbox" id="statGrade1" checked onchange="loadStatTable()"
-                        style="width:18px; height:18px; margin:0;"> 1학년
-                </label>
-                <label
-                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer;">
-                    <input type="checkbox" id="statGrade2" checked onchange="loadStatTable()"
-                        style="width:18px; height:18px; margin:0;"> 2학년
-                </label>
-                <label
-                    style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer;">
-                    <input type="checkbox" id="statGrade3" checked onchange="loadStatTable()"
-                        style="width:18px; height:18px; margin:0;"> 3학년
-                </label>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-excel" style="margin-bottom: 0;" onclick="downloadStatTableExcel()">📥 엑셀
-                    다운로드</button>
-                <button class="btn-print" style="margin-bottom: 0;" onclick="window.print()">🖨️ 표 인쇄하기</button>
-            </div>
-
-            <div id="statTableWrap" style="overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <table id="statTable">
-                    <thead id="statTableHead"></thead>
-                    <tbody id="statTableBody">
+                <table id="enrollmentTable">
+                    <thead>
+                        <tr>
+                            <th>연번</th>
+                            <th>학번</th>
+                            <th>이름</th>
+                            <th>신청 과목</th>
+                            <th>최종선택</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enrollmentTableBody">
                         <tr class="empty-row">
-                            <td colspan="2">데이터를 불러오는 중입니다...</td>
+                            <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
+
+            <div id="statTableSection" class="hidden section-card">
+                <h2>📑 통계현황 표로보기</h2>
+                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                    환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
+                </p>
+
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
+                        <label
+                            style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
+                            <input type="checkbox" id="statGrade1" checked onchange="loadStatTable()"
+                                style="width:16px; height:16px; margin:0;"> 1학년
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer; font-size: 14px;">
+                            <input type="checkbox" id="statGrade2" checked onchange="loadStatTable()"
+                                style="width:16px; height:16px; margin:0;"> 2학년
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer; font-size: 14px;">
+                            <input type="checkbox" id="statGrade3" checked onchange="loadStatTable()"
+                                style="width:16px; height:16px; margin:0;"> 3학년
+                        </label>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn-excel" onclick="downloadStatTableExcel()">📥 엑셀 다운로드</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ 표 인쇄하기</button>
+                    </div>
+                </div>
+
+                <div id="statTableWrap" style="overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 10px;">
+                    <table id="statTable">
+                        <thead id="statTableHead"></thead>
+                        <tbody id="statTableBody">
+                            <tr class="empty-row">
+                                <td colspan="2">데이터를 불러오는 중입니다...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
         </main>
     </div>
