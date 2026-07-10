@@ -339,6 +339,13 @@
 
         .toolbar-filters {
             display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .filter-row {
+            display: flex;
             align-items: center;
             flex-wrap: wrap;
             gap: 8px;
@@ -667,25 +674,24 @@
             </div>
 
             <div id="classStatusSection" class="hidden section-card">
-                <h2>📊 반별 신청 현황 (미신청자 확인)</h2>
-                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">DB에
-                    등록된
-                    명단을 바탕으로 미신청자를 한눈에 확인합니다.</p>
-
                 <div class="toolbar">
                     <div class="toolbar-filters">
-                        <label>학년</label>
-                        <div class="btn-group" id="statusGradeButtons">
-                            <button type="button" class="btn-toggle" data-grade="1"
-                                onclick="selectStatusGrade('1')">1학년</button>
-                            <button type="button" class="btn-toggle" data-grade="2"
-                                onclick="selectStatusGrade('2')">2학년</button>
-                            <button type="button" class="btn-toggle" data-grade="3"
-                                onclick="selectStatusGrade('3')">3학년</button>
+                        <div class="filter-row">
+                            <label>학년</label>
+                            <div class="btn-group" id="statusGradeButtons">
+                                <button type="button" class="btn-toggle" data-grade="1"
+                                    onclick="selectStatusGrade('1')">1학년</button>
+                                <button type="button" class="btn-toggle" data-grade="2"
+                                    onclick="selectStatusGrade('2')">2학년</button>
+                                <button type="button" class="btn-toggle" data-grade="3"
+                                    onclick="selectStatusGrade('3')">3학년</button>
+                            </div>
                         </div>
-                        <label>반</label>
-                        <div class="btn-group" id="statusClassButtons">
-                            <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                        <div class="filter-row">
+                            <label>반</label>
+                            <div class="btn-group" id="statusClassButtons">
+                                <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                            </div>
                         </div>
                     </div>
                     <div class="toolbar-actions">
@@ -771,20 +777,24 @@
 
                 <div class="toolbar">
                     <div class="toolbar-filters">
-                        <label>학년</label>
-                        <div class="btn-group" id="searchGradeButtons">
-                            <button type="button" class="btn-toggle" data-grade="all"
-                                onclick="selectSearchGrade('all')">전체학년</button>
-                            <button type="button" class="btn-toggle" data-grade="1"
-                                onclick="selectSearchGrade('1')">1학년</button>
-                            <button type="button" class="btn-toggle" data-grade="2"
-                                onclick="selectSearchGrade('2')">2학년</button>
-                            <button type="button" class="btn-toggle" data-grade="3"
-                                onclick="selectSearchGrade('3')">3학년</button>
+                        <div class="filter-row">
+                            <label>학년</label>
+                            <div class="btn-group" id="searchGradeButtons">
+                                <button type="button" class="btn-toggle" data-grade="all"
+                                    onclick="selectSearchGrade('all')">전체학년</button>
+                                <button type="button" class="btn-toggle" data-grade="1"
+                                    onclick="selectSearchGrade('1')">1학년</button>
+                                <button type="button" class="btn-toggle" data-grade="2"
+                                    onclick="selectSearchGrade('2')">2학년</button>
+                                <button type="button" class="btn-toggle" data-grade="3"
+                                    onclick="selectSearchGrade('3')">3학년</button>
+                            </div>
                         </div>
-                        <label>반</label>
-                        <div class="btn-group" id="searchClassButtons">
-                            <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                        <div class="filter-row">
+                            <label>반</label>
+                            <div class="btn-group" id="searchClassButtons">
+                                <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                            </div>
                         </div>
                     </div>
                     <div class="toolbar-actions">
