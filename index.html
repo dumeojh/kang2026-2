@@ -374,6 +374,43 @@
             font-size: 14px;
         }
 
+        /* ---------------- 학년/반 버튼식 선택 ---------------- */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn-toggle {
+            width: auto;
+            margin-bottom: 0;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid #cfd8dc;
+            border-radius: 6px;
+            background: #fff;
+            color: #455a64;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .btn-toggle:hover {
+            background: #f1f3f5;
+            border-color: #90a4ae;
+        }
+
+        .btn-toggle.active {
+            background: #1565C0;
+            border-color: #1565C0;
+            color: #fff;
+        }
+
+        .toolbar-hint {
+            color: #90a4ae;
+            font-size: 13px;
+        }
+
         .system-box {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -637,17 +674,19 @@
 
                 <div class="toolbar">
                     <div class="toolbar-filters">
-                        <label for="statusGrade">학년</label>
-                        <select id="statusGrade" onchange="loadClassStatusDropdown()">
-                            <option value="none" disabled selected hidden>(학년 선택)</option>
-                            <option value="1">1학년</option>
-                            <option value="2">2학년</option>
-                            <option value="3">3학년</option>
-                        </select>
-                        <label for="statusClass">반</label>
-                        <select id="statusClass" onchange="renderClassStatusTable()">
-                            <option value="none" disabled selected hidden>(반 선택)</option>
-                        </select>
+                        <label>학년</label>
+                        <div class="btn-group" id="statusGradeButtons">
+                            <button type="button" class="btn-toggle" data-grade="1"
+                                onclick="selectStatusGrade('1')">1학년</button>
+                            <button type="button" class="btn-toggle" data-grade="2"
+                                onclick="selectStatusGrade('2')">2학년</button>
+                            <button type="button" class="btn-toggle" data-grade="3"
+                                onclick="selectStatusGrade('3')">3학년</button>
+                        </div>
+                        <label>반</label>
+                        <div class="btn-group" id="statusClassButtons">
+                            <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                        </div>
                     </div>
                     <div class="toolbar-actions">
                         <button class="btn-excel" onclick="downloadStatusExcel()">📥 엑셀 다운로드</button>
@@ -732,18 +771,21 @@
 
                 <div class="toolbar">
                     <div class="toolbar-filters">
-                        <label for="searchGrade">학년</label>
-                        <select id="searchGrade" onchange="updateClassDropdown()">
-                            <option value="none" selected disabled hidden>(학년 선택)</option>
-                            <option value="all">전체학년</option>
-                            <option value="1">1학년</option>
-                            <option value="2">2학년</option>
-                            <option value="3">3학년</option>
-                        </select>
-                        <label for="searchClass">반</label>
-                        <select id="searchClass" onchange="filterEnrollments()">
-                            <option value="none" selected disabled hidden>(반 선택)</option>
-                        </select>
+                        <label>학년</label>
+                        <div class="btn-group" id="searchGradeButtons">
+                            <button type="button" class="btn-toggle" data-grade="all"
+                                onclick="selectSearchGrade('all')">전체학년</button>
+                            <button type="button" class="btn-toggle" data-grade="1"
+                                onclick="selectSearchGrade('1')">1학년</button>
+                            <button type="button" class="btn-toggle" data-grade="2"
+                                onclick="selectSearchGrade('2')">2학년</button>
+                            <button type="button" class="btn-toggle" data-grade="3"
+                                onclick="selectSearchGrade('3')">3학년</button>
+                        </div>
+                        <label>반</label>
+                        <div class="btn-group" id="searchClassButtons">
+                            <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                        </div>
                     </div>
                     <div class="toolbar-actions">
                         <button class="btn-excel" onclick="downloadExcel()">📥 엑셀 다운로드</button>
@@ -860,6 +902,10 @@
         let allEnrollments = [];
         let currentStatusStudents = [];
         let currentStatusEnrollments = [];
+        let currentStatusGrade = null;
+        let currentStatusClass = null;
+        let currentSearchGrade = null;
+        let currentSearchClass = null;
 
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
@@ -887,13 +933,17 @@
                 loadSystemSettings();
                 loadSubjects();
             } else if (sectionId === 'enrollmentListSection') {
-                document.getElementById('searchGrade').value = 'none';
-                document.getElementById('searchClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
+                currentSearchGrade = null;
+                currentSearchClass = null;
+                document.querySelectorAll('#searchGradeButtons .btn-toggle').forEach(b => b.classList.remove('active'));
+                document.getElementById('searchClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
                 document.getElementById('enrollmentTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 loadEnrollments();
             } else if (sectionId === 'classStatusSection') {
-                document.getElementById('statusGrade').value = 'none';
-                document.getElementById('statusClass').innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
+                currentStatusGrade = null;
+                currentStatusClass = null;
+                document.querySelectorAll('#statusGradeButtons .btn-toggle').forEach(b => b.classList.remove('active'));
+                document.getElementById('statusClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
                 document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
             } else if (sectionId === 'statTableSection') {
                 loadStatTable();
@@ -902,17 +952,22 @@
 
         // ---------------- [반별 신청 현황 (미신청자 확인) 기능] ----------------
 
-        async function loadClassStatusDropdown() {
-            const grade = document.getElementById('statusGrade').value;
-            const classSelect = document.getElementById('statusClass');
-            classSelect.innerHTML = '<option value="none" disabled selected hidden>(로딩 중...)</option>';
-            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
+        async function selectStatusGrade(grade) {
+            currentStatusGrade = grade;
+            currentStatusClass = null;
 
-            if (grade === 'none') return;
+            document.querySelectorAll('#statusGradeButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.grade === grade);
+            });
+
+            const classButtons = document.getElementById('statusClassButtons');
+            classButtons.innerHTML = '<span class="toolbar-hint">불러오는 중...</span>';
+            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
 
             const { data: configData } = await supabaseClient.from('app_config').select('*').eq('id', 1).single();
             if (!configData) {
                 alert("시스템 환경설정이 완료되지 않았습니다. 관리자 메뉴에서 [시스템 설정 저장하기]를 먼저 눌러주세요.");
+                classButtons.innerHTML = '';
                 return;
             }
 
@@ -927,7 +982,7 @@
             if (error) {
                 console.error(error);
                 alert("학생 명단을 불러오는데 실패했습니다.");
-                classSelect.innerHTML = '<option value="none" disabled selected hidden>(반 선택)</option>';
+                classButtons.innerHTML = '<span class="toolbar-hint">불러오기 실패</span>';
                 return;
             }
 
@@ -938,26 +993,41 @@
                 classes.add(String(s[gradeCol]).substring(1, 3));
             });
 
-            classSelect.innerHTML = '<option value="none" disabled selected hidden>(반 선택)</option>';
-            Array.from(classes).sort().forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.innerText = parseInt(c, 10) + '반';
-                classSelect.appendChild(opt);
-            });
+            classButtons.innerHTML = '';
+            if (classes.size === 0) {
+                classButtons.innerHTML = '<span class="toolbar-hint">등록된 반이 없습니다.</span>';
+            } else {
+                Array.from(classes).sort().forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn-toggle';
+                    btn.dataset.class = c;
+                    btn.innerText = parseInt(c, 10) + '반';
+                    btn.onclick = () => selectStatusClass(c);
+                    classButtons.appendChild(btn);
+                });
+            }
 
             const { data: enrollData } = await supabaseClient.from('enrollments').select('*');
             currentStatusEnrollments = enrollData || [];
         }
 
+        function selectStatusClass(cls) {
+            currentStatusClass = cls;
+            document.querySelectorAll('#statusClassButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.class === cls);
+            });
+            renderClassStatusTable();
+        }
+
         function renderClassStatusTable() {
-            const grade = document.getElementById('statusGrade').value;
-            const cls = document.getElementById('statusClass').value;
+            const grade = currentStatusGrade;
+            const cls = currentStatusClass;
             const gradeCol = `grade${grade}_id`;
             const tbody = document.getElementById('statusTableBody');
             tbody.innerHTML = '';
 
-            if (grade === 'none' || cls === 'none') {
+            if (!grade || !cls) {
                 tbody.innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
                 return;
             }
@@ -1345,45 +1415,66 @@
             }
 
             allEnrollments = data || [];
-            updateClassDropdown();
+            filterEnrollments();
         }
 
-        function updateClassDropdown() {
-            const gradeFilter = document.getElementById('searchGrade').value;
-            const classSelect = document.getElementById('searchClass');
+        function selectSearchGrade(value) {
+            currentSearchGrade = value;
+            currentSearchClass = null;
 
-            classSelect.innerHTML = '<option value="none" selected disabled hidden>(반 선택)</option>';
-            classSelect.innerHTML += '<option value="all">전체반</option>';
+            document.querySelectorAll('#searchGradeButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.grade === value);
+            });
 
-            if (gradeFilter !== 'none') {
-                const classes = new Set();
-                allEnrollments.forEach(item => {
-                    const sId = String(item.student_id);
-                    if (sId.length === 5) {
-                        if (gradeFilter === 'all' || sId.charAt(0) === gradeFilter) {
-                            classes.add(sId.substring(1, 3));
-                        }
+            const classButtons = document.getElementById('searchClassButtons');
+            classButtons.innerHTML = '';
+
+            const classes = new Set();
+            allEnrollments.forEach(item => {
+                const sId = String(item.student_id);
+                if (sId.length === 5) {
+                    if (value === 'all' || sId.charAt(0) === value) {
+                        classes.add(sId.substring(1, 3));
                     }
-                });
+                }
+            });
 
-                Array.from(classes).sort().forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c;
-                    opt.innerText = parseInt(c, 10) + '반';
-                    classSelect.appendChild(opt);
-                });
-            }
+            const allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.className = 'btn-toggle';
+            allBtn.dataset.class = 'all';
+            allBtn.innerText = '전체반';
+            allBtn.onclick = () => selectSearchClass('all');
+            classButtons.appendChild(allBtn);
+
+            Array.from(classes).sort().forEach(c => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-toggle';
+                btn.dataset.class = c;
+                btn.innerText = parseInt(c, 10) + '반';
+                btn.onclick = () => selectSearchClass(c);
+                classButtons.appendChild(btn);
+            });
 
             filterEnrollments();
         }
 
+        function selectSearchClass(value) {
+            currentSearchClass = value;
+            document.querySelectorAll('#searchClassButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.class === value);
+            });
+            filterEnrollments();
+        }
+
         function filterEnrollments() {
-            const gradeFilter = document.getElementById('searchGrade').value;
-            const classFilter = document.getElementById('searchClass').value;
+            const gradeFilter = currentSearchGrade;
+            const classFilter = currentSearchClass;
             const tbody = document.getElementById('enrollmentTableBody');
             tbody.innerHTML = '';
 
-            if (gradeFilter === 'none' || classFilter === 'none') {
+            if (!gradeFilter || !classFilter) {
                 tbody.innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
                 return;
             }
