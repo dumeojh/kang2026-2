@@ -1173,6 +1173,15 @@
                 <div class="toolbar">
                     <div class="toolbar-filters">
                         <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="attViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="applied"
+                                    onclick="selectAttListViewMode('applied')">신청과목</button>
+                                <button type="button" class="btn-toggle" data-view="final"
+                                    onclick="selectAttListViewMode('final')">최종선택</button>
+                            </div>
+                        </div>
+                        <div class="filter-row">
                             <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
@@ -2201,6 +2210,20 @@
         const ATT_GRADE_COLOR = { '1': '#1976D2', '2': '#2E7D32', '3': '#E65100' };
         const ATTENDANCE_SESSIONS_PER_PAGE = 16; // 32단위 = 16회차 × 2페이지
         const ATTENDANCE_TOTAL_SESSIONS = 32;
+        let attListViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
+
+        function selectAttListViewMode(mode) {
+            attListViewMode = mode;
+            document.querySelectorAll('#attViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            loadAttendanceSubjects();
+        }
+
+        // 보기 모드에 따라 신청과목(subject_name) 또는 최종선택(final_subject) 값을 반환
+        function getAttSubjectValue(item) {
+            return attListViewMode === 'final' ? item.final_subject : item.subject_name;
+        }
 
         function getSelectedAttendanceGrades() {
             const grades = [];
@@ -2256,7 +2279,9 @@
             subjectEntries.forEach(entry => {
                 const students = (enrollData || []).filter(item => {
                     const sId = String(item.student_id);
-                    return item.subject_name === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
+                    const val = getAttSubjectValue(item);
+                    if (attListViewMode === 'final' && !val) return false; // 최종선택 전 학생은 제외
+                    return val === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
                 }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
                 if (students.length === 0) return; // 신청자가 없는 과목은 목록에서 제외
@@ -2290,7 +2315,9 @@
 
             const students = (enrollData || []).filter(item => {
                 const sId = String(item.student_id);
-                return item.subject_name === subjectName && sId.length === 5 && sId.charAt(0) === grade;
+                const val = getAttSubjectValue(item);
+                if (attListViewMode === 'final' && !val) return false;
+                return val === subjectName && sId.length === 5 && sId.charAt(0) === grade;
             }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
             renderAttendanceSheet(subjectName, grade, students);
