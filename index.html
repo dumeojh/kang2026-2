@@ -432,6 +432,40 @@
             margin-bottom: 20px;
         }
 
+        .admin-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .admin-tab-btn {
+            padding: 12px 18px;
+            border: none;
+            background: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #90a4ae;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: 0.2s;
+        }
+
+        .admin-tab-btn:hover {
+            color: #546e7a;
+        }
+
+        .admin-tab-btn.active {
+            color: #1565C0;
+            border-bottom-color: #1565C0;
+        }
+
+        .admin-tab-panel.hidden {
+            display: none;
+        }
+
         .auth-message {
             text-align: center;
             font-weight: bold;
@@ -912,148 +946,165 @@
             <div id="adminSection" class="hidden section-card">
                 <h2>환경설정 (과목 및 시스템 관리)</h2>
 
-                <div class="system-box">
-                    <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
-                    <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면, 나머지 학년의
-                        입학년도는 <strong>자동으로 계산되어</strong> 학생 명단을 대조합니다.</p>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex: 1;">
-                            <label style="font-weight: bold; font-size: 14px;">기준 입학년도:</label>
-                            <input type="number" id="sysAdmissionYear" placeholder="예: 2026"
-                                style="margin-bottom: 10px;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="font-weight: bold; font-size: 14px;">기준 학년:</label>
-                            <select id="sysTargetGrade" style="margin-bottom: 10px;">
-                                <option value="1">1학년</option>
-                                <option value="2">2학년</option>
-                                <option value="3">3학년</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn-admin"
-                        style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
-                        onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
+                <div class="admin-tabs">
+                    <button type="button" class="admin-tab-btn active" data-tab="adminTabSystem"
+                        onclick="selectAdminTab('adminTabSystem')">⚙️ 시스템 기본 설정</button>
+                    <button type="button" class="admin-tab-btn" data-tab="adminTabStudents"
+                        onclick="selectAdminTab('adminTabStudents')">🧑‍🎓 학생 명단 관리</button>
+                    <button type="button" class="admin-tab-btn" data-tab="adminTabSubjects"
+                        onclick="selectAdminTab('adminTabSubjects')">📚 과목 관리</button>
                 </div>
 
-                <div class="system-box" style="border-color: #43A047;">
-                    <h3 style="margin-top: 0; color: #2E7D32;">🧑‍🎓 학생 명단 관리 (전입 · 전학 처리)</h3>
-                    <p style="font-size: 13px; color: #555; margin-bottom: 15px;">
-                        <strong>전입</strong> 학생은 아래에서 추가하고, <strong>전학</strong> 학생은 명단에서 삭제하세요. 삭제 시 신청 내역(수강신청)도 함께
-                        정리할 수 있어요.
-                    </p>
-
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom: 15px;">
-                        <div style="flex:2; min-width:160px;">
-                            <label style="font-weight:bold; font-size:13px;">검색 (이름 또는 학번)</label>
-                            <input type="text" id="studentMgmtSearch" placeholder="예: 홍길동 또는 10203"
-                                oninput="renderStudentMgmtList()" style="margin-bottom:0;">
+                <div id="adminTabSystem" class="admin-tab-panel">
+                    <div class="system-box">
+                        <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면,
+                            나머지 학년의
+                            입학년도는 <strong>자동으로 계산되어</strong> 학생 명단을 대조합니다.</p>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label style="font-weight: bold; font-size: 14px;">기준 입학년도:</label>
+                                <input type="number" id="sysAdmissionYear" placeholder="예: 2026"
+                                    style="margin-bottom: 10px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-weight: bold; font-size: 14px;">기준 학년:</label>
+                                <select id="sysTargetGrade" style="margin-bottom: 10px;">
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style="flex:1; min-width:110px;">
-                            <label style="font-weight:bold; font-size:13px;">학년 필터</label>
-                            <select id="studentMgmtGradeFilter" onchange="renderStudentMgmtList()"
-                                style="margin-bottom:0;">
-                                <option value="all">전체</option>
-                                <option value="1">1학년</option>
-                                <option value="2">2학년</option>
-                                <option value="3">3학년</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button class="btn-admin" style="margin-bottom:0; padding:11px 16px;"
-                                onclick="loadStudentMgmt()">🔄 새로고침</button>
-                        </div>
-                    </div>
-
-                    <div style="overflow-x:auto; border:1px solid #e0e0e0; border-radius:10px; margin-bottom:20px;">
-                        <table id="studentMgmtTable" style="width:100%; border-collapse:collapse;">
-                            <thead>
-                                <tr style="background:#f1f8f2;">
-                                    <th style="padding:8px; text-align:left;">이름</th>
-                                    <th style="padding:8px;">1학년</th>
-                                    <th style="padding:8px;">2학년</th>
-                                    <th style="padding:8px;">3학년</th>
-                                    <th style="padding:8px;">입학년도</th>
-                                    <th style="padding:8px;">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentMgmtBody">
-                                <tr class="empty-row">
-                                    <td colspan="6">불러오는 중...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <h4 style="margin-bottom:8px;">➕ 전입 학생 추가 (한 명씩)</h4>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:15px;">
-                        <div style="flex:1; min-width:120px;">
-                            <label style="font-weight:bold; font-size:13px;">이름</label>
-                            <input type="text" id="newStudentName" placeholder="이름" style="margin-bottom:0;">
-                        </div>
-                        <div style="min-width:100px;">
-                            <label style="font-weight:bold; font-size:13px;">학년</label>
-                            <select id="newStudentGrade" onchange="suggestAdmissionYear()" style="margin-bottom:0;">
-                                <option value="1">1학년</option>
-                                <option value="2">2학년</option>
-                                <option value="3">3학년</option>
-                            </select>
-                        </div>
-                        <div style="min-width:120px;">
-                            <label style="font-weight:bold; font-size:13px;">학번(5자리)</label>
-                            <input type="text" id="newStudentId" placeholder="예: 20315" style="margin-bottom:0;">
-                        </div>
-                        <div style="min-width:110px;">
-                            <label style="font-weight:bold; font-size:13px;">입학년도</label>
-                            <input type="number" id="newStudentYear" placeholder="예: 2025" style="margin-bottom:0;">
-                        </div>
-                        <div>
-                            <button class="btn-admin"
-                                style="margin-bottom:0; padding:11px 16px; background-color:#2E7D32;"
-                                onclick="addStudentMgmt()">추가하기</button>
-                        </div>
-                    </div>
-
-                    <h4 style="margin-bottom:8px;">📥 여러 명 한번에 등록 (엑셀 업로드)</h4>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                        <button class="btn-excel" onclick="downloadStudentTemplate()">📄 업로드 양식 받기</button>
-                        <label class="btn-admin"
-                            style="margin-bottom:0; padding:11px 16px; background-color:#00838F; display:inline-block; cursor:pointer;">
-                            📤 엑셀 업로드
-                            <input type="file" accept=".xlsx,.xls" onchange="handleStudentExcelFile(event)"
-                                style="display:none;">
-                        </label>
-                        <button class="btn-excel" onclick="downloadStudentListExcel()">📥 현재 명단 엑셀로 다운로드</button>
+                        <button class="btn-admin"
+                            style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
+                            onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
                     </div>
                 </div>
 
-                <hr style="border: 1px solid #ddd; margin-bottom: 20px; margin-top: 30px;">
+                <div id="adminTabStudents" class="admin-tab-panel hidden">
+                    <div class="system-box" style="border-color: #43A047;">
+                        <h3 style="margin-top: 0; color: #2E7D32;">🧑‍🎓 학생 명단 관리 (전입 · 전학 처리)</h3>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">
+                            <strong>전입</strong> 학생은 아래에서 추가하고, <strong>전학</strong> 학생은 명단에서 삭제하세요. 삭제 시 신청 내역(수강신청)도
+                            함께
+                            정리할 수 있어요.
+                        </p>
 
-                <div class="filter-box">
-                    <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
-                    <select id="adminGradeFilter" onchange="loadSubjects()" style="margin-bottom: 0; margin-top: 5px;">
-                        <option value="1">1학년</option>
-                        <option value="2">2학년</option>
-                        <option value="3">3학년</option>
-                    </select>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom: 15px;">
+                            <div style="flex:2; min-width:160px;">
+                                <label style="font-weight:bold; font-size:13px;">검색 (이름 또는 학번)</label>
+                                <input type="text" id="studentMgmtSearch" placeholder="예: 홍길동 또는 10203"
+                                    oninput="renderStudentMgmtList()" style="margin-bottom:0;">
+                            </div>
+                            <div style="flex:1; min-width:110px;">
+                                <label style="font-weight:bold; font-size:13px;">학년 필터</label>
+                                <select id="studentMgmtGradeFilter" onchange="renderStudentMgmtList()"
+                                    style="margin-bottom:0;">
+                                    <option value="all">전체</option>
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button class="btn-admin" style="margin-bottom:0; padding:11px 16px;"
+                                    onclick="loadStudentMgmt()">🔄 새로고침</button>
+                            </div>
+                        </div>
+
+                        <div style="overflow-x:auto; border:1px solid #e0e0e0; border-radius:10px; margin-bottom:20px;">
+                            <table id="studentMgmtTable" style="width:100%; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="background:#f1f8f2;">
+                                        <th style="padding:8px; text-align:left;">이름</th>
+                                        <th style="padding:8px;">1학년</th>
+                                        <th style="padding:8px;">2학년</th>
+                                        <th style="padding:8px;">3학년</th>
+                                        <th style="padding:8px;">입학년도</th>
+                                        <th style="padding:8px;">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentMgmtBody">
+                                    <tr class="empty-row">
+                                        <td colspan="6">불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="margin-bottom:8px;">➕ 전입 학생 추가 (한 명씩)</h4>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:15px;">
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-weight:bold; font-size:13px;">이름</label>
+                                <input type="text" id="newStudentName" placeholder="이름" style="margin-bottom:0;">
+                            </div>
+                            <div style="min-width:100px;">
+                                <label style="font-weight:bold; font-size:13px;">학년</label>
+                                <select id="newStudentGrade" onchange="suggestAdmissionYear()" style="margin-bottom:0;">
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
+                            <div style="min-width:120px;">
+                                <label style="font-weight:bold; font-size:13px;">학번(5자리)</label>
+                                <input type="text" id="newStudentId" placeholder="예: 20315" style="margin-bottom:0;">
+                            </div>
+                            <div style="min-width:110px;">
+                                <label style="font-weight:bold; font-size:13px;">입학년도</label>
+                                <input type="number" id="newStudentYear" placeholder="예: 2025" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <button class="btn-admin"
+                                    style="margin-bottom:0; padding:11px 16px; background-color:#2E7D32;"
+                                    onclick="addStudentMgmt()">추가하기</button>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-bottom:8px;">📥 여러 명 한번에 등록 (엑셀 업로드)</h4>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <button class="btn-excel" onclick="downloadStudentTemplate()">📄 업로드 양식 받기</button>
+                            <label class="btn-admin"
+                                style="margin-bottom:0; padding:11px 16px; background-color:#00838F; display:inline-block; cursor:pointer;">
+                                📤 엑셀 업로드
+                                <input type="file" accept=".xlsx,.xls" onchange="handleStudentExcelFile(event)"
+                                    style="display:none;">
+                            </label>
+                            <button class="btn-excel" onclick="downloadStudentListExcel()">📥 현재 명단 엑셀로 다운로드</button>
+                        </div>
+                    </div>
                 </div>
 
-                <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+                <div id="adminTabSubjects" class="admin-tab-panel hidden">
+                    <div class="filter-box">
+                        <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
+                        <select id="adminGradeFilter" onchange="loadSubjects()"
+                            style="margin-bottom: 0; margin-top: 5px;">
+                            <option value="1">1학년</option>
+                            <option value="2">2학년</option>
+                            <option value="3">3학년</option>
+                        </select>
+                    </div>
 
-                <h3>새 과목 추가</h3>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
-                    <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
+                    <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+
+                    <h3>새 과목 추가</h3>
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
+                        <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
+                    </div>
+                    <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
+
+                    <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
+                    <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서
+                        이동한 후 반드시
+                        저장
+                        버튼을 누르세요.</p>
+                    <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
+
+                    <div id="subjectList"></div>
                 </div>
-                <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
-
-                <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
-                <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서 이동한 후 반드시
-                    저장
-                    버튼을 누르세요.</p>
-                <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
-
-                <div id="subjectList"></div>
             </div>
 
             <div id="statTableSection" class="hidden section-card">
@@ -1232,6 +1283,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             if (sectionId === 'adminSection') {
+                selectAdminTab('adminTabSystem');
                 loadSystemSettings();
                 loadSubjects();
                 loadStudentMgmt();
@@ -1688,6 +1740,15 @@
         }
 
         // ---------------- [환경설정(과목 관리 및 시스템 관리) 기능] ----------------
+
+        function selectAdminTab(tabId) {
+            document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.admin-tab-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.tab === tabId);
+            });
+        }
 
         async function loadSystemSettings() {
             const { data, error } = await supabaseClient
