@@ -860,7 +860,7 @@
                     신청내역(과목별)</button>
                 <a href="statistics.html">📈 통계 현황 (박스형)</a>
                 <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
-                <button class="nav-icon-only" data-section="adminSection" onclick="showSection('adminSection')"
+                <button class="nav-icon-only" data-section="adminSection" onclick="handleAdminGearClick()"
                     title="과목 환경설정">⚙️</button>
             </nav>
         </header>
@@ -876,7 +876,7 @@
                         <div class="quick-title">반별 신청 현황</div>
                         <div class="quick-desc">전체명단/신청자만 보기를 선택해 조회합니다.</div>
                     </div>
-                    <div class="quick-card" onclick="showSection('adminSection')">
+                    <div class="quick-card" onclick="handleAdminGearClick()">
                         <div class="quick-icon">⚙️</div>
                         <div class="quick-title">과목 환경설정</div>
                         <div class="quick-desc">과목과 시스템 기준을 관리합니다.</div>
@@ -1262,6 +1262,34 @@
             } else {
                 alert("비밀번호가 올바르지 않습니다.");
                 document.getElementById('teacherPin').value = '';
+            }
+        }
+
+        // ---------------- [환경설정 톱니바퀴: 3번 클릭해야 비밀번호 입력창이 뜨는 잠금장치] ----------------
+        // ⚠️ 이 비밀번호도 간단한 장치이며, 강력한 보안은 아닙니다. 필요 시 아래 값을 원하는 비밀번호로 변경하세요.
+        const ADMIN_GEAR_PASSWORD = "1";
+        let adminGearClickCount = 0;
+        let adminGearClickTimer = null;
+
+        function handleAdminGearClick() {
+            adminGearClickCount++;
+
+            if (adminGearClickCount < 3) {
+                clearTimeout(adminGearClickTimer);
+                // 1.2초 안에 이어서 클릭하지 않으면 클릭 횟수를 초기화합니다.
+                adminGearClickTimer = setTimeout(() => { adminGearClickCount = 0; }, 1200);
+                return;
+            }
+
+            clearTimeout(adminGearClickTimer);
+            adminGearClickCount = 0;
+
+            const pwd = prompt("환경설정 비밀번호를 입력하세요.");
+            if (pwd === null) return; // 취소
+            if (pwd === ADMIN_GEAR_PASSWORD) {
+                showSection('adminSection');
+            } else {
+                alert("비밀번호가 올바르지 않습니다.");
             }
         }
 
