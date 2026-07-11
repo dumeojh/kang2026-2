@@ -1020,27 +1020,37 @@
 
             <div id="attendanceListSection" class="hidden section-card">
                 <h2>📝 신청내역 (과목별) · 출석부</h2>
-                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                <p id="attListDesc"
+                    style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
                     과목을 선택하면 신청 학생 명단 기준으로 32단위(16회차 × 2페이지) 출석부를 확인하고 인쇄할 수 있습니다.
                 </p>
 
                 <div class="toolbar">
                     <div class="toolbar-filters">
                         <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="attViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="applied"
+                                    onclick="selectAttViewMode('applied')">신청과목</button>
+                                <button type="button" class="btn-toggle" data-view="final"
+                                    onclick="selectAttViewMode('final')">최종선택</button>
+                            </div>
+                        </div>
+                        <div class="filter-row">
                             <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="attGrade1" checked onchange="loadAttendanceSubjects()"
+                                <input type="checkbox" id="attGrade1" checked onchange="onAttGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 1학년
                             </label>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="attGrade2" checked onchange="loadAttendanceSubjects()"
+                                <input type="checkbox" id="attGrade2" checked onchange="onAttGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 2학년
                             </label>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="attGrade3" checked onchange="loadAttendanceSubjects()"
+                                <input type="checkbox" id="attGrade3" checked onchange="onAttGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 3학년
                             </label>
                         </div>
@@ -1149,6 +1159,7 @@
                 applyStatPrefs();
                 loadStatTable();
             } else if (sectionId === 'attendanceListSection') {
+                applyAttPrefs();
                 loadAttendanceSubjects();
             }
         }
@@ -1735,6 +1746,65 @@
         const ATTENDANCE_SESSIONS_PER_PAGE = 16; // 32단위 = 16회차 × 2페이지
         const ATTENDANCE_TOTAL_SESSIONS = 32;
 
+        let attViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
+
+        function attListDescText(mode) {
+            return mode === 'final'
+                ? '통계 현황(박스형)에서 저장한 최종선택 결과를 기준으로 출석부를 만듭니다. (아직 최종선택이 저장되지 않은 학생은 목록에 나타나지 않습니다.)'
+                : '과목을 선택하면 신청 학생 명단 기준으로 32단위(16회차 × 2페이지) 출석부를 확인하고 인쇄할 수 있습니다.';
+        }
+
+        function saveAttPrefs() {
+            try {
+                localStorage.setItem('attListPrefs', JSON.stringify({
+                    viewMode: attViewMode,
+                    grades: {
+                        g1: document.getElementById('attGrade1').checked,
+                        g2: document.getElementById('attGrade2').checked,
+                        g3: document.getElementById('attGrade3').checked
+                    }
+                }));
+            } catch (e) { }
+        }
+
+        function applyAttPrefs() {
+            let prefs = null;
+            try {
+                const raw = localStorage.getItem('attListPrefs');
+                prefs = raw ? JSON.parse(raw) : null;
+            } catch (e) { }
+            if (!prefs) return;
+
+            if (prefs.viewMode === 'final' || prefs.viewMode === 'applied') {
+                attViewMode = prefs.viewMode;
+                document.querySelectorAll('#attViewButtons .btn-toggle').forEach(b => {
+                    b.classList.toggle('active', b.dataset.view === attViewMode);
+                });
+                document.getElementById('attListDesc').innerText = attListDescText(attViewMode);
+            }
+
+            if (prefs.grades) {
+                if (typeof prefs.grades.g1 === 'boolean') document.getElementById('attGrade1').checked = prefs.grades.g1;
+                if (typeof prefs.grades.g2 === 'boolean') document.getElementById('attGrade2').checked = prefs.grades.g2;
+                if (typeof prefs.grades.g3 === 'boolean') document.getElementById('attGrade3').checked = prefs.grades.g3;
+            }
+        }
+
+        function onAttGradeFilterChange() {
+            saveAttPrefs();
+            loadAttendanceSubjects();
+        }
+
+        function selectAttViewMode(mode) {
+            attViewMode = mode;
+            document.querySelectorAll('#attViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            document.getElementById('attListDesc').innerText = attListDescText(mode);
+            saveAttPrefs();
+            loadAttendanceSubjects();
+        }
+
         function getSelectedAttendanceGrades() {
             const grades = [];
             if (document.getElementById('attGrade1').checked) grades.push('1');
@@ -1754,62 +1824,115 @@
 
             listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">불러오는 중...</p>';
 
-            // 1. 선택된 학년들의 과목 목록(환경설정 등록 순서)을 가져오기
-            const subjectResults = await Promise.all(
-                grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
-            );
-
-            if (subjectResults.some(r => r.error)) {
-                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">과목 목록을 불러오는데 실패했습니다.</p>';
-                return;
-            }
-
-            const subjectEntries = []; // { grade, subjectName }
-            subjectResults.forEach((r, idx) => {
-                const g = grades[idx];
-                (r.data || []).forEach(s => subjectEntries.push({ grade: g, subjectName: s.subject_name }));
-            });
-
-            if (subjectEntries.length === 0) {
-                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">환경설정(과목 관리)에 등록된 과목이 없습니다.</p>';
-                return;
-            }
-
-            // 2. 전체 신청 내역 가져오기
+            // 전체 신청 내역 가져오기
             const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
             if (enrollError) {
                 listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">신청 내역을 불러오는데 실패했습니다.</p>';
                 return;
             }
 
-            // 3. 과목(학년+과목명)별 신청 학생 목록 집계 (학번 앞자리로 학년 구분)
             listEl.innerHTML = '';
             let hasAny = false;
 
-            subjectEntries.forEach(entry => {
-                const students = (enrollData || []).filter(item => {
+            if (attViewMode === 'applied') {
+                // 1. 선택된 학년들의 과목 목록(환경설정 등록 순서)을 가져오기
+                const subjectResults = await Promise.all(
+                    grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+                );
+
+                if (subjectResults.some(r => r.error)) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">과목 목록을 불러오는데 실패했습니다.</p>';
+                    return;
+                }
+
+                const subjectEntries = []; // { grade, subjectName }
+                subjectResults.forEach((r, idx) => {
+                    const g = grades[idx];
+                    (r.data || []).forEach(s => subjectEntries.push({ grade: g, subjectName: s.subject_name }));
+                });
+
+                if (subjectEntries.length === 0) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">환경설정(과목 관리)에 등록된 과목이 없습니다.</p>';
+                    return;
+                }
+
+                // 2. 과목(학년+과목명)별 신청 학생 목록 집계 (학번 앞자리로 학년 구분)
+                subjectEntries.forEach(entry => {
+                    const students = (enrollData || []).filter(item => {
+                        const sId = String(item.student_id);
+                        return item.subject_name === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
+                    }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+
+                    if (students.length === 0) return; // 신청자가 없는 과목은 목록에서 제외
+                    hasAny = true;
+
+                    const div = document.createElement('div');
+                    div.className = 'attendance-subject-item';
+                    div.innerHTML = `
+                        <div class="att-info">
+                            <span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[entry.grade]};">${entry.grade}학년</span>
+                            <span class="att-subject-name">${escapeHtmlStat(entry.subjectName)}</span>
+                            <span class="att-count">신청 ${students.length}명</span>
+                        </div>
+                        <button onclick='showAttendanceSheet(${JSON.stringify(entry.subjectName)}, ${JSON.stringify(entry.grade)})'>📋 출석부 보기 · 인쇄</button>
+                    `;
+                    listEl.appendChild(div);
+                });
+
+                if (!hasAny) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">해당 학년에 신청 내역이 있는 과목이 없습니다.</p>';
+                }
+            } else {
+                // 최종선택: DB에 저장된 final_subject 값 기준으로 묶기 (학년이 섞인 무학년제 합반도 포함)
+                const relevant = (enrollData || []).filter(item => {
                     const sId = String(item.student_id);
-                    return item.subject_name === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
-                }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+                    if (sId.length !== 5) return false;
+                    if (!item.final_subject) return false;
+                    return grades.includes(sId.charAt(0));
+                });
 
-                if (students.length === 0) return; // 신청자가 없는 과목은 목록에서 제외
-                hasAny = true;
+                const groups = {}; // finalSubject -> students[]
+                relevant.forEach(item => {
+                    if (!groups[item.final_subject]) groups[item.final_subject] = [];
+                    groups[item.final_subject].push(item);
+                });
 
-                const div = document.createElement('div');
-                div.className = 'attendance-subject-item';
-                div.innerHTML = `
-                    <div class="att-info">
-                        <span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[entry.grade]};">${entry.grade}학년</span>
-                        <span class="att-subject-name">${escapeHtmlStat(entry.subjectName)}</span>
-                        <span class="att-count">신청 ${students.length}명</span>
-                    </div>
-                    <button onclick='showAttendanceSheet(${JSON.stringify(entry.subjectName)}, ${JSON.stringify(entry.grade)})'>📋 출석부 보기 · 인쇄</button>
-                `;
-                listEl.appendChild(div);
-            });
+                const finalNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
 
-            if (!hasAny) {
-                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">해당 학년에 신청 내역이 있는 과목이 없습니다.</p>';
+                if (finalNames.length === 0) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">해당 학년에 저장된 최종선택 내역이 없습니다.</p>';
+                    return;
+                }
+
+                finalNames.forEach(name => {
+                    const students = groups[name].slice().sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+                    hasAny = true;
+
+                    const gradeCounts = {};
+                    students.forEach(s => {
+                        const g = String(s.student_id).charAt(0);
+                        gradeCounts[g] = (gradeCounts[g] || 0) + 1;
+                    });
+                    const gradeBadges = Object.keys(gradeCounts).sort().map(g =>
+                        `<span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[g] || '#999'};">${g}학년 ${gradeCounts[g]}명</span>`
+                    ).join(' ');
+
+                    const div = document.createElement('div');
+                    div.className = 'attendance-subject-item';
+                    div.innerHTML = `
+                        <div class="att-info">
+                            ${gradeBadges}
+                            <span class="att-subject-name">${escapeHtmlStat(name)}</span>
+                            <span class="att-count">신청 ${students.length}명</span>
+                        </div>
+                        <button onclick='showAttendanceSheetFinal(${JSON.stringify(name)})'>📋 출석부 보기 · 인쇄</button>
+                    `;
+                    listEl.appendChild(div);
+                });
+
+                if (!hasAny) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">해당 학년에 저장된 최종선택 내역이 없습니다.</p>';
+                }
             }
         }
 
@@ -1826,11 +1949,30 @@
                 return item.subject_name === subjectName && sId.length === 5 && sId.charAt(0) === grade;
             }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
-            renderAttendanceSheet(subjectName, grade, students);
+            renderAttendanceSheet(`📋 ${grade}학년 · ${escapeHtmlStat(subjectName)}`, students);
             showSection('attendanceSheetSection');
         }
 
-        function renderAttendanceSheet(subjectName, grade, students) {
+        async function showAttendanceSheetFinal(finalSubjectName) {
+            const { data: enrollData, error } = await supabaseClient.from('enrollments').select('*');
+
+            if (error) {
+                alert("학생 명단을 불러오는데 실패했습니다.");
+                return;
+            }
+
+            // 최종선택은 학년 필터와 무관하게, 저장된 값이 일치하는 학생 전체를 대상으로 합니다.
+            const students = (enrollData || []).filter(item => item.final_subject === finalSubjectName)
+                .sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+
+            const grades = Array.from(new Set(students.map(s => String(s.student_id).charAt(0)))).sort();
+            const gradeLabel = grades.length > 1 ? `${grades.join('·')}학년 통합` : (grades[0] ? `${grades[0]}학년` : '');
+
+            renderAttendanceSheet(`📋 최종선택 · ${escapeHtmlStat(finalSubjectName)}${gradeLabel ? ' (' + gradeLabel + ')' : ''}`, students);
+            showSection('attendanceSheetSection');
+        }
+
+        function renderAttendanceSheet(titleLabel, students) {
             const wrap = document.getElementById('attendanceSheetWrap');
             wrap.innerHTML = '';
 
@@ -1876,7 +2018,7 @@
                 }
 
                 pageDiv.innerHTML = `
-                    <div class="attendance-page-title">📋 ${grade}학년 · ${escapeHtmlStat(subjectName)} 출석부 (${startSession}~${endSession}회차) — ${p + 1} / ${pageCount}페이지</div>
+                    <div class="attendance-page-title">${titleLabel} 출석부 (${startSession}~${endSession}회차) — ${p + 1} / ${pageCount}페이지</div>
                     <div class="attendance-table-wrap">
                         <table class="attendance-table">
                             <thead>
