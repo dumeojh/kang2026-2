@@ -441,6 +441,7 @@
         }
 
         .admin-tab-btn {
+            width: auto;
             padding: 12px 18px;
             border: none;
             background: none;
@@ -451,6 +452,7 @@
             border-bottom: 3px solid transparent;
             margin-bottom: -2px;
             transition: 0.2s;
+            white-space: nowrap;
         }
 
         .admin-tab-btn:hover {
@@ -1247,10 +1249,6 @@
             if (section && validSections.includes(section)) {
                 showSection(section);
             }
-        }
-
-        if (sessionStorage.getItem('teacherAuthed') === 'true') {
-            unlockTeacherScreen();
         }
 
         let currentStatusStudents = [];
@@ -2371,6 +2369,13 @@
 
                 wrap.appendChild(pageDiv);
             }
+        }
+
+        // 페이지의 모든 변수 선언이 끝난 뒤에 자동 로그인 및 ?section=xxx 라우팅을 실행합니다.
+        // (statTableSection 등에서 쓰는 변수들이 선언되기 '전'에 이 코드가 먼저 실행되면
+        //  자료가 표시되지 않는 오류가 발생하므로, 반드시 스크립트 맨 끝에서 실행해야 합니다.)
+        if (sessionStorage.getItem('teacherAuthed') === 'true') {
+            unlockTeacherScreen();
         }
     </script>
 </body>
