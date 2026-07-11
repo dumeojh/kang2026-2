@@ -1016,6 +1016,7 @@
                                 <label style="font-weight:bold; font-size:13px;">학년 필터</label>
                                 <select id="studentMgmtGradeFilter" onchange="onStudentMgmtGradeFilterChange()"
                                     style="margin-bottom:0;">
+                                    <option value="" selected>학년 선택</option>
                                     <option value="all">전체</option>
                                     <option value="1">1학년</option>
                                     <option value="2">2학년</option>
@@ -1920,6 +1921,7 @@
 
         let currentMgmtStudents = [];
         let editingStudentId = null;
+        let studentMgmtConfig = null;
 
         async function suggestAdmissionYear() {
             const gradeSelect = document.getElementById('newStudentGrade');
@@ -1938,7 +1940,10 @@
             const tbody = document.getElementById('studentMgmtBody');
             tbody.innerHTML = '<tr class="empty-row"><td colspan="6">불러오는 중...</td></tr>';
 
-            const { data, error } = await supabaseClient.from('students').select('*').order('name', { ascending: true });
+            const [{ data, error }, { data: configData }] = await Promise.all([
+                supabaseClient.from('students').select('*').order('name', { ascending: true }),
+                supabaseClient.from('app_config').select('*').eq('id', 1).single()
+            ]);
 
             if (error) {
                 console.error(error);
@@ -1947,6 +1952,7 @@
             }
 
             currentMgmtStudents = data || [];
+            studentMgmtConfig = configData || null;
             editingStudentId = null;
             populateStudentMgmtClassFilter();
             renderStudentMgmtList();
@@ -1958,14 +1964,27 @@
             renderStudentMgmtList();
         }
 
+        // 시스템 기본설정(admission_year, target_grade)을 기준으로, 특정 학년이 실제로 올해 몇 년도 입학생인지 계산합니다.
+        // (반별 신청 현황 화면과 동일한 계산식) 설정이 없으면 null을 반환하며, 이 경우 입학년도 검증은 건너뜁니다.
+        function getExpectedAdmissionYearForGrade(grade) {
+            if (!studentMgmtConfig) return null;
+            return Number(studentMgmtConfig.admission_year) - (Number(grade) - Number(studentMgmtConfig.target_grade));
+        }
+
         // 학번의 2~3번째 자리(예: 10203 -> "02")를 반으로 사용합니다. (반별 신청 현황과 동일한 규칙)
         function getStudentMgmtClassOptions(gradeFilter) {
+            if (!gradeFilter) return [];
             const classSet = new Set();
             currentMgmtStudents.forEach(s => {
                 const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
                 cols.forEach(col => {
                     const v = s[col];
-                    if (v && String(v).length === 5) classSet.add(String(v).substring(1, 3));
+                    if (!v || String(v).length !== 5) return;
+                    if (gradeFilter !== 'all') {
+                        const expectedYear = getExpectedAdmissionYearForGrade(gradeFilter);
+                        if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return;
+                    }
+                    classSet.add(String(v).substring(1, 3));
                 });
             });
             return Array.from(classSet).sort();
@@ -1976,7 +1995,7 @@
             const classFilterEl = document.getElementById('studentMgmtClassFilter');
             if (!classFilterEl) return;
 
-            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : 'all';
+            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : '';
             const prevValue = classFilterEl.value || 'all';
             const classOptions = getStudentMgmtClassOptions(gradeFilter);
 
@@ -1992,13 +2011,24 @@
             const gradeFilterEl = document.getElementById('studentMgmtGradeFilter');
             const classFilterEl = document.getElementById('studentMgmtClassFilter');
             const keyword = keywordEl ? keywordEl.value.trim() : '';
-            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : 'all';
+            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : '';
             const classFilter = classFilterEl ? classFilterEl.value : 'all';
+
+            // 학년을 아직 선택하지 않았으면 불필요하게 전체 명단을 보여주지 않습니다.
+            if (!gradeFilter) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">학년을 선택해주세요.</td></tr>';
+                return;
+            }
 
             let list = currentMgmtStudents.filter(s => {
                 if (gradeFilter !== 'all') {
                     const col = `grade${gradeFilter}_id`;
                     if (!s[col]) return false;
+
+                    // 학번의 grade1_id 등이 값이 있어도, 시스템 설정상 올해 그 학년의 입학년도와 다르면
+                    // (지난 기수 데이터 등) 해당 학년으로 보여주지 않습니다.
+                    const expectedYear = getExpectedAdmissionYearForGrade(gradeFilter);
+                    if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return false;
                 }
                 if (classFilter !== 'all') {
                     const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
