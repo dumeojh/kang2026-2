@@ -965,12 +965,22 @@
 
             <div id="statTableSection" class="hidden section-card">
                 <h2>📑 통계현황 표로보기</h2>
-                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                <p id="statTableDesc"
+                    style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
                     환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
                 </p>
 
                 <div class="toolbar">
                     <div class="toolbar-filters">
+                        <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="statViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="applied"
+                                    onclick="selectStatViewMode('applied')">신청과목</button>
+                                <button type="button" class="btn-toggle" data-view="final"
+                                    onclick="selectStatViewMode('final')">최종선택</button>
+                            </div>
+                        </div>
                         <div class="filter-row">
                             <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
                             <label
@@ -1337,6 +1347,19 @@
             return grades;
         }
 
+        let statViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
+
+        function selectStatViewMode(mode) {
+            statViewMode = mode;
+            document.querySelectorAll('#statViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            document.getElementById('statTableDesc').innerText = mode === 'final'
+                ? '통계 현황(박스형)에서 저장한 최종선택 결과를 기준으로, 학년·반별 인원을 보여줍니다. (아직 저장하지 않고 화면에서 작업 중인 값은 포함되지 않습니다.)'
+                : '환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.';
+            loadStatTable();
+        }
+
         async function loadStatTable() {
             const theadEl = document.getElementById('statTableHead');
             const tbody = document.getElementById('statTableBody');
@@ -1351,27 +1374,7 @@
             theadEl.innerHTML = '';
             tbody.innerHTML = '<tr class="empty-row"><td>데이터를 불러오는 중입니다...</td></tr>';
 
-            // 1. 환경설정(settings)에 등록된 선택 학년들의 과목 목록을 순서대로 가져와 합치기
-            const subjectResults = await Promise.all(
-                grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
-            );
-
-            if (subjectResults.some(r => r.error)) {
-                tbody.innerHTML = '<tr class="empty-row"><td>과목 목록을 불러오는데 실패했습니다.</td></tr>';
-                return;
-            }
-
-            const subjectNames = [];
-            subjectResults.forEach(r => {
-                (r.data || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
-            });
-
-            if (subjectNames.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td>환경설정(과목 관리)에 등록된 과목이 없습니다.</td></tr>';
-                return;
-            }
-
-            // 2. 학생 명단에서 선택 학년별 실제 반 구성(반 번호 목록) 가져오기
+            // 1. 학생 명단에서 선택 학년별 실제 반 구성(반 번호 목록) 가져오기
             const { data: studentsData, error: studentsError } = await supabaseClient.from('students').select('*');
             if (studentsError) {
                 tbody.innerHTML = '<tr class="empty-row"><td>학생 명단을 불러오는데 실패했습니다.</td></tr>';
@@ -1391,39 +1394,84 @@
                 gradeClasses[g] = list;
             });
 
-            // 3. 전체 신청 내역 가져오기
+            // 2. 전체 신청 내역 가져오기 (선택된 학년만)
             const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
             if (enrollError) {
                 tbody.innerHTML = '<tr class="empty-row"><td>신청 내역을 불러오는데 실패했습니다.</td></tr>';
                 return;
             }
 
-            // 4. 과목별/학년별/반별 인원 집계
-            const counts = {};
-            subjectNames.forEach(name => { counts[name] = {}; });
-
-            (enrollData || []).forEach(item => {
+            const relevantEnrollments = (enrollData || []).filter(item => {
                 const sId = String(item.student_id);
-                if (sId.length !== 5) return;
-
-                const grade = sId.charAt(0);
-                if (!grades.includes(grade)) return;
-
-                const cls = parseInt(sId.substring(1, 3), 10);
-                const subject = item.subject_name;
-
-                if (!counts[subject]) return; // 환경설정에 없는(삭제된) 과목명은 표에서 제외
-
-                const key = `${grade}-${cls}`;
-                counts[subject][key] = (counts[subject][key] || 0) + 1;
+                if (sId.length !== 5) return false;
+                return grades.includes(sId.charAt(0));
             });
 
-            renderStatHeader(grades, gradeClasses);
-            renderStatRows(subjectNames, grades, gradeClasses, counts);
+            // 3. 표에 표시할 행(과목) 목록 결정
+            let subjectRows; // [{ key, label }]
+
+            if (statViewMode === 'applied') {
+                // 환경설정(settings)에 등록된 선택 학년들의 과목 목록을 순서대로 가져와 합치기
+                const subjectResults = await Promise.all(
+                    grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+                );
+
+                if (subjectResults.some(r => r.error)) {
+                    tbody.innerHTML = '<tr class="empty-row"><td>과목 목록을 불러오는데 실패했습니다.</td></tr>';
+                    return;
+                }
+
+                const subjectNames = [];
+                subjectResults.forEach(r => {
+                    (r.data || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
+                });
+
+                if (subjectNames.length === 0) {
+                    tbody.innerHTML = '<tr class="empty-row"><td>환경설정(과목 관리)에 등록된 과목이 없습니다.</td></tr>';
+                    return;
+                }
+
+                subjectRows = subjectNames.map(name => ({ key: name, label: name }));
+            } else {
+                // 최종선택: 통계 현황(박스형)에서 실제로 [저장]되어 DB에 기록된 최종선택과목 값만 사용
+                const finalNames = [];
+                relevantEnrollments.forEach(item => {
+                    const f = item.final_subject;
+                    if (f && !finalNames.includes(f)) finalNames.push(f);
+                });
+                finalNames.sort((a, b) => a.localeCompare(b));
+
+                subjectRows = finalNames.map(name => ({ key: name, label: name }));
+                subjectRows.push({ key: '__PENDING__', label: '미정 (최종선택 전)' });
+            }
+
+            // 4. 과목별/학년별/반별 인원 집계
+            const counts = {};
+            subjectRows.forEach(row => { counts[row.key] = {}; });
+
+            relevantEnrollments.forEach(item => {
+                const sId = String(item.student_id);
+                const grade = sId.charAt(0);
+                const cls = parseInt(sId.substring(1, 3), 10);
+
+                let key;
+                if (statViewMode === 'applied') {
+                    key = item.subject_name;
+                    if (!counts[key]) return; // 환경설정에 없는(삭제된) 과목명은 표에서 제외
+                } else {
+                    key = item.final_subject || '__PENDING__';
+                }
+
+                const colKey = `${grade}-${cls}`;
+                counts[key][colKey] = (counts[key][colKey] || 0) + 1;
+            });
+
+            renderStatHeader(grades, gradeClasses, statViewMode === 'final' ? '최종 선택 과목' : '과목');
+            renderStatRows(subjectRows, grades, gradeClasses, counts);
         }
 
-        function renderStatHeader(grades, gradeClasses) {
-            let row1 = `<tr><th class="stat-subject-cell" rowspan="2" style="min-width:130px;">과목</th>`;
+        function renderStatHeader(grades, gradeClasses, subjectColumnLabel) {
+            let row1 = `<tr><th class="stat-subject-cell" rowspan="2" style="min-width:130px;">${subjectColumnLabel}</th>`;
             let row2 = '<tr>';
 
             grades.forEach(g => {
@@ -1441,7 +1489,7 @@
             document.getElementById('statTableHead').innerHTML = row1 + row2;
         }
 
-        function renderStatRows(subjectNames, grades, gradeClasses, counts) {
+        function renderStatRows(subjectRows, grades, gradeClasses, counts) {
             const colTotals = {};
             grades.forEach(g => {
                 gradeClasses[g].forEach(c => { colTotals[`${g}-${c}`] = 0; });
@@ -1450,14 +1498,16 @@
             let grandTotal = 0;
             let html = '';
 
-            subjectNames.forEach(name => {
-                let rowHtml = `<td class="stat-subject-cell">${escapeHtmlStat(name)}</td>`;
+            subjectRows.forEach(row => {
+                const key = row.key;
+                const isPending = key === '__PENDING__';
+                let rowHtml = `<td class="stat-subject-cell"${isPending ? ' style="color:#f44336;"' : ''}>${escapeHtmlStat(row.label)}</td>`;
                 let subjectTotal = 0;
 
                 grades.forEach(g => {
                     let gTotal = 0;
                     gradeClasses[g].forEach(c => {
-                        const val = counts[name][`${g}-${c}`] || 0;
+                        const val = (counts[key] && counts[key][`${g}-${c}`]) || 0;
                         gTotal += val;
                         colTotals[`${g}-${c}`] += val;
                         rowHtml += val > 0
@@ -1472,7 +1522,7 @@
                 rowHtml += `<td style="background-color:#FFEBEE; font-weight:bold; color:#C62828;">${subjectTotal > 0 ? subjectTotal : '-'}</td>`;
                 grandTotal += subjectTotal;
 
-                html += `<tr>${rowHtml}</tr>`;
+                html += `<tr${isPending ? ' style="background-color:#FFF8F8;"' : ''}>${rowHtml}</tr>`;
             });
 
             let totalRow = `<td class="stat-subject-cell">합계</td>`;
@@ -1489,8 +1539,10 @@
 
         function downloadStatTableExcel() {
             const table = document.getElementById('statTable');
-            const workbook = XLSX.utils.table_to_book(table, { sheet: "통계현황표" });
-            XLSX.writeFile(workbook, '소인수강좌_통계현황표.xlsx');
+            const sheetName = statViewMode === 'final' ? "최종선택통계표" : "통계현황표";
+            const fileName = statViewMode === 'final' ? '소인수강좌_최종선택통계표.xlsx' : '소인수강좌_통계현황표.xlsx';
+            const workbook = XLSX.utils.table_to_book(table, { sheet: sheetName });
+            XLSX.writeFile(workbook, fileName);
         }
 
         // ---------------- [환경설정(과목 관리 및 시스템 관리) 기능] ----------------
