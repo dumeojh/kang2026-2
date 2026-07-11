@@ -2251,12 +2251,13 @@
                 return;
             }
 
-            let subjectEntries = []; // { grade, subjectName }
+            let subjectEntries = []; // { subjectName, grades: [...] }
 
             if (attListViewMode === 'final') {
-                // 최종선택: 환경설정 목록이 아니라, 실제로 DB에 저장된 final_subject 값들을 기준으로 목록을 구성합니다.
-                // (통계현황 박스형에서 과목을 묶어 만든 새 최종과목명은 환경설정(과목 관리)에는 등록되어 있지 않기 때문입니다.)
-                const seen = new Set();
+                // 최종선택: 학년 구분 없이 과목명 하나로 묶고, 실제 신청자가 속한 학년들을 grades 배열로 모아둡니다.
+                // (환경설정 목록이 아니라, 실제로 DB에 저장된 final_subject 값들을 기준으로 목록을 구성합니다.
+                //  통계현황 박스형에서 과목을 묶어 만든 새 최종과목명은 환경설정(과목 관리)에는 등록되어 있지 않기 때문입니다.)
+                const gradeSetMap = {}; // subjectName -> Set of grades
                 (enrollData || []).forEach(item => {
                     const sId = String(item.student_id);
                     if (sId.length !== 5) return;
@@ -2264,16 +2265,14 @@
                     if (!grades.includes(grade)) return;
                     const val = item.final_subject;
                     if (!val) return;
-                    const key = grade + '|' + val;
-                    if (seen.has(key)) return;
-                    seen.add(key);
-                    subjectEntries.push({ grade, subjectName: val });
+                    if (!gradeSetMap[val]) gradeSetMap[val] = new Set();
+                    gradeSetMap[val].add(grade);
                 });
-                subjectEntries.sort((a, b) => a.grade === b.grade
-                    ? a.subjectName.localeCompare(b.subjectName, 'ko')
-                    : a.grade.localeCompare(b.grade));
+                subjectEntries = Object.keys(gradeSetMap)
+                    .sort((a, b) => a.localeCompare(b, 'ko'))
+                    .map(name => ({ subjectName: name, grades: Array.from(gradeSetMap[name]).sort() }));
             } else {
-                // 신청과목: 환경설정에 등록된 과목 목록(등록 순서) 기준
+                // 신청과목: 환경설정에 등록된 과목 목록(등록 순서) 기준, 학년별로 별도 표시
                 const subjectResults = await Promise.all(
                     grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
                 );
@@ -2285,7 +2284,7 @@
 
                 subjectResults.forEach((r, idx) => {
                     const g = grades[idx];
-                    (r.data || []).forEach(s => subjectEntries.push({ grade: g, subjectName: s.subject_name }));
+                    (r.data || []).forEach(s => subjectEntries.push({ subjectName: s.subject_name, grades: [g] }));
                 });
             }
 
@@ -2296,7 +2295,7 @@
                 return;
             }
 
-            // 2. 과목(학년+과목명)별 신청 학생 목록 집계 (학번 앞자리로 학년 구분)
+            // 2. 과목별 신청 학생 목록 집계 (grades에 포함된 학년의 학생만 대상)
             listEl.innerHTML = '';
             let hasAny = false;
 
@@ -2304,21 +2303,25 @@
                 const students = (enrollData || []).filter(item => {
                     const sId = String(item.student_id);
                     const val = getAttSubjectValue(item);
-                    return val === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
+                    return val === entry.subjectName && sId.length === 5 && entry.grades.includes(sId.charAt(0));
                 }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
                 if (students.length === 0) return; // 신청자가 없는 과목은 목록에서 제외
                 hasAny = true;
 
+                const gradeBadges = entry.grades
+                    .map(g => `<span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[g]};">${g}학년</span>`)
+                    .join('');
+
                 const div = document.createElement('div');
                 div.className = 'attendance-subject-item';
                 div.innerHTML = `
                     <div class="att-info">
-                        <span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[entry.grade]};">${entry.grade}학년</span>
+                        ${gradeBadges}
                         <span class="att-subject-name">${escapeHtmlStat(entry.subjectName)}</span>
                         <span class="att-count">신청 ${students.length}명</span>
                     </div>
-                    <button onclick='showAttendanceSheet(${JSON.stringify(entry.subjectName)}, ${JSON.stringify(entry.grade)})'>📋 출석부 보기 · 인쇄</button>
+                    <button onclick='showAttendanceSheet(${JSON.stringify(entry.subjectName)}, ${JSON.stringify(entry.grades)})'>📋 출석부 보기 · 인쇄</button>
                 `;
                 listEl.appendChild(div);
             });
@@ -2328,7 +2331,7 @@
             }
         }
 
-        async function showAttendanceSheet(subjectName, grade) {
+        async function showAttendanceSheet(subjectName, gradeList) {
             const { data: enrollData, error } = await supabaseClient.from('enrollments').select('*');
 
             if (error) {
@@ -2340,16 +2343,18 @@
                 const sId = String(item.student_id);
                 const val = getAttSubjectValue(item);
                 if (attListViewMode === 'final' && !val) return false;
-                return val === subjectName && sId.length === 5 && sId.charAt(0) === grade;
+                return val === subjectName && sId.length === 5 && gradeList.includes(sId.charAt(0));
             }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
-            renderAttendanceSheet(subjectName, grade, students);
+            renderAttendanceSheet(subjectName, gradeList, students);
             showSection('attendanceSheetSection');
         }
 
-        function renderAttendanceSheet(subjectName, grade, students) {
+        function renderAttendanceSheet(subjectName, gradeList, students) {
             const wrap = document.getElementById('attendanceSheetWrap');
             wrap.innerHTML = '';
+
+            const gradeLabel = gradeList.map(g => `${g}학년`).join('·');
 
             const pageCount = Math.ceil(ATTENDANCE_TOTAL_SESSIONS / ATTENDANCE_SESSIONS_PER_PAGE); // 32단위 → 2페이지
 
@@ -2393,7 +2398,7 @@
                 }
 
                 pageDiv.innerHTML = `
-                    <div class="attendance-page-title">📋 ${grade}학년 · ${escapeHtmlStat(subjectName)} 출석부 (${startSession}~${endSession}회차) — ${p + 1} / ${pageCount}페이지</div>
+                    <div class="attendance-page-title">📋 ${gradeLabel} · ${escapeHtmlStat(subjectName)} 출석부 (${startSession}~${endSession}회차) — ${p + 1} / ${pageCount}페이지</div>
                     <div class="attendance-table-wrap">
                         <table class="attendance-table">
                             <thead>
