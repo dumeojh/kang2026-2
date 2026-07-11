@@ -858,7 +858,7 @@
                 <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
                 <button data-section="attendanceListSection" onclick="showSection('attendanceListSection')">📝
                     신청내역(과목별)</button>
-                <a href="#" onclick="goToStatistics(); return false;">📈 통계 현황 (박스형)</a>
+                <a href="statistics.html">📈 통계 현황 (박스형)</a>
                 <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
                 <button class="nav-icon-only" data-section="adminSection" onclick="handleAdminGearClick()"
                     title="과목 환경설정">⚙️</button>
@@ -891,7 +891,7 @@
                         <div class="quick-title">신청내역(과목별) · 출석부</div>
                         <div class="quick-desc">과목별 신청 인원을 확인하고 32단위 출석부를 인쇄합니다.</div>
                     </div>
-                    <div class="quick-card" onclick="goToStatistics()">
+                    <div class="quick-card" onclick="location.href='statistics.html'">
                         <div class="quick-icon">📈</div>
                         <div class="quick-title">통계 현황 (박스형)</div>
                         <div class="quick-desc">과목별 인원을 자유롭게 배치해 폐강/합반을 검토합니다.</div>
@@ -1288,22 +1288,6 @@
             if (pwd === null) return; // 취소
             if (pwd === ADMIN_GEAR_PASSWORD) {
                 showSection('adminSection');
-            } else {
-                alert("비밀번호가 올바르지 않습니다.");
-            }
-        }
-
-        // ---------------- [통계 현황(박스형) 이동: 클릭 시 비밀번호 1번 입력] ----------------
-        function goToStatistics() {
-            if (sessionStorage.getItem('statsAuthed') === 'true') {
-                location.href = 'statistics.html';
-                return;
-            }
-            const pwd = prompt("통계 현황(박스형) 비밀번호를 입력하세요.");
-            if (pwd === null) return; // 취소
-            if (pwd === ADMIN_GEAR_PASSWORD) {
-                sessionStorage.setItem('statsAuthed', 'true');
-                location.href = 'statistics.html';
             } else {
                 alert("비밀번호가 올바르지 않습니다.");
             }
