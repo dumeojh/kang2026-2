@@ -1014,12 +1014,19 @@
                             </div>
                             <div style="flex:1; min-width:110px;">
                                 <label style="font-weight:bold; font-size:13px;">학년 필터</label>
-                                <select id="studentMgmtGradeFilter" onchange="renderStudentMgmtList()"
+                                <select id="studentMgmtGradeFilter" onchange="onStudentMgmtGradeFilterChange()"
                                     style="margin-bottom:0;">
                                     <option value="all">전체</option>
                                     <option value="1">1학년</option>
                                     <option value="2">2학년</option>
                                     <option value="3">3학년</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; min-width:100px;">
+                                <label style="font-weight:bold; font-size:13px;">반 필터</label>
+                                <select id="studentMgmtClassFilter" onchange="renderStudentMgmtList()"
+                                    style="margin-bottom:0;">
+                                    <option value="all">전체</option>
                                 </select>
                             </div>
                             <div>
@@ -1941,20 +1948,65 @@
 
             currentMgmtStudents = data || [];
             editingStudentId = null;
+            populateStudentMgmtClassFilter();
             renderStudentMgmtList();
+        }
+
+        // 학년 필터가 바뀌면, 그 학년에 존재하는 반 목록으로 반 필터를 다시 채웁니다.
+        function onStudentMgmtGradeFilterChange() {
+            populateStudentMgmtClassFilter();
+            renderStudentMgmtList();
+        }
+
+        // 학번의 2~3번째 자리(예: 10203 -> "02")를 반으로 사용합니다. (반별 신청 현황과 동일한 규칙)
+        function getStudentMgmtClassOptions(gradeFilter) {
+            const classSet = new Set();
+            currentMgmtStudents.forEach(s => {
+                const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
+                cols.forEach(col => {
+                    const v = s[col];
+                    if (v && String(v).length === 5) classSet.add(String(v).substring(1, 3));
+                });
+            });
+            return Array.from(classSet).sort();
+        }
+
+        function populateStudentMgmtClassFilter() {
+            const gradeFilterEl = document.getElementById('studentMgmtGradeFilter');
+            const classFilterEl = document.getElementById('studentMgmtClassFilter');
+            if (!classFilterEl) return;
+
+            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : 'all';
+            const prevValue = classFilterEl.value || 'all';
+            const classOptions = getStudentMgmtClassOptions(gradeFilter);
+
+            classFilterEl.innerHTML = '<option value="all">전체</option>' +
+                classOptions.map(c => `<option value="${c}">${parseInt(c, 10)}반</option>`).join('');
+
+            classFilterEl.value = classOptions.includes(prevValue) ? prevValue : 'all';
         }
 
         function renderStudentMgmtList() {
             const tbody = document.getElementById('studentMgmtBody');
             const keywordEl = document.getElementById('studentMgmtSearch');
             const gradeFilterEl = document.getElementById('studentMgmtGradeFilter');
+            const classFilterEl = document.getElementById('studentMgmtClassFilter');
             const keyword = keywordEl ? keywordEl.value.trim() : '';
             const gradeFilter = gradeFilterEl ? gradeFilterEl.value : 'all';
+            const classFilter = classFilterEl ? classFilterEl.value : 'all';
 
             let list = currentMgmtStudents.filter(s => {
                 if (gradeFilter !== 'all') {
                     const col = `grade${gradeFilter}_id`;
                     if (!s[col]) return false;
+                }
+                if (classFilter !== 'all') {
+                    const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
+                    const matchesClass = cols.some(col => {
+                        const v = s[col];
+                        return v && String(v).length === 5 && String(v).substring(1, 3) === classFilter;
+                    });
+                    if (!matchesClass) return false;
                 }
                 if (keyword) {
                     const idsStr = [s.grade1_id, s.grade2_id, s.grade3_id].filter(Boolean).join(' ');
