@@ -2244,35 +2244,59 @@
 
             listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">불러오는 중...</p>';
 
-            // 1. 선택된 학년들의 과목 목록(환경설정 등록 순서)을 가져오기
-            const subjectResults = await Promise.all(
-                grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
-            );
-
-            if (subjectResults.some(r => r.error)) {
-                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">과목 목록을 불러오는데 실패했습니다.</p>';
-                return;
-            }
-
-            const subjectEntries = []; // { grade, subjectName }
-            subjectResults.forEach((r, idx) => {
-                const g = grades[idx];
-                (r.data || []).forEach(s => subjectEntries.push({ grade: g, subjectName: s.subject_name }));
-            });
-
-            if (subjectEntries.length === 0) {
-                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">환경설정(과목 관리)에 등록된 과목이 없습니다.</p>';
-                return;
-            }
-
-            // 2. 전체 신청 내역 가져오기
+            // 1. 전체 신청 내역 가져오기
             const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
             if (enrollError) {
                 listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">신청 내역을 불러오는데 실패했습니다.</p>';
                 return;
             }
 
-            // 3. 과목(학년+과목명)별 신청 학생 목록 집계 (학번 앞자리로 학년 구분)
+            let subjectEntries = []; // { grade, subjectName }
+
+            if (attListViewMode === 'final') {
+                // 최종선택: 환경설정 목록이 아니라, 실제로 DB에 저장된 final_subject 값들을 기준으로 목록을 구성합니다.
+                // (통계현황 박스형에서 과목을 묶어 만든 새 최종과목명은 환경설정(과목 관리)에는 등록되어 있지 않기 때문입니다.)
+                const seen = new Set();
+                (enrollData || []).forEach(item => {
+                    const sId = String(item.student_id);
+                    if (sId.length !== 5) return;
+                    const grade = sId.charAt(0);
+                    if (!grades.includes(grade)) return;
+                    const val = item.final_subject;
+                    if (!val) return;
+                    const key = grade + '|' + val;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    subjectEntries.push({ grade, subjectName: val });
+                });
+                subjectEntries.sort((a, b) => a.grade === b.grade
+                    ? a.subjectName.localeCompare(b.subjectName, 'ko')
+                    : a.grade.localeCompare(b.grade));
+            } else {
+                // 신청과목: 환경설정에 등록된 과목 목록(등록 순서) 기준
+                const subjectResults = await Promise.all(
+                    grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+                );
+
+                if (subjectResults.some(r => r.error)) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">과목 목록을 불러오는데 실패했습니다.</p>';
+                    return;
+                }
+
+                subjectResults.forEach((r, idx) => {
+                    const g = grades[idx];
+                    (r.data || []).forEach(s => subjectEntries.push({ grade: g, subjectName: s.subject_name }));
+                });
+            }
+
+            if (subjectEntries.length === 0) {
+                listEl.innerHTML = attListViewMode === 'final'
+                    ? '<p class="toolbar-hint" style="text-align:center;">저장된 최종선택 내역이 없습니다. (통계현황 박스형에서 먼저 최종선택을 저장해주세요.)</p>'
+                    : '<p class="toolbar-hint" style="text-align:center;">환경설정(과목 관리)에 등록된 과목이 없습니다.</p>';
+                return;
+            }
+
+            // 2. 과목(학년+과목명)별 신청 학생 목록 집계 (학번 앞자리로 학년 구분)
             listEl.innerHTML = '';
             let hasAny = false;
 
@@ -2280,7 +2304,6 @@
                 const students = (enrollData || []).filter(item => {
                     const sId = String(item.student_id);
                     const val = getAttSubjectValue(item);
-                    if (attListViewMode === 'final' && !val) return false; // 최종선택 전 학생은 제외
                     return val === entry.subjectName && sId.length === 5 && sId.charAt(0) === entry.grade;
                 }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
 
