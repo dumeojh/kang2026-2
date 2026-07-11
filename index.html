@@ -770,8 +770,7 @@
             }
 
             /* 35명마다 강제 페이지 넘김 (단, 마지막 명단이 35번째인 경우 빈 페이지 생성 방지) */
-            #statusTableBody tr:nth-child(35n):not(:last-child),
-            #enrollmentTableBody tr:nth-child(35n):not(:last-child) {
+            #statusTableBody tr:nth-child(35n):not(:last-child) {
                 page-break-after: always;
                 break-after: page;
             }
@@ -807,8 +806,6 @@
                 <button data-section="mainMenu" class="active" onclick="showSection('mainMenu')">🏠 홈</button>
                 <button data-section="classStatusSection" onclick="showSection('classStatusSection')">📊 반별 신청
                     현황</button>
-                <button data-section="enrollmentListSection" onclick="showSection('enrollmentListSection')">📋 신청 내역
-                    확인</button>
                 <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
                 <a href="statistics.html">📈 통계 현황 (박스형)</a>
                 <button data-section="attendanceListSection" onclick="showSection('attendanceListSection')">📝
@@ -828,12 +825,7 @@
                     <div class="quick-card" onclick="showSection('classStatusSection')">
                         <div class="quick-icon">📊</div>
                         <div class="quick-title">반별 신청 현황</div>
-                        <div class="quick-desc">미신청자를 한눈에 확인합니다.</div>
-                    </div>
-                    <div class="quick-card" onclick="showSection('enrollmentListSection')">
-                        <div class="quick-icon">📋</div>
-                        <div class="quick-title">신청 내역 확인</div>
-                        <div class="quick-desc">전체 신청 명단을 조회합니다.</div>
+                        <div class="quick-desc">전체명단/신청자만 보기를 선택해 조회합니다.</div>
                     </div>
                     <div class="quick-card" onclick="showSection('adminSection')">
                         <div class="quick-icon">⚙️</div>
@@ -867,6 +859,8 @@
                         <div class="filter-row">
                             <label>학년</label>
                             <div class="btn-group" id="statusGradeButtons">
+                                <button type="button" class="btn-toggle" data-grade="all"
+                                    onclick="selectStatusGrade('all')">전체학년</button>
                                 <button type="button" class="btn-toggle" data-grade="1"
                                     onclick="selectStatusGrade('1')">1학년</button>
                                 <button type="button" class="btn-toggle" data-grade="2"
@@ -879,6 +873,15 @@
                             <label>반</label>
                             <div class="btn-group" id="statusClassButtons">
                                 <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="statusViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="all"
+                                    onclick="selectStatusViewMode('all')">전체명단</button>
+                                <button type="button" class="btn-toggle" data-view="applied"
+                                    onclick="selectStatusViewMode('applied')">과목신청자만</button>
                             </div>
                         </div>
                     </div>
@@ -958,55 +961,6 @@
                 <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
 
                 <div id="subjectList"></div>
-            </div>
-
-            <div id="enrollmentListSection" class="hidden section-card">
-                <h2>📋 수강 신청 내역 (전체 명단)</h2>
-
-                <div class="toolbar">
-                    <div class="toolbar-filters">
-                        <div class="filter-row">
-                            <label>학년</label>
-                            <div class="btn-group" id="searchGradeButtons">
-                                <button type="button" class="btn-toggle" data-grade="all"
-                                    onclick="selectSearchGrade('all')">전체학년</button>
-                                <button type="button" class="btn-toggle" data-grade="1"
-                                    onclick="selectSearchGrade('1')">1학년</button>
-                                <button type="button" class="btn-toggle" data-grade="2"
-                                    onclick="selectSearchGrade('2')">2학년</button>
-                                <button type="button" class="btn-toggle" data-grade="3"
-                                    onclick="selectSearchGrade('3')">3학년</button>
-                            </div>
-                        </div>
-                        <div class="filter-row">
-                            <label>반</label>
-                            <div class="btn-group" id="searchClassButtons">
-                                <span class="toolbar-hint">학년을 먼저 선택하세요</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="toolbar-actions">
-                        <button class="btn-excel" onclick="downloadExcel()">📥 엑셀 다운로드</button>
-                        <button class="btn-print" onclick="window.print()">🖨️ 명단 인쇄하기</button>
-                    </div>
-                </div>
-
-                <table id="enrollmentTable">
-                    <thead>
-                        <tr>
-                            <th>연번</th>
-                            <th>학번</th>
-                            <th>이름</th>
-                            <th>신청 과목</th>
-                            <th>최종선택</th>
-                        </tr>
-                    </thead>
-                    <tbody id="enrollmentTableBody">
-                        <tr class="empty-row">
-                            <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
 
             <div id="statTableSection" class="hidden section-card">
@@ -1135,7 +1089,7 @@
         function openSectionFromQuery() {
             const params = new URLSearchParams(window.location.search);
             const section = params.get('section');
-            const validSections = ['mainMenu', 'classStatusSection', 'enrollmentListSection', 'adminSection', 'statTableSection', 'attendanceListSection', 'attendanceSheetSection'];
+            const validSections = ['mainMenu', 'classStatusSection', 'adminSection', 'statTableSection', 'attendanceListSection', 'attendanceSheetSection'];
             if (section && validSections.includes(section)) {
                 showSection(section);
             }
@@ -1145,18 +1099,15 @@
             unlockTeacherScreen();
         }
 
-        let allEnrollments = [];
         let currentStatusStudents = [];
         let currentStatusEnrollments = [];
         let currentStatusGrade = null;
         let currentStatusClass = null;
-        let currentSearchGrade = null;
-        let currentSearchClass = null;
+        let currentStatusViewMode = 'all';
 
         function showSection(sectionId) {
             document.getElementById('mainMenu').classList.add('hidden');
             document.getElementById('adminSection').classList.add('hidden');
-            document.getElementById('enrollmentListSection').classList.add('hidden');
             document.getElementById('classStatusSection').classList.add('hidden');
             document.getElementById('statTableSection').classList.add('hidden');
             document.getElementById('attendanceListSection').classList.add('hidden');
@@ -1171,7 +1122,7 @@
             document.getElementById('contentWrap').classList.remove('wide', 'full-wide');
             if (sectionId === 'statTableSection' || sectionId === 'attendanceSheetSection') {
                 document.getElementById('contentWrap').classList.add('full-wide');
-            } else if (sectionId === 'enrollmentListSection' || sectionId === 'classStatusSection' || sectionId === 'attendanceListSection') {
+            } else if (sectionId === 'classStatusSection' || sectionId === 'attendanceListSection') {
                 document.getElementById('contentWrap').classList.add('wide');
             }
 
@@ -1180,17 +1131,12 @@
             if (sectionId === 'adminSection') {
                 loadSystemSettings();
                 loadSubjects();
-            } else if (sectionId === 'enrollmentListSection') {
-                currentSearchGrade = null;
-                currentSearchClass = null;
-                document.querySelectorAll('#searchGradeButtons .btn-toggle').forEach(b => b.classList.remove('active'));
-                document.getElementById('searchClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
-                document.getElementById('enrollmentTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
-                loadEnrollments();
             } else if (sectionId === 'classStatusSection') {
                 currentStatusGrade = null;
                 currentStatusClass = null;
+                currentStatusViewMode = 'all';
                 document.querySelectorAll('#statusGradeButtons .btn-toggle').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#statusViewButtons .btn-toggle').forEach(b => b.classList.toggle('active', b.dataset.view === 'all'));
                 document.getElementById('statusClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
                 document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
             } else if (sectionId === 'statTableSection') {
@@ -1221,32 +1167,49 @@
                 return;
             }
 
-            const expectedYear = Number(configData.admission_year) - (Number(grade) - Number(configData.target_grade));
-            const gradeCol = `grade${grade}_id`;
+            const gradesToLoad = grade === 'all' ? ['1', '2', '3'] : [grade];
+            const combinedStudents = [];
 
-            const { data: studentsData, error } = await supabaseClient
-                .from('students')
-                .select(`name, ${gradeCol}, admission_year`)
-                .eq('admission_year', expectedYear);
+            for (const g of gradesToLoad) {
+                const expectedYear = Number(configData.admission_year) - (Number(g) - Number(configData.target_grade));
+                const gradeCol = `grade${g}_id`;
 
-            if (error) {
-                console.error(error);
-                alert("학생 명단을 불러오는데 실패했습니다.");
-                classButtons.innerHTML = '<span class="toolbar-hint">불러오기 실패</span>';
-                return;
+                const { data: studentsData, error } = await supabaseClient
+                    .from('students')
+                    .select(`name, ${gradeCol}, admission_year`)
+                    .eq('admission_year', expectedYear);
+
+                if (error) {
+                    console.error(error);
+                    alert("학생 명단을 불러오는데 실패했습니다.");
+                    classButtons.innerHTML = '<span class="toolbar-hint">불러오기 실패</span>';
+                    return;
+                }
+
+                (studentsData || [])
+                    .filter(s => s[gradeCol] && String(s[gradeCol]).length === 5)
+                    .forEach(s => {
+                        combinedStudents.push({ studentId: String(s[gradeCol]), name: s.name, grade: g });
+                    });
             }
 
-            currentStatusStudents = studentsData.filter(s => s[gradeCol] && String(s[gradeCol]).length === 5);
+            currentStatusStudents = combinedStudents;
 
             const classes = new Set();
-            currentStatusStudents.forEach(s => {
-                classes.add(String(s[gradeCol]).substring(1, 3));
-            });
+            currentStatusStudents.forEach(s => classes.add(s.studentId.substring(1, 3)));
 
             classButtons.innerHTML = '';
             if (classes.size === 0) {
                 classButtons.innerHTML = '<span class="toolbar-hint">등록된 반이 없습니다.</span>';
             } else {
+                const allBtn = document.createElement('button');
+                allBtn.type = 'button';
+                allBtn.className = 'btn-toggle';
+                allBtn.dataset.class = 'all';
+                allBtn.innerText = '전체반';
+                allBtn.onclick = () => selectStatusClass('all');
+                classButtons.appendChild(allBtn);
+
                 Array.from(classes).sort().forEach(c => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
@@ -1270,10 +1233,17 @@
             renderClassStatusTable();
         }
 
+        function selectStatusViewMode(mode) {
+            currentStatusViewMode = mode;
+            document.querySelectorAll('#statusViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            renderClassStatusTable();
+        }
+
         function renderClassStatusTable() {
             const grade = currentStatusGrade;
             const cls = currentStatusClass;
-            const gradeCol = `grade${grade}_id`;
             const tbody = document.getElementById('statusTableBody');
             tbody.innerHTML = '';
 
@@ -1282,20 +1252,34 @@
                 return;
             }
 
-            const classStudents = currentStatusStudents.filter(s => String(s[gradeCol]).substring(1, 3) === cls);
-            classStudents.sort((a, b) => String(a[gradeCol]).localeCompare(String(b[gradeCol])));
+            let classStudents = currentStatusStudents;
+            if (cls !== 'all') {
+                classStudents = classStudents.filter(s => s.studentId.substring(1, 3) === cls);
+            }
+            classStudents = classStudents.slice().sort((a, b) => a.studentId.localeCompare(b.studentId));
 
             if (classStudents.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 반에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 조건에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
+                return;
+            }
+
+            const rows = classStudents
+                .map(student => ({
+                    student,
+                    enrollment: currentStatusEnrollments.find(e => String(e.student_id) === student.studentId)
+                }))
+                .filter(r => currentStatusViewMode === 'all' || r.enrollment);
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 조건에 과목을 신청한 학생이 없습니다.</td></tr>';
                 return;
             }
 
             let serialNum = 1;
 
-            classStudents.forEach(student => {
-                const sId = String(student[gradeCol]);
+            rows.forEach(({ student, enrollment }) => {
+                const sId = student.studentId;
                 const sName = student.name;
-                const enrollment = currentStatusEnrollments.find(e => String(e.student_id) === sId);
 
                 const tr = document.createElement('tr');
                 if (enrollment) {
@@ -1324,7 +1308,7 @@
             const table = document.getElementById('statusTable');
             const tbody = document.getElementById('statusTableBody');
 
-            if (tbody.innerText.includes('선택해주세요') || tbody.innerText.includes('명단이 없습니다')) {
+            if (tbody.querySelector('.empty-row')) {
                 alert("다운로드할 데이터가 없습니다.");
                 return;
             }
@@ -1648,134 +1632,6 @@
                 await supabaseClient.from('settings').update({ subject_name: newName }).eq('id', id);
                 loadSubjects();
             }
-        }
-
-        // ---------------- [전체 신청 내역 확인 기능] ----------------
-
-        async function loadEnrollments() {
-            const { data, error } = await supabaseClient
-                .from('enrollments')
-                .select('*')
-                .order('student_id', { ascending: true });
-
-            if (error) {
-                alert("신청 내역을 불러오는데 실패했습니다.");
-                console.error(error);
-                return;
-            }
-
-            allEnrollments = data || [];
-            filterEnrollments();
-        }
-
-        function selectSearchGrade(value) {
-            currentSearchGrade = value;
-            currentSearchClass = null;
-
-            document.querySelectorAll('#searchGradeButtons .btn-toggle').forEach(b => {
-                b.classList.toggle('active', b.dataset.grade === value);
-            });
-
-            const classButtons = document.getElementById('searchClassButtons');
-            classButtons.innerHTML = '';
-
-            const classes = new Set();
-            allEnrollments.forEach(item => {
-                const sId = String(item.student_id);
-                if (sId.length === 5) {
-                    if (value === 'all' || sId.charAt(0) === value) {
-                        classes.add(sId.substring(1, 3));
-                    }
-                }
-            });
-
-            const allBtn = document.createElement('button');
-            allBtn.type = 'button';
-            allBtn.className = 'btn-toggle';
-            allBtn.dataset.class = 'all';
-            allBtn.innerText = '전체반';
-            allBtn.onclick = () => selectSearchClass('all');
-            classButtons.appendChild(allBtn);
-
-            Array.from(classes).sort().forEach(c => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn-toggle';
-                btn.dataset.class = c;
-                btn.innerText = parseInt(c, 10) + '반';
-                btn.onclick = () => selectSearchClass(c);
-                classButtons.appendChild(btn);
-            });
-
-            filterEnrollments();
-        }
-
-        function selectSearchClass(value) {
-            currentSearchClass = value;
-            document.querySelectorAll('#searchClassButtons .btn-toggle').forEach(b => {
-                b.classList.toggle('active', b.dataset.class === value);
-            });
-            filterEnrollments();
-        }
-
-        function filterEnrollments() {
-            const gradeFilter = currentSearchGrade;
-            const classFilter = currentSearchClass;
-            const tbody = document.getElementById('enrollmentTableBody');
-            tbody.innerHTML = '';
-
-            if (!gradeFilter || !classFilter) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요. <br>(전체를 원하시면 전체학년/전체반을 선택하세요)</td></tr>';
-                return;
-            }
-
-            const filteredData = allEnrollments.filter(item => {
-                const sId = String(item.student_id);
-                if (sId.length !== 5) return true;
-
-                const grade = sId.charAt(0);
-                const cls = sId.substring(1, 3);
-
-                let isMatch = true;
-                if (gradeFilter !== 'all' && grade !== gradeFilter) isMatch = false;
-                if (classFilter !== 'all' && cls !== classFilter) isMatch = false;
-
-                return isMatch;
-            });
-
-            if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 조건에 신청한 학생이 없습니다.</td></tr>';
-                return;
-            }
-
-            let serialNum = 1;
-
-            filteredData.forEach(item => {
-                const tr = document.createElement('tr');
-                const finalSub = item.final_subject ? `<span style="color: #d32f2f; font-weight: bold;">${item.final_subject}</span>` : '';
-
-                tr.innerHTML = `
-                <td>${serialNum++}</td>
-                <td>${item.student_id}</td>
-                <td>${item.student_name}</td>
-                <td>${item.subject_name}</td>
-                <td>${finalSub}</td>
-            `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function downloadExcel() {
-            const table = document.getElementById('enrollmentTable');
-            const tbody = document.getElementById('enrollmentTableBody');
-
-            if (tbody.innerText.includes('선택해주세요') || tbody.innerText.includes('학생이 없습니다')) {
-                alert("다운로드할 데이터가 없습니다.");
-                return;
-            }
-
-            const workbook = XLSX.utils.table_to_book(table, { sheet: "신청명단" });
-            XLSX.writeFile(workbook, '소인수강좌_신청명단.xlsx');
         }
 
         // ---------------- [신청내역(과목별) · 출석부 기능] ----------------

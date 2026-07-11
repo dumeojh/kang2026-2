@@ -549,7 +549,6 @@
         <nav>
             <a href="index.html?section=mainMenu">🏠 홈</a>
             <a href="index.html?section=classStatusSection">📊 반별 신청 현황</a>
-            <a href="index.html?section=enrollmentListSection">📋 신청 내역 확인</a>
             <a href="index.html?section=statTableSection">📑 통계현황 표로보기</a>
             <span class="active">📈 통계 현황 (박스형)</span>
             <a href="index.html?section=attendanceListSection">📝 신청내역(과목별)</a>
@@ -559,67 +558,67 @@
     </header>
 
     <main class="content-wrap">
-        <div class="section-card">
+    <div class="section-card">
 
-            <h2>📈 과목별 신청 통계 현황</h2>
-            <p class="sub-desc">박스를 자유롭게 배치하고, 합반(무학년제)으로 묶어볼 과목들을 직접 묶어보며 폐강/합반을 검토하세요.</p>
+        <h2>📈 과목별 신청 통계 현황</h2>
+        <p class="sub-desc">박스를 자유롭게 배치하고, 합반(무학년제)으로 묶어볼 과목들을 직접 묶어보며 폐강/합반을 검토하세요.</p>
 
-            <div class="filter-box">
-                <label style="font-weight: bold; font-size: 14px;">학년 필터 (무학년제 파악 시 전체 조회 권장):</label>
-                <select id="statGradeFilter" onchange="onFilterChange()" style="margin-bottom: 0; margin-top: 5px;">
-                    <option value="all">전체 학년 모두 보기</option>
-                    <option value="1">1학년만 보기</option>
-                    <option value="2">2학년만 보기</option>
-                    <option value="3">3학년만 보기</option>
-                </select>
-            </div>
+        <div class="filter-box">
+            <label style="font-weight: bold; font-size: 14px;">학년 필터 (무학년제 파악 시 전체 조회 권장):</label>
+            <select id="statGradeFilter" onchange="onFilterChange()" style="margin-bottom: 0; margin-top: 5px;">
+                <option value="all">전체 학년 모두 보기</option>
+                <option value="1">1학년만 보기</option>
+                <option value="2">2학년만 보기</option>
+                <option value="3">3학년만 보기</option>
+            </select>
+        </div>
 
-            <div class="help-box">
-                💡 <b>사용법</b> — 박스를 마우스로 눌러서 이동할 수 있어요. <b>빈 공간을 드래그</b>하면 사각형 안에 걸리는 박스들이 한번에 선택됩니다(여러 개는 Shift+클릭으로
-                추가/제거).
-                2개 이상 선택하면 화면 아래 <b>"🔗 묶기"</b> 버튼이 나타나요 (또는 Ctrl+G). 묶음을 풀고 싶으면 묶음 박스 오른쪽 위의 <b>✕</b> 버튼을 누르세요.
-                묶음 안의 과목 하나만 빼고 싶다면 그 과목에 마우스를 올리면 작은 ✕가 나타납니다.
-                <br>💡 각 박스 위의 <b>색 점</b>은 그 과목을 신청한 <b>학년</b>을 나타냅니다. 묶음을 만든 뒤 입력칸에 <b>새 최종 과목명</b>을 입력하고 <b>저장</b>을
-                누르면, 해당 과목(들)을 신청한 <b>모든 학생</b>의 최종선택과목이 일괄 저장됩니다.
-            </div>
+        <div class="help-box">
+            💡 <b>사용법</b> — 박스를 마우스로 눌러서 이동할 수 있어요. <b>빈 공간을 드래그</b>하면 사각형 안에 걸리는 박스들이 한번에 선택됩니다(여러 개는 Shift+클릭으로
+            추가/제거).
+            2개 이상 선택하면 화면 아래 <b>"🔗 묶기"</b> 버튼이 나타나요 (또는 Ctrl+G). 묶음을 풀고 싶으면 묶음 박스 오른쪽 위의 <b>✕</b> 버튼을 누르세요.
+            묶음 안의 과목 하나만 빼고 싶다면 그 과목에 마우스를 올리면 작은 ✕가 나타납니다.
+            <br>💡 각 박스 위의 <b>색 점</b>은 그 과목을 신청한 <b>학년</b>을 나타냅니다. 묶음을 만든 뒤 입력칸에 <b>새 최종 과목명</b>을 입력하고 <b>저장</b>을
+            누르면, 해당 과목(들)을 신청한 <b>모든 학생</b>의 최종선택과목이 일괄 저장됩니다.
+        </div>
 
-            <div class="grade-legend" id="gradeLegend">
-                <span class="legend-title">🏷️ 학년 구분:</span>
-                <span class="legend-item"><span class="grade-dot" style="background:#2196F3;"></span>1학년</span>
-                <span class="legend-item"><span class="grade-dot" style="background:#4CAF50;"></span>2학년</span>
-                <span class="legend-item"><span class="grade-dot" style="background:#FF9800;"></span>3학년</span>
-            </div>
+        <div class="grade-legend" id="gradeLegend">
+            <span class="legend-title">🏷️ 학년 구분:</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#2196F3;"></span>1학년</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#4CAF50;"></span>2학년</span>
+            <span class="legend-item"><span class="grade-dot" style="background:#FF9800;"></span>3학년</span>
+        </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn-excel" onclick="downloadStatExcel()">📥 엑셀 다운로드</button>
-                <button class="btn-print" onclick="window.print()">🖨️ 통계 인쇄하기</button>
-                <button class="btn-reset" onclick="resetLayout()">🔄 레이아웃 초기화</button>
-            </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="btn-excel" onclick="downloadStatExcel()">📥 엑셀 다운로드</button>
+            <button class="btn-print" onclick="window.print()">🖨️ 통계 인쇄하기</button>
+            <button class="btn-reset" onclick="resetLayout()">🔄 레이아웃 초기화</button>
+        </div>
 
-            <div class="stat-canvas-wrap">
-                <div id="canvas">
-                    <div id="marquee"></div>
-                    <div id="emptyMsg"
-                        style="display:none; text-align:center; color:#888; padding-top: 220px; font-size: 15px;">
-                        데이터를 불러오는 중입니다...
-                    </div>
+        <div class="stat-canvas-wrap">
+            <div id="canvas">
+                <div id="marquee"></div>
+                <div id="emptyMsg"
+                    style="display:none; text-align:center; color:#888; padding-top: 220px; font-size: 15px;">
+                    데이터를 불러오는 중입니다...
                 </div>
             </div>
-
-            <div id="printTableWrap">
-                <table id="statisticsTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 30%;">과목명</th>
-                            <th style="width: 15%;">신청 인원</th>
-                            <th style="width: 35%;">학년/반별 세부 인원</th>
-                            <th style="width: 20%;">묶음(합반) 그룹</th>
-                        </tr>
-                    </thead>
-                    <tbody id="statisticsTableBody"></tbody>
-                </table>
-            </div>
         </div>
+
+        <div id="printTableWrap">
+            <table id="statisticsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">과목명</th>
+                        <th style="width: 15%;">신청 인원</th>
+                        <th style="width: 35%;">학년/반별 세부 인원</th>
+                        <th style="width: 20%;">묶음(합반) 그룹</th>
+                    </tr>
+                </thead>
+                <tbody id="statisticsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
     </main>
 
     <div id="floatingBar">
