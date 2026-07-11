@@ -718,6 +718,21 @@
             renderPrintTable();
         }
 
+        function syncSeqFromNodes(nodes) {
+            (function walk(list) {
+                (list || []).forEach(n => {
+                    if (n.type === 'subject') {
+                        const m = /^n(\d+)$/.exec(n.id);
+                        if (m) nodeSeq = Math.max(nodeSeq, parseInt(m[1], 10) + 1);
+                    } else if (n.type === 'group') {
+                        const m = /^g(\d+)$/.exec(n.id);
+                        if (m) groupSeq = Math.max(groupSeq, parseInt(m[1], 10) + 1);
+                        walk(n.children);
+                    }
+                });
+            })(nodes);
+        }
+
         function buildNodesFromStats(subjectNames, stats, saved) {
             const freshMap = {};
             subjectNames.forEach(name => {
@@ -765,6 +780,7 @@
             }
 
             let rebuilt = rebuild(saved.nodes);
+            syncSeqFromNodes(rebuilt);
 
             const newOnes = subjectNames.filter(name => !usedSubjects.has(name));
             const extra = newOnes.map(name => ({
