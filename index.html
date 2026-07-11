@@ -985,17 +985,17 @@
                             <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="statGrade1" checked onchange="loadStatTable()"
+                                <input type="checkbox" id="statGrade1" checked onchange="onStatGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 1학년
                             </label>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="statGrade2" checked onchange="loadStatTable()"
+                                <input type="checkbox" id="statGrade2" checked onchange="onStatGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 2학년
                             </label>
                             <label
                                 style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer; font-size: 14px;">
-                                <input type="checkbox" id="statGrade3" checked onchange="loadStatTable()"
+                                <input type="checkbox" id="statGrade3" checked onchange="onStatGradeFilterChange()"
                                     style="width:16px; height:16px; margin:0;"> 3학년
                             </label>
                         </div>
@@ -1150,6 +1150,7 @@
                 document.getElementById('statusClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
                 document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
             } else if (sectionId === 'statTableSection') {
+                applyStatPrefs();
                 loadStatTable();
             } else if (sectionId === 'attendanceListSection') {
                 loadAttendanceSubjects();
@@ -1349,14 +1350,60 @@
 
         let statViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
 
+        function statTableDescText(mode) {
+            return mode === 'final'
+                ? '통계 현황(박스형)에서 저장한 최종선택 결과를 기준으로, 학년·반별 인원을 보여줍니다. (아직 저장하지 않고 화면에서 작업 중인 값은 포함되지 않습니다.)'
+                : '환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.';
+        }
+
+        function saveStatPrefs() {
+            try {
+                localStorage.setItem('statTablePrefs', JSON.stringify({
+                    viewMode: statViewMode,
+                    grades: {
+                        g1: document.getElementById('statGrade1').checked,
+                        g2: document.getElementById('statGrade2').checked,
+                        g3: document.getElementById('statGrade3').checked
+                    }
+                }));
+            } catch (e) { }
+        }
+
+        function applyStatPrefs() {
+            let prefs = null;
+            try {
+                const raw = localStorage.getItem('statTablePrefs');
+                prefs = raw ? JSON.parse(raw) : null;
+            } catch (e) { }
+            if (!prefs) return;
+
+            if (prefs.viewMode === 'final' || prefs.viewMode === 'applied') {
+                statViewMode = prefs.viewMode;
+                document.querySelectorAll('#statViewButtons .btn-toggle').forEach(b => {
+                    b.classList.toggle('active', b.dataset.view === statViewMode);
+                });
+                document.getElementById('statTableDesc').innerText = statTableDescText(statViewMode);
+            }
+
+            if (prefs.grades) {
+                if (typeof prefs.grades.g1 === 'boolean') document.getElementById('statGrade1').checked = prefs.grades.g1;
+                if (typeof prefs.grades.g2 === 'boolean') document.getElementById('statGrade2').checked = prefs.grades.g2;
+                if (typeof prefs.grades.g3 === 'boolean') document.getElementById('statGrade3').checked = prefs.grades.g3;
+            }
+        }
+
+        function onStatGradeFilterChange() {
+            saveStatPrefs();
+            loadStatTable();
+        }
+
         function selectStatViewMode(mode) {
             statViewMode = mode;
             document.querySelectorAll('#statViewButtons .btn-toggle').forEach(b => {
                 b.classList.toggle('active', b.dataset.view === mode);
             });
-            document.getElementById('statTableDesc').innerText = mode === 'final'
-                ? '통계 현황(박스형)에서 저장한 최종선택 결과를 기준으로, 학년·반별 인원을 보여줍니다. (아직 저장하지 않고 화면에서 작업 중인 값은 포함되지 않습니다.)'
-                : '환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.';
+            document.getElementById('statTableDesc').innerText = statTableDescText(mode);
+            saveStatPrefs();
             loadStatTable();
         }
 
