@@ -1641,32 +1641,45 @@
             tbody.innerHTML = '<tr class="empty-row"><td>데이터를 불러오는 중입니다...</td></tr>';
 
             // 1. 학생 명단에서 선택 학년별 실제 반 구성(반 번호 목록) 가져오기
-            const { data: studentsData, error: studentsError } = await supabaseClient.from('students').select('*');
+            const [{ data: studentsData, error: studentsError }, { data: statConfigData }] = await Promise.all([
+                supabaseClient.from('students').select('*'),
+                supabaseClient.from('app_config').select('*').eq('id', 1).single()
+            ]);
             if (studentsError) {
                 tbody.innerHTML = '<tr class="empty-row"><td>학생 명단을 불러오는데 실패했습니다.</td></tr>';
                 return;
+            }
+
+            // 시스템 기본설정(입학년도/기준학년) 기준으로, 학년별 올해 입학년도가 몇 년도여야 하는지 계산합니다.
+            // (학생 명단 관리 화면과 동일한 계산식) 설정이 없으면 검증을 건너뜁니다.
+            function getExpectedAdmissionYearStat(grade) {
+                if (!statConfigData) return null;
+                return Number(statConfigData.admission_year) - (Number(grade) - Number(statConfigData.target_grade));
             }
 
             const gradeClasses = {};
             const classCounts = {}; // 학생 명단 기준 반별 정원 (전출생이 삭제되었는지 확인용)
             grades.forEach(g => {
                 const col = `grade${g}_id`;
-                const set = new Set();
-                (studentsData || []).forEach(s => {
+                const expectedYear = getExpectedAdmissionYearStat(g);
+                // 학번 칸에 값이 있어도, 시스템 설정상 올해 이 학년의 입학년도와 다르면(지난 기수 데이터 등) 집계에서 제외합니다.
+                const relevantStudents = (studentsData || []).filter(s => {
                     const v = s[col];
-                    if (v && String(v).length === 5) set.add(parseInt(String(v).substring(1, 3), 10));
+                    if (!v || String(v).length !== 5) return false;
+                    if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return false;
+                    return true;
                 });
+
+                const set = new Set();
+                relevantStudents.forEach(s => set.add(parseInt(String(s[col]).substring(1, 3), 10)));
                 let list = Array.from(set).sort((a, b) => a - b);
                 if (list.length === 0) list = [1, 2, 3, 4, 5, 6]; // 학생 명단이 없을 때의 기본값
                 gradeClasses[g] = list;
 
                 list.forEach(c => { classCounts[`${g}-${c}`] = 0; });
-                (studentsData || []).forEach(s => {
-                    const v = s[col];
-                    if (v && String(v).length === 5) {
-                        const cls = parseInt(String(v).substring(1, 3), 10);
-                        classCounts[`${g}-${cls}`] = (classCounts[`${g}-${cls}`] || 0) + 1;
-                    }
+                relevantStudents.forEach(s => {
+                    const cls = parseInt(String(s[col]).substring(1, 3), 10);
+                    classCounts[`${g}-${cls}`] = (classCounts[`${g}-${cls}`] || 0) + 1;
                 });
             });
 
