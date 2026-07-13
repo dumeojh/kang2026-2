@@ -836,7 +836,7 @@
         return `
       <div class="sub-item${rankClass}${selClass}" onclick="selectStudent('${s.student_id}')">
         <div class="rank">${rank}</div>
-        <div class="name">${s.student_name}</div>
+        <div class="name">${escapeHtml(displayNameFor(s))}</div>
         <div class="time">${m}:${sec}</div>
       </div>
     `;
@@ -849,9 +849,11 @@
       renderSubList();
       if (!s) return;
 
+      const dName = displayNameFor(s);
+      const hasNickname = dName !== s.student_name;
       document.getElementById('solutionView').innerHTML = `
     <div class="sv-head sv-head-row">
-      <div class="sv-name">${s.student_name} (${s.student_id})</div>
+      <div class="sv-name">${escapeHtml(dName)}${hasNickname ? ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(실명: ${escapeHtml(s.student_name)} · ${s.student_id})</span>` : ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(${s.student_id})</span>`}</div>
       <div class="sv-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
       <button class="btn" style="margin-left:auto;" onclick="openPresentOverlay('${studentId}')">🖥 학생들에게 크게 보여주기</button>
     </div>
@@ -868,7 +870,7 @@
       const overlay = document.getElementById('presentOverlay');
       overlay.innerHTML = `
     <div class="present-header">
-      <div class="p-name">${s.student_name} (${s.student_id})</div>
+      <div class="p-name">${escapeHtml(displayNameFor(s))}</div>
       <div class="p-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
       <button class="btn" onclick="closePresentOverlay()">✕ 닫기 (Esc)</button>
     </div>
@@ -890,6 +892,12 @@
         closePresentOverlay();
       }
     });
+
+    // 별명이 있으면 별명을, 없으면 실명을 화면에 보여줍니다.
+    // (전체화면/칠판에 투사되는 화면일수록 실명 노출을 피하고 별명을 우선합니다)
+    function displayNameFor(s) {
+      return (s.nickname && s.nickname.trim()) ? s.nickname.trim() : s.student_name;
+    }
 
     function escapeHtml(str) {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

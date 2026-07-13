@@ -139,6 +139,12 @@
       margin-bottom: 7px;
     }
 
+    .field-hint {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+    }
+
     .field input,
     .field textarea {
       width: 100%;
@@ -390,6 +396,11 @@
         <label>이름</label>
         <input type="text" id="studentNameInput" placeholder="이름">
       </div>
+      <div class="field">
+        <label>별명</label>
+        <input type="text" id="studentNicknameInput" placeholder="선택사항 · 비워두면 이름이 표시돼요" maxlength="12">
+        <div class="field-hint">선생님 화면(칠판)에 이름 대신 이 별명이 보여요.</div>
+      </div>
       <button class="btn" onclick="verifyStudent()">✅ 확인하고 시작하기</button>
     </div>
 
@@ -412,6 +423,7 @@
 
     let verifiedStudentId = '';
     let verifiedStudentName = '';
+    let verifiedNickname = '';
     let activeProblem = null;
     let mySubmission = null;
     let timerInterval = null;
@@ -505,6 +517,7 @@
 
       const sId = document.getElementById('studentIdInput').value.trim();
       const sName = document.getElementById('studentNameInput').value.trim();
+      const sNickname = document.getElementById('studentNicknameInput').value.trim();
 
       if (sId.length !== 5 || !sName) {
         alert('학번 5자리와 이름을 정확히 입력해주세요.');
@@ -531,10 +544,13 @@
 
       verifiedStudentId = sId;
       verifiedStudentName = matched.name;
+      verifiedNickname = sNickname;
 
       document.getElementById('loginCard').classList.add('hidden');
       document.getElementById('mainArea').classList.remove('hidden');
-      document.getElementById('studentChipName').textContent = `${verifiedStudentName} (${verifiedStudentId})`;
+      document.getElementById('studentChipName').textContent = verifiedNickname
+        ? `${verifiedNickname} (${verifiedStudentName})`
+        : `${verifiedStudentName} (${verifiedStudentId})`;
 
       await checkActiveProblem();
       pollInterval = setInterval(checkActiveProblem, 4000); // 새 문제가 올라오면 자동으로 감지
@@ -545,8 +561,10 @@
       clearInterval(pollInterval);
       verifiedStudentId = '';
       verifiedStudentName = '';
+      verifiedNickname = '';
       document.getElementById('studentIdInput').value = '';
       document.getElementById('studentNameInput').value = '';
+      document.getElementById('studentNicknameInput').value = '';
       document.getElementById('loginCard').classList.remove('hidden');
       document.getElementById('mainArea').classList.add('hidden');
     }
@@ -850,6 +868,7 @@
         session_id: activeProblem.id,
         student_id: verifiedStudentId,
         student_name: verifiedStudentName,
+        nickname: verifiedNickname || null,
         solution_text: note || '',
         solution_image: imageDataUrl,
         updated_at: new Date().toISOString()
@@ -870,6 +889,9 @@
     }
 
     document.getElementById('studentNameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('studentNicknameInput').focus();
+    });
+    document.getElementById('studentNicknameInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') verifyStudent();
     });
   </script>
