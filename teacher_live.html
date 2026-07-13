@@ -667,6 +667,8 @@
       <textarea id="newProblemText" rows="4" placeholder="문제를 입력하세요"></textarea>
       <label>제한시간 (분)</label>
       <input id="newProblemMinutes" type="number" value="5" min="1" max="60">
+      <label>🎙 음성 설명 녹음 제한시간 (초)</label>
+      <input id="newProblemVoiceSeconds" type="number" value="60" min="10" max="300" step="10">
       <label class="answer-label-lg">정답 (선택 — "정답 보기" 버튼으로 원할 때만 공개)</label>
       <textarea id="newProblemAnswer" class="answer-textarea-lg" rows="4" placeholder="예: 27/4"></textarea>
       <div class="modal-actions">
@@ -928,6 +930,7 @@
       document.getElementById('newProblemCategory').value = '수능특강';
       document.getElementById('newProblemText').value = '';
       document.getElementById('newProblemMinutes').value = 5;
+      document.getElementById('newProblemVoiceSeconds').value = 60;
       document.getElementById('newProblemAnswer').value = '';
       document.getElementById('newProblemModal').classList.remove('hidden');
     }
@@ -941,6 +944,7 @@
       document.getElementById('newProblemCategory').value = row.category || '기타문제';
       document.getElementById('newProblemText').value = row.problem_text || '';
       document.getElementById('newProblemMinutes').value = Math.round((row.time_limit_seconds || 300) / 60);
+      document.getElementById('newProblemVoiceSeconds').value = row.voice_limit_seconds || 60;
       document.getElementById('newProblemAnswer').value = row.answer_text || '';
       document.getElementById('newProblemModal').classList.remove('hidden');
     }
@@ -954,6 +958,7 @@
       const category = document.getElementById('newProblemCategory').value;
       const text = document.getElementById('newProblemText').value.trim();
       const minutes = parseFloat(document.getElementById('newProblemMinutes').value) || 5;
+      const voiceSeconds = parseInt(document.getElementById('newProblemVoiceSeconds').value, 10) || 60;
       const answer = document.getElementById('newProblemAnswer').value.trim();
       if (!text) { alert('문제 본문을 입력해주세요.'); return null; }
 
@@ -962,6 +967,7 @@
         category: category,
         problem_text: text,
         time_limit_seconds: Math.round(minutes * 60),
+        voice_limit_seconds: voiceSeconds,
         answer_text: answer || null
       };
 
@@ -1010,6 +1016,7 @@
       const { data, error } = await supabaseClient.from('live_problems').insert([{
         problem_text: row.problem_text,
         time_limit_seconds: row.time_limit_seconds,
+        voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
         is_active: true,
         started_at: new Date().toISOString()
@@ -1071,7 +1078,7 @@
       <div class="bank-item">
         <div class="bank-item-main">
           <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${escapeHtml(label)}</div>
-          <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
+          <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
           <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>

@@ -465,7 +465,7 @@
     let recordedAudioBlob = null;
     let voiceRecTimerInterval = null;
     let voiceRecSeconds = 0;
-    const VOICE_REC_MAX_SECONDS = 90;
+    const VOICE_REC_DEFAULT_SECONDS = 60; // 선생님이 문제별로 설정하지 않은 경우의 기본값
     let activeProblem = null;
     let mySubmission = null;
     let timerInterval = null;
@@ -694,7 +694,7 @@
         </div>
         <audio id="voicePreview" class="hidden" controls style="width:100%; margin-top:8px;"></audio>
         <button class="btn secondary hidden" id="voiceReRecordBtn" onclick="toggleVoiceRecording()" style="margin-top:8px;">🔁 다시 녹음하기</button>
-        <div class="field-hint">최대 ${VOICE_REC_MAX_SECONDS}초까지 녹음돼요. 선생님이 나중에 들어볼 수 있어요.</div>
+        <div class="field-hint">최대 ${activeProblem.voice_limit_seconds || VOICE_REC_DEFAULT_SECONDS}초까지 녹음돼요. 선생님이 나중에 들어볼 수 있어요.</div>
       </div>
       <div class="field">
         <label>💬 (선택) 최종 답이나 짧은 메모</label>
@@ -793,6 +793,7 @@
 
       mediaRecorder.start();
       voiceRecSeconds = 0;
+      const voiceLimitSeconds = (activeProblem && activeProblem.voice_limit_seconds) || VOICE_REC_DEFAULT_SECONDS;
       const timerEl = document.getElementById('voiceRecTimer');
       if (timerEl) { timerEl.classList.remove('hidden'); timerEl.textContent = '00:00'; }
       btn.textContent = '⏹ 녹음 종료';
@@ -803,8 +804,8 @@
         const m = String(Math.floor(voiceRecSeconds / 60)).padStart(2, '0');
         const s = String(voiceRecSeconds % 60).padStart(2, '0');
         if (timerEl) timerEl.textContent = `${m}:${s}`;
-        if (voiceRecSeconds >= VOICE_REC_MAX_SECONDS) {
-          mediaRecorder.stop(); // 최대 녹음시간에 도달하면 자동으로 종료합니다.
+        if (voiceRecSeconds >= voiceLimitSeconds) {
+          mediaRecorder.stop(); // 이 문제에 설정된 최대 녹음시간에 도달하면 자동으로 종료합니다.
         }
       }, 1000);
     }
