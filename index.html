@@ -531,6 +531,10 @@
             background-color: #217346;
         }
 
+        .mismatch-fix button.mismatch-delete-btn {
+            background-color: #c62828;
+        }
+
         .system-box {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -1345,8 +1349,8 @@
                 <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
                     학생이 신청할 당시의 과목명이, 이후 환경설정에서 이름이 바뀌거나 삭제되어 지금은 존재하지 않는
                     경우를 찾아줍니다.<br>
-                    이런 신청 건은 "통계현황 표로보기"에는 집계되지 않으니, 아래에서 목록을 확인하고 필요하면 현재
-                    과목으로 연결해주세요.
+                    이런 신청 건은 "통계현황 표로보기"에는 집계되지 않으니, 오타 등 단순 이름 문제라면 현재 과목으로
+                    <b>연결</b>하고, 폐강처럼 신청 자체가 무효가 된 경우라면 <b>삭제</b>해주세요.
                 </p>
 
                 <div class="toolbar" style="justify-content:flex-end;">
@@ -1745,10 +1749,11 @@
                         <div class="mismatch-students">${escapeHtmlStat(studentList)}</div>
                         <div class="mismatch-fix">
                             <select id="mismatchSelect_${idx}">
-                                <option value="">→ 연결할 현재 과목 선택 (또는 학생에게 재신청 안내)</option>
+                                <option value="">→ 연결할 현재 과목 선택</option>
                                 ${options}
                             </select>
                             <button onclick="remapMismatchGroup(${idx})">🔗 선택한 과목으로 일괄 연결</button>
+                            <button class="mismatch-delete-btn" onclick="deleteMismatchGroup(${idx})">🗑️ 신청 삭제 (폐강 처리)</button>
                         </div>
                     </div>
                 `;
@@ -1789,6 +1794,33 @@
             }
 
             alert(`✅ ${group.students.length}명의 신청 내역을 "${newName}" 과목으로 연결했습니다.`);
+            runMismatchCheck();
+        }
+
+        async function deleteMismatchGroup(idx) {
+            const group = lastMismatchGroups[idx];
+            if (!group) return;
+
+            const ok = confirm(
+                `"${group.subject}" 로 신청된 ${group.grade}학년 학생 ${group.students.length}명의 신청 기록을 완전히 삭제합니다.\n\n` +
+                `(폐강 등으로 이 과목 신청 자체가 무효가 된 경우에 사용하세요. 다른 과목으로 바뀌는 게 아니라, 신청 자체가 없어져서 "미선택" 상태가 됩니다.)\n\n` +
+                `대상 학번: ${group.students.map(s => s.id).join(', ')}\n\n` +
+                `이 작업은 되돌리기 버튼이 없습니다. 계속하시겠습니까?`
+            );
+            if (!ok) return;
+
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .delete()
+                .eq('subject_name', group.subject)
+                .like('student_id', `${group.grade}____`);
+
+            if (error) {
+                alert("삭제 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            alert(`✅ ${group.students.length}명의 신청 기록을 삭제했습니다. 해당 학생들은 다시 "미선택" 상태가 됩니다.`);
             runMismatchCheck();
         }
 
@@ -2148,11 +2180,12 @@
                 const div = document.createElement('div');
                 div.className = 'subject-item';
                 div.setAttribute('data-id', item.id);
+                const safeName = String(item.subject_name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 div.innerHTML = `
                 <span><b>${item.grade}학년</b> - ${item.subject_name}</span>
                 <div>
-                    <button class="btn-edit" onclick="editSubject(${item.id}, '${item.subject_name}')">수정</button>
-                    <button class="btn-delete" onclick="deleteSubject(${item.id})">삭제</button>
+                    <button class="btn-edit" onclick="editSubject(${item.id}, '${safeName}')">수정</button>
+                    <button class="btn-delete" onclick="deleteSubject(${item.id}, '${item.grade}', '${safeName}')">삭제</button>
                 </div>
             `;
                 list.appendChild(div);
@@ -2217,11 +2250,47 @@
             }
         }
 
-        async function deleteSubject(id) {
-            if (confirm("삭제하시겠습니까?")) {
-                await supabaseClient.from('settings').delete().eq('id', id);
-                loadSubjects();
+        async function deleteSubject(id, grade, subjectName) {
+            // 폐강 등으로 과목을 지울 때, 이미 이 과목을 신청한 학생 기록이 있는지 먼저 확인합니다.
+            const { data: enrollData, error: enrollError } = await supabaseClient
+                .from('enrollments')
+                .select('student_id, student_name')
+                .eq('subject_name', subjectName)
+                .like('student_id', `${grade}____`);
+
+            if (enrollError) {
+                alert("신청 현황을 확인하는 중 오류가 발생했습니다: " + enrollError.message);
+                return;
             }
+
+            const count = (enrollData || []).length;
+
+            if (count > 0) {
+                const names = enrollData.map(s => `${s.student_id} ${s.student_name || ''}`).join(', ');
+                const wantDeleteBoth = confirm(
+                    `"${subjectName}" 과목을 신청한 학생이 ${count}명 있습니다.\n(${names})\n\n` +
+                    `폐강 등으로 이 과목을 삭제하면, 이 학생들의 신청 기록도 함께 삭제되어 "미선택" 상태로 돌아갑니다.\n` +
+                    `(다른 과목으로 바꿔주는 것이 아니라 완전히 삭제됩니다. 되돌릴 수 없습니다.)\n\n` +
+                    `과목과 학생 신청 기록을 모두 삭제할까요?`
+                );
+                if (!wantDeleteBoth) return; // 취소 시 과목도 삭제하지 않음 (신청기록이 붕 뜨는 것을 방지)
+
+                const { error: delEnrollError } = await supabaseClient
+                    .from('enrollments')
+                    .delete()
+                    .eq('subject_name', subjectName)
+                    .like('student_id', `${grade}____`);
+
+                if (delEnrollError) {
+                    alert("학생 신청 기록 삭제 중 오류가 발생했습니다: " + delEnrollError.message);
+                    return;
+                }
+            } else {
+                if (!confirm("삭제하시겠습니까?")) return;
+            }
+
+            await supabaseClient.from('settings').delete().eq('id', id);
+            loadSubjects();
         }
 
         async function editSubject(id, oldName) {
