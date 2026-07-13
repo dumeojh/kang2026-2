@@ -1035,6 +1035,8 @@
                                     onclick="selectStatusViewMode('all')">전체명단</button>
                                 <button type="button" class="btn-toggle" data-view="applied"
                                     onclick="selectStatusViewMode('applied')">과목신청자만</button>
+                                <button type="button" class="btn-toggle" data-view="unapplied"
+                                    onclick="selectStatusViewMode('unapplied')">미신청자만</button>
                             </div>
                         </div>
                     </div>
@@ -1625,10 +1627,17 @@
                     student,
                     enrollment: currentStatusEnrollments.find(e => String(e.student_id) === student.studentId)
                 }))
-                .filter(r => currentStatusViewMode === 'all' || r.enrollment);
+                .filter(r => {
+                    if (currentStatusViewMode === 'applied') return !!r.enrollment;
+                    if (currentStatusViewMode === 'unapplied') return !r.enrollment;
+                    return true; // 'all'
+                });
 
             if (rows.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 조건에 과목을 신청한 학생이 없습니다.</td></tr>';
+                const msg = currentStatusViewMode === 'unapplied'
+                    ? '해당 조건의 학생은 전원 신청을 완료했습니다. 🎉'
+                    : '해당 조건에 과목을 신청한 학생이 없습니다.';
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${msg}</td></tr>`;
                 return;
             }
 
@@ -2008,7 +2017,6 @@
                 finalNames.sort((a, b) => a.localeCompare(b));
 
                 subjectRows = finalNames.map(name => ({ key: name, label: name }));
-                subjectRows.push({ key: '__PENDING__', label: '미정 (최종선택 전)' });
             }
 
             // 4. 과목별/학년별/반별 인원 집계
@@ -2023,14 +2031,31 @@
                 let key;
                 if (statViewMode === 'applied') {
                     key = item.subject_name;
-                    if (!counts[key]) return; // 환경설정에 없는(삭제된) 과목명은 표에서 제외
+                    if (!counts[key]) return; // 환경설정에 없는(삭제된/바뀐) 과목명은 표에서 제외 → 미선택에 함께 잡힘
                 } else {
-                    key = item.final_subject || '__PENDING__';
+                    key = item.final_subject;
+                    if (!key) return; // 최종선택이 아직 안 된 학생은 미선택에서 잡힘
                 }
 
                 const colKey = `${grade}-${cls}`;
                 counts[key][colKey] = (counts[key][colKey] || 0) + 1;
             });
+
+            // 5. 미선택 인원 계산: 학생 명단(정원) 기준으로, 위에서 과목별로 집계되지 않은 학생 수를 반별로 계산합니다.
+            //    (신청 자체를 안 한 학생 + 환경설정과 이름이 어긋나 집계에서 빠진 학생이 모두 여기 포함됩니다.
+            //     후자가 많다면 [신청 불일치 검사]에서 정리해주세요.)
+            const unselectedLabel = statViewMode === 'applied' ? '미선택 (과목 신청 안 함)' : '미선택 (최종선택 안 됨)';
+            counts['__UNSELECTED__'] = {};
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => {
+                    const colKey = `${g}-${c}`;
+                    let matched = 0;
+                    subjectRows.forEach(row => { matched += (counts[row.key] && counts[row.key][colKey]) || 0; });
+                    const total = classCounts[colKey] || 0;
+                    counts['__UNSELECTED__'][colKey] = Math.max(total - matched, 0);
+                });
+            });
+            subjectRows.push({ key: '__UNSELECTED__', label: unselectedLabel });
 
             renderStatHeader(grades, gradeClasses, statViewMode === 'final' ? '최종 선택 과목' : '과목', classCounts);
             renderStatRows(subjectRows, grades, gradeClasses, counts);
@@ -2069,7 +2094,7 @@
 
             subjectRows.forEach(row => {
                 const key = row.key;
-                const isPending = key === '__PENDING__';
+                const isPending = key === '__UNSELECTED__';
                 let rowHtml = `<td class="stat-subject-cell"${isPending ? ' style="color:#f44336;"' : ''}>${escapeHtmlStat(row.label)}</td>`;
                 let subjectTotal = 0;
 
