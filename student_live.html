@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘의 문제 풀이 올리기 (학생용)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" async></script>
+
+  <style>
+    :root {
+      --navy: #16233B;
+      --slate: #64748B;
+      --bg: #F3F5F8;
+      --red: #C0392B;
+      --green: #2E7D32;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 30px 18px 60px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      color: var(--slate);
+      font-size: 13.5px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 26px 24px;
+      box-shadow: 0 6px 20px -12px rgba(22, 35, 59, 0.25);
+      margin-bottom: 20px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(22, 35, 59, 0.2);
+      font-family: inherit;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      cursor:  pointer;
+    }
+
+    .btn:disabled {
+      background: #B7C0CC;
+      cursor: not-allowed;
+    }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--navy);
+      border: 1.5px solid var(--navy);
+    }
+
+    .top-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .student-chip {
+      font-size: 13.5px;
+      color: var(--slate);
+    }
+
+    .student-chip b {
+      color: var(--navy);
+    }
+
+    .problem-box .ptag {
+      font-size: 11.5px;
+      font-weight: 900;
+      color: var(--slate);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .problem-box .ptext {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed rgba(22, 35, 59, 0.2);
+    }
+
+    .timer-label {
+      font-size: 13px;
+      color: var(--slate);
+    }
+
+    .timer-value {
+      font-size: 24px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-value.warning {
+      color: var(--red);
+    }
+
+    .submitted-badge {
+      display: inline-block;
+      background: #E8F5E9;
+      color: var(--green);
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    .waiting {
+      text-align: center;
+      color: var(--slate);
+      padding: 50px 10px;
+      font-size: 15px;
+    }
+
+    .canvas-toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .tool-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 7px 11px;
+      border-radius: 16px;
+      border: 1.5px solid rgba(22, 35, 59, 0.25);
+      background: #fff;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    .tool-btn.active {
+      background: var(--navy);
+      color: #fff;
+      border-color: var(--navy);
+    }
+
+    .draw-canvas {
+      display: block;
+      width: 100%;
+      border: 1.5px solid rgba(22, 35, 59, 0.25);
+      border-radius: 8px;
+      background: #fff;
+      touch-action: none;
+      cursor: crosshair;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrap">
+    <h1>🚀 오늘의 문제 풀이 올리기</h1>
+    <div class="subtitle">태블릿으로 접속해서 문제를 풀고, 다 풀면 제일 먼저 올려보세요!!</div>
+
+    <!-- 1단계: 로그인 -->
+    <div class="card" id="loginCard">
+      <div class="field">
+        <label>학번</label>
+        <input type="text" id="studentIdInput" placeholder="학번 5자리 (예: 10101)" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>이름</label>
+        <input type="text" id="studentNameInput" placeholder="이름">
+      </div>
+      <button class="btn" onclick="verifyStudent()">✅ 확인하고 시작하기</button>
+    </div>
+
+    <!-- 2단계: 문제 + 제출 -->
+    <div id="mainArea" class="hidden">
+      <div class="top-status">
+        <div class="student-chip">👤 <b id="studentChipName"></b> 학생</div>
+        <button class="btn secondary" style="width:auto; padding:8px 14px; font-size:13px;"
+          onclick="logout()">로그아웃</button>
+      </div>
+
+      <div id="problemArea"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let verifiedStudentId = '';
+    let verifiedStudentName = '';
+    let activeProblem = null;
+    let mySubmission = null;
+    let timerInterval = null;
+    let pollInterval = null;
+
+    // ---------------- [손글씨 캔버스 상태] ----------------
+    let ctx = null;
+    let strokes = [];
+    let bgImage = null;
+    let currentStroke = null;
+    let isDrawing = false;
+    let currentColor = '#1B2A3D';
+    let currentSize = 3;
+    let isEraser = false;
+    let canvasCssWidth = 0;
+    let canvasCssHeight = 320;
+
+    async function verifyStudent() {
+      const sId = document.getElementById('studentIdInput').value.trim();
+      const sName = document.getElementById('studentNameInput').value.trim();
+
+      if (sId.length !== 5 || !sName) {
+        alert('학번 5자리와 이름을 정확히 입력해주세요.');
+        return;
+      }
+
+      const { data: studentData, error } = await supabaseClient
+        .from('students')
+        .select('*')
+        .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
+
+      if (error) {
+        alert('학생 확인 중 오류가 발생했습니다: ' + error.message);
+        return;
+      }
+
+      const inputNameClean = sName.replace(/\s+/g, '');
+      const matched = (studentData || []).find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
+
+      if (!matched) {
+        alert('학번과 이름이 일치하는 학생을 찾을 수 없습니다. 다시 확인해주세요.');
+        return;
+      }
+
+      verifiedStudentId = sId;
+      verifiedStudentName = matched.name;
+
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('mainArea').classList.remove('hidden');
+      document.getElementById('studentChipName').textContent = `${verifiedStudentName} (${verifiedStudentId})`;
+
+      await checkActiveProblem();
+      pollInterval = setInterval(checkActiveProblem, 4000); // 새 문제가 올라오면 자동으로 감지
+    }
+
+    function logout() {
+      clearInterval(timerInterval);
+      clearInterval(pollInterval);
+      verifiedStudentId = '';
+      verifiedStudentName = '';
+      document.getElementById('studentIdInput').value = '';
+      document.getElementById('studentNameInput').value = '';
+      document.getElementById('loginCard').classList.remove('hidden');
+      document.getElementById('mainArea').classList.add('hidden');
+    }
+
+    async function checkActiveProblem() {
+      const { data } = await supabaseClient
+        .from('live_problems')
+        .select('*')
+        .eq('is_active', true)
+        .order('started_at', { ascending: false })
+        .limit(1);
+
+      const problem = (data && data.length > 0) ? data[0] : null;
+
+      // 새 문제가 시작됐거나(id 다름), 문제가 없어졌으면 화면을 다시 그림
+      if ((problem && (!activeProblem || activeProblem.id !== problem.id)) || (!problem && activeProblem)) {
+        activeProblem = problem;
+        mySubmission = null;
+        if (problem) await loadMySubmission();
+        renderProblemArea();
+      } else if (problem) {
+        activeProblem = problem; // 시간 등 갱신
+      }
+    }
+
+    async function loadMySubmission() {
+      if (!activeProblem) return;
+      const { data } = await supabaseClient
+        .from('live_submissions')
+        .select('*')
+        .eq('session_id', activeProblem.id)
+        .eq('student_id', verifiedStudentId)
+        .maybeSingle();
+      mySubmission = data || null;
+    }
+
+    function renderProblemArea() {
+      const area = document.getElementById('problemArea');
+      clearInterval(timerInterval);
+
+      if (!activeProblem) {
+        area.innerHTML = `<div class="card"><div class="waiting">⏳ 아직 출제된 문제가 없습니다.<br>선생님이 문제를 올리면 자동으로 나타납니다.</div></div>`;
+        return;
+      }
+
+      const submittedBadge = mySubmission
+        ? `<div class="submitted-badge">✅ 제출 완료 (${new Date(mySubmission.updated_at || mySubmission.submitted_at).toLocaleTimeString('ko-KR')})</div>`
+        : '';
+
+      area.innerHTML = `
+    <div class="card problem-box">
+      <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(activeProblem.time_limit_seconds / 60)}분</div>
+      <div class="ptext">${activeProblem.problem_text}</div>
+      <div class="timer-row">
+        <div class="timer-label">남은 시간</div>
+        <div class="timer-value" id="studentTimer">--:--</div>
+      </div>
+    </div>
+
+    <div class="card">
+      ${submittedBadge}
+      <div class="field">
+        <label>✍️ 아이패드 펜으로 풀이 과정을 써주세요</label>
+        <div class="canvas-toolbar">
+          <button class="tool-btn active" id="colorBtnBlack" onclick="setPenColor('#1B2A3D', 'colorBtnBlack')">⚫ 검정</button>
+          <button class="tool-btn" id="colorBtnRed" onclick="setPenColor('#C0392B', 'colorBtnRed')">🔴 빨강</button>
+          <button class="tool-btn" id="colorBtnBlue" onclick="setPenColor('#2563EB', 'colorBtnBlue')">🔵 파랑</button>
+          <button class="tool-btn" id="eraserBtn" onclick="toggleEraser()">🧹 지우개</button>
+          <button class="tool-btn" onclick="undoStroke()">↩️ 되돌리기</button>
+          <button class="tool-btn" onclick="clearCanvas()">🗑 전체지우기</button>
+        </div>
+        <canvas id="drawCanvas" class="draw-canvas"></canvas>
+      </div>
+      <div class="field">
+        <label>💬 (선택) 최종 답이나 짧은 메모</label>
+        <input type="text" id="solutionNote" placeholder="예: 정답 27/4" value="${mySubmission ? escapeHtml(mySubmission.solution_text || '') : ''}">
+      </div>
+      <button class="btn" id="submitBtn" onclick="submitSolution()">${mySubmission ? '🔁 다시 제출하기' : '🚀 풀이 올리기'}</button>
+    </div>
+  `;
+
+      if (window.MathJax) MathJax.typesetPromise([area.querySelector('.problem-box')]);
+      initCanvas();
+
+      timerInterval = setInterval(updateStudentTimer, 1000);
+      updateStudentTimer();
+    }
+
+    // ---------------- [손글씨 캔버스] ----------------
+    function setupCanvasBackingStore(canvas, cssWidth, cssHeight) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = cssWidth * dpr;
+      canvas.height = cssHeight * dpr;
+      canvas.style.height = cssHeight + 'px';
+      ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+
+    function initCanvas() {
+      const canvas = document.getElementById('drawCanvas');
+      if (!canvas) return;
+
+      canvasCssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      canvasCssHeight = 320;
+      setupCanvasBackingStore(canvas, canvasCssWidth, canvasCssHeight);
+
+      strokes = [];
+      bgImage = null;
+      redrawAll();
+
+      // 이전에 제출한 손글씨가 있으면 배경으로 불러와서 이어서 그릴 수 있게 합니다.
+      if (mySubmission && mySubmission.solution_image) {
+        const img = new Image();
+        img.onload = () => { bgImage = img; redrawAll(); };
+        img.src = mySubmission.solution_image;
+      }
+
+      canvas.onpointerdown = onPointerDown;
+      canvas.onpointermove = onPointerMove;
+      canvas.onpointerup = onPointerUp;
+      canvas.onpointerleave = onPointerUp;
+    }
+
+    function getCanvasPos(canvas, e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function onPointerDown(e) {
+      e.preventDefault();
+      isDrawing = true;
+      const canvas = e.target;
+      canvas.setPointerCapture(e.pointerId);
+      const pos = getCanvasPos(canvas, e);
+      currentStroke = { color: isEraser ? '#FFFFFF' : currentColor, size: isEraser ? 22 : currentSize, points: [pos] };
+      strokes.push(currentStroke);
+    }
+
+    function onPointerMove(e) {
+      if (!isDrawing || !currentStroke) return;
+      e.preventDefault();
+      const pos = getCanvasPos(e.target, e);
+      currentStroke.points.push(pos);
+      redrawAll();
+    }
+
+    function onPointerUp() {
+      isDrawing = false;
+      currentStroke = null;
+    }
+
+    function redrawAll() {
+      const canvas = document.getElementById('drawCanvas');
+      if (!canvas || !ctx) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssWidth = canvas.width / dpr;
+      const cssHeight = canvas.height / dpr;
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+      if (bgImage) ctx.drawImage(bgImage, 0, 0, cssWidth, cssHeight);
+
+      strokes.forEach(stroke => {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.beginPath();
+        stroke.points.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    function setPenColor(color, btnId) {
+      currentColor = color;
+      isEraser = false;
+      ['colorBtnBlack', 'colorBtnRed', 'colorBtnBlue'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', id === btnId);
+      });
+      const eraserBtn = document.getElementById('eraserBtn');
+      if (eraserBtn) eraserBtn.classList.remove('active');
+    }
+
+    function toggleEraser() {
+      isEraser = !isEraser;
+      document.getElementById('eraserBtn').classList.toggle('active', isEraser);
+    }
+
+    function undoStroke() {
+      strokes.pop();
+      redrawAll();
+    }
+
+    function clearCanvas() {
+      if (!confirm('전체 지우기를 할까요?')) return;
+      strokes = [];
+      bgImage = null;
+      redrawAll();
+    }
+
+    // ---------------- [화면 회전 / 크기 변경 대응] ----------------
+    // 캔버스 폭이 바뀌면(회전 등) 그림을 지우지 않고, 새 크기에 맞게 좌표를 다시 배치합니다.
+    function handleCanvasResize() {
+      const canvas = document.getElementById('drawCanvas');
+      if (!canvas) return; // 캔버스가 화면에 없으면(로그인/대기 화면 등) 무시
+
+      const newWidth = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+      if (!newWidth || Math.abs(newWidth - canvasCssWidth) < 2) return; // 실질적인 변화 없으면 무시
+
+      const scaleX = newWidth / canvasCssWidth;
+
+      strokes.forEach(stroke => {
+        stroke.points.forEach(p => { p.x *= scaleX; });
+        stroke.size *= scaleX;
+      });
+
+      canvasCssWidth = newWidth;
+      setupCanvasBackingStore(canvas, canvasCssWidth, canvasCssHeight);
+      redrawAll();
+    }
+
+    let resizeDebounce = null;
+    function scheduleCanvasResize(delay) {
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(handleCanvasResize, delay);
+    }
+    window.addEventListener('resize', () => scheduleCanvasResize(200));
+    window.addEventListener('orientationchange', () => scheduleCanvasResize(350)); // 회전 애니메이션이 끝난 뒤에 다시 계산
+
+    function updateStudentTimer() {
+      if (!activeProblem) return;
+      const started = new Date(activeProblem.started_at).getTime();
+      const remain = Math.max(0, Math.floor((started + activeProblem.time_limit_seconds * 1000 - Date.now()) / 1000));
+      const el = document.getElementById('studentTimer');
+      if (!el) return;
+      const m = String(Math.floor(remain / 60)).padStart(2, '0');
+      const s = String(remain % 60).padStart(2, '0');
+      el.textContent = `${m}:${s}`;
+      el.classList.toggle('warning', remain <= 30);
+
+      const submitBtn = document.getElementById('submitBtn');
+      if (remain <= 0 && submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏰ 시간이 종료되었습니다';
+        clearInterval(timerInterval);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function submitSolution() {
+      const note = document.getElementById('solutionNote').value.trim();
+      const canvas = document.getElementById('drawCanvas');
+
+      if (strokes.length === 0 && !bgImage) {
+        alert('펜으로 풀이 과정을 먼저 써주세요.');
+        return;
+      }
+      if (!activeProblem) { alert('현재 활성화된 문제가 없습니다.'); return; }
+
+      const started = new Date(activeProblem.started_at).getTime();
+      const remain = started + activeProblem.time_limit_seconds * 1000 - Date.now();
+      if (remain <= 0) {
+        alert('제한시간이 종료되어 제출할 수 없습니다.');
+        return;
+      }
+
+      const imageDataUrl = canvas.toDataURL('image/png');
+
+      const payload = {
+        session_id: activeProblem.id,
+        student_id: verifiedStudentId,
+        student_name: verifiedStudentName,
+        solution_text: note || '',
+        solution_image: imageDataUrl,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient
+        .from('live_submissions')
+        .upsert(payload, { onConflict: 'session_id,student_id' });
+
+      if (error) {
+        alert('제출 중 오류가 발생했습니다: ' + error.message);
+        return;
+      }
+
+      await loadMySubmission();
+      renderProblemArea();
+      alert('🎉 풀이가 제출되었습니다! 칠판 화면에서 확인해보세요.');
+    }
+
+    document.getElementById('studentNameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') verifyStudent();
+    });
+  </script>
+</body>
+
+</html>
