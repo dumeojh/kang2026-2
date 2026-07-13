@@ -1685,7 +1685,7 @@
             resultsEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">검사 중입니다...</p>';
 
             const [{ data: settingsData, error: settingsError }, { data: enrollData, error: enrollError }] = await Promise.all([
-                supabaseClient.from('settings').select('*'),
+                supabaseClient.from('settings').select('*').order('display_order', { ascending: true }),
                 supabaseClient.from('enrollments').select('*')
             ]);
 
