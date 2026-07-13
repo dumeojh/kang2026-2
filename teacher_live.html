@@ -836,7 +836,7 @@
         return `
       <div class="sub-item${rankClass}${selClass}" onclick="selectStudent('${s.student_id}')">
         <div class="rank">${rank}</div>
-        <div class="name">${escapeHtml(displayNameFor(s))}</div>
+        <div class="name">${escapeHtml(displayNameFor(s))}${s.solution_audio_url ? ' 🎙' : ''}</div>
         <div class="time">${m}:${sec}</div>
       </div>
     `;
@@ -858,6 +858,7 @@
       <button class="btn" style="margin-left:auto;" onclick="openPresentOverlay('${studentId}')">🖥 학생들에게 크게 보여주기</button>
     </div>
     ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; margin-bottom:14px; display:block;">` : ''}
+    ${s.solution_audio_url ? `<div style="margin-bottom:14px;"><div class="ptag" style="margin-bottom:6px;">🎙 음성 설명</div><audio controls src="${s.solution_audio_url}" style="width:100%;"></audio></div>` : ''}
     ${s.solution_text ? `<div class="sv-body">${escapeHtml(s.solution_text)}</div>` : ''}
   `;
       if (window.MathJax) MathJax.typesetPromise([document.getElementById('solutionView')]);
@@ -876,6 +877,7 @@
     </div>
     <div class="present-body">
       ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지">` : ''}
+      ${s.solution_audio_url ? `<audio controls autoplay src="${s.solution_audio_url}" style="width:min(500px, 90%); margin-bottom:20px;"></audio>` : ''}
       ${s.solution_text ? `<div class="p-note">${escapeHtml(s.solution_text)}</div>` : ''}
     </div>
   `;
