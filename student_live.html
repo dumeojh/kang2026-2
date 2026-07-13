@@ -428,6 +428,8 @@
     let isEraser = false;
     let canvasCssWidth = 0;
     let canvasCssHeight = 320;
+    let activePointerIds = new Set(); // 캔버스 위에 동시에 닿아있는 손가락/펜 개수 추적 (두 손가락 확대 제스처 감지용)
+    let gestureMode = false; // 두 손가락 이상이 닿으면 true, 모두 뗄 때까지 낙서를 그리지 않음
 
     // ---------------- [전체화면 모드] ----------------
     function isFullscreen() {
@@ -656,6 +658,8 @@
 
       strokes = [];
       bgImage = null;
+      activePointerIds.clear();
+      gestureMode = false;
       redrawAll();
 
       // 이전에 제출한 손글씨가 있으면 배경으로 불러와서 이어서 그릴 수 있게 합니다.
@@ -669,6 +673,7 @@
       canvas.onpointermove = onPointerMove;
       canvas.onpointerup = onPointerUp;
       canvas.onpointerleave = onPointerUp;
+      canvas.onpointercancel = onPointerUp;
     }
 
     function getCanvasPos(canvas, e) {
@@ -678,6 +683,24 @@
 
     function onPointerDown(e) {
       e.preventDefault();
+      activePointerIds.add(e.pointerId);
+
+      // 손가락(또는 펜)이 두 개 이상 동시에 닿으면 확대/축소 제스처로 간주하고
+      // 방금 그려지던 선은 취소해서 낙서가 남지 않도록 합니다.
+      if (activePointerIds.size > 1) {
+        gestureMode = true;
+        if (isDrawing && currentStroke) {
+          const idx = strokes.indexOf(currentStroke);
+          if (idx !== -1) strokes.splice(idx, 1);
+        }
+        isDrawing = false;
+        currentStroke = null;
+        redrawAll();
+        return;
+      }
+
+      if (gestureMode) return; // 손가락을 아직 다 떼지 않았으면 새 선을 시작하지 않음
+
       isDrawing = true;
       const canvas = e.target;
       canvas.setPointerCapture(e.pointerId);
@@ -687,6 +710,7 @@
     }
 
     function onPointerMove(e) {
+      if (gestureMode || activePointerIds.size > 1) return; // 제스처 중에는 그리지 않음
       if (!isDrawing || !currentStroke) return;
       e.preventDefault();
       const pos = getCanvasPos(e.target, e);
@@ -694,7 +718,9 @@
       redrawAll();
     }
 
-    function onPointerUp() {
+    function onPointerUp(e) {
+      if (e && e.pointerId !== undefined) activePointerIds.delete(e.pointerId);
+      if (activePointerIds.size === 0) gestureMode = false; // 모든 손가락을 뗀 뒤에야 제스처 모드 해제
       isDrawing = false;
       currentStroke = null;
     }
