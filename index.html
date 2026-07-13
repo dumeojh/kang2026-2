@@ -437,6 +437,100 @@
             font-size: 13px;
         }
 
+        /* ---------------- 신청 불일치 검사 ---------------- */
+        .mismatch-summary {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .mismatch-summary.ok {
+            background-color: #e8f5e9;
+            color: #2E7D32;
+        }
+
+        .mismatch-summary.warn {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .mismatch-group {
+            border: 1px solid #ffcdd2;
+            background: #fff8f8;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+
+        .mismatch-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .mismatch-grade {
+            background: #1565C0;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 3px 9px;
+            border-radius: 12px;
+        }
+
+        .mismatch-subject {
+            font-weight: bold;
+            font-size: 16px;
+            color: #c62828;
+        }
+
+        .mismatch-count {
+            font-size: 13px;
+            color: #666;
+            margin-left: auto;
+        }
+
+        .mismatch-students {
+            font-size: 13.5px;
+            color: #555;
+            line-height: 1.6;
+            background: #fff;
+            border: 1px solid #f0dede;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+        }
+
+        .mismatch-fix {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mismatch-fix select {
+            width: auto;
+            min-width: 200px;
+            margin-bottom: 0;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .mismatch-fix button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 8px 16px;
+            font-size: 13.5px;
+            background-color: #217346;
+        }
+
         .system-box {
             background: #e3f2fd;
             border: 1px solid #bbdefb;
@@ -858,6 +952,7 @@
                 <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
                 <button data-section="attendanceListSection" onclick="showSection('attendanceListSection')">📝
                     신청내역(과목별)</button>
+                <button data-section="mismatchSection" onclick="showSection('mismatchSection')">⚠️ 신청 불일치 검사</button>
                 <a href="#" onclick="goToStatistics(); return false;">📈 통계 현황 (박스형)</a>
                 <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
                 <button class="nav-icon-only" data-section="adminSection" onclick="handleAdminGearClick()"
@@ -890,6 +985,11 @@
                         <div class="quick-icon">📝</div>
                         <div class="quick-title">신청내역(과목별) · 출석부</div>
                         <div class="quick-desc">과목별 신청 인원을 확인하고 32단위 출석부를 인쇄합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('mismatchSection')">
+                        <div class="quick-icon">⚠️</div>
+                        <div class="quick-title">신청 불일치 검사</div>
+                        <div class="quick-desc">환경설정 과목명과 다른(옛 이름으로 남은) 신청 내역을 찾아 정리합니다.</div>
                     </div>
                     <div class="quick-card" onclick="goToStatistics()">
                         <div class="quick-icon">📈</div>
@@ -1240,6 +1340,26 @@
                 <div id="attendanceSheetWrap"></div>
             </div>
 
+            <div id="mismatchSection" class="hidden section-card">
+                <h2>⚠️ 신청 불일치 검사</h2>
+                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                    학생이 신청할 당시의 과목명이, 이후 환경설정에서 이름이 바뀌거나 삭제되어 지금은 존재하지 않는
+                    경우를 찾아줍니다.<br>
+                    이런 신청 건은 "통계현황 표로보기"에는 집계되지 않으니, 아래에서 목록을 확인하고 필요하면 현재
+                    과목으로 연결해주세요.
+                </p>
+
+                <div class="toolbar" style="justify-content:flex-end;">
+                    <div class="toolbar-actions">
+                        <button class="btn-status" onclick="runMismatchCheck()">🔍 다시 검사하기</button>
+                    </div>
+                </div>
+
+                <div id="mismatchResults">
+                    <p class="toolbar-hint" style="text-align:center;">검사 중입니다...</p>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -1319,7 +1439,7 @@
         function openSectionFromQuery() {
             const params = new URLSearchParams(window.location.search);
             const section = params.get('section');
-            const validSections = ['mainMenu', 'classStatusSection', 'adminSection', 'statTableSection', 'attendanceListSection', 'attendanceSheetSection'];
+            const validSections = ['mainMenu', 'classStatusSection', 'adminSection', 'statTableSection', 'attendanceListSection', 'attendanceSheetSection', 'mismatchSection'];
             if (section && validSections.includes(section)) {
                 showSection(section);
             }
@@ -1338,6 +1458,7 @@
             document.getElementById('statTableSection').classList.add('hidden');
             document.getElementById('attendanceListSection').classList.add('hidden');
             document.getElementById('attendanceSheetSection').classList.add('hidden');
+            document.getElementById('mismatchSection').classList.add('hidden');
 
             document.getElementById(sectionId).classList.remove('hidden');
 
@@ -1373,6 +1494,8 @@
                 loadStatTable();
             } else if (sectionId === 'attendanceListSection') {
                 loadAttendanceSubjects();
+            } else if (sectionId === 'mismatchSection') {
+                runMismatchCheck();
             }
         }
 
@@ -1545,6 +1668,128 @@
 
             const workbook = XLSX.utils.table_to_book(table, { sheet: "반별_신청현황" });
             XLSX.writeFile(workbook, '소인수강좌_반별현황.xlsx');
+        }
+
+        // ---------------- [신청 불일치 검사 기능] ----------------
+        // 학생이 신청한 시점의 subject_name이, 이후 환경설정(settings)에서 이름이 바뀌거나
+        // 삭제되어 지금은 존재하지 않는 경우를 찾아서 목록으로 보여주고, 필요하면 현재 과목으로
+        // 일괄 연결(remap)할 수 있게 합니다.
+        let lastMismatchGroups = [];
+
+        async function runMismatchCheck() {
+            const resultsEl = document.getElementById('mismatchResults');
+            resultsEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">검사 중입니다...</p>';
+
+            const [{ data: settingsData, error: settingsError }, { data: enrollData, error: enrollError }] = await Promise.all([
+                supabaseClient.from('settings').select('*'),
+                supabaseClient.from('enrollments').select('*')
+            ]);
+
+            if (settingsError || enrollError) {
+                resultsEl.innerHTML = '<p style="text-align:center; color:#f44336;">데이터를 불러오는데 실패했습니다.</p>';
+                return;
+            }
+
+            // 학년별로 "현재 환경설정에 등록된 과목명" 목록을 만듭니다.
+            const settingsByGrade = { '1': new Set(), '2': new Set(), '3': new Set() };
+            const subjectOptionsByGrade = { '1': [], '2': [], '3': [] };
+            (settingsData || []).forEach(s => {
+                const g = String(s.grade);
+                if (settingsByGrade[g]) {
+                    settingsByGrade[g].add(s.subject_name);
+                    subjectOptionsByGrade[g].push(s.subject_name);
+                }
+            });
+
+            // 신청 내역 중, 학생의 학년 기준 환경설정 목록에 없는 과목명을 모아 그룹으로 묶습니다.
+            const groups = {}; // key = "학년::과목명"
+            (enrollData || []).forEach(item => {
+                const sId = String(item.student_id || '');
+                if (sId.length !== 5) return; // 학번 형식이 이상한 건 이 검사 대상이 아님
+                const grade = sId.charAt(0);
+                if (!settingsByGrade[grade]) return; // 1,2,3학년이 아니면 건너뜀
+                const subject = item.subject_name;
+                if (!subject) return;
+                if (settingsByGrade[grade].has(subject)) return; // 정상적으로 일치함
+
+                const key = grade + '::' + subject;
+                if (!groups[key]) groups[key] = { grade, subject, students: [] };
+                groups[key].students.push({ id: sId, name: item.student_name || '(이름없음)' });
+            });
+
+            const groupList = Object.values(groups).sort((a, b) =>
+                a.grade.localeCompare(b.grade) || a.subject.localeCompare(b.subject)
+            );
+            lastMismatchGroups = groupList;
+
+            if (groupList.length === 0) {
+                resultsEl.innerHTML = '<div class="mismatch-summary ok">✅ 불일치가 없습니다. 모든 신청 내역이 현재 환경설정 과목과 일치합니다.</div>';
+                return;
+            }
+
+            const totalStudents = groupList.reduce((sum, g) => sum + g.students.length, 0);
+            const summaryHtml = `<div class="mismatch-summary warn">⚠️ ${groupList.length}건의 과목명 불일치 (총 ${totalStudents}명)가 발견되었습니다.</div>`;
+
+            const groupsHtml = groupList.map((g, idx) => {
+                const options = subjectOptionsByGrade[g.grade]
+                    .map(name => `<option value="${escapeHtmlStat(name)}">${escapeHtmlStat(name)}</option>`)
+                    .join('');
+                const studentList = g.students.map(s => `${s.id} ${s.name}`).join(', ');
+                return `
+                    <div class="mismatch-group">
+                        <div class="mismatch-head">
+                            <span class="mismatch-grade">${g.grade}학년</span>
+                            <span class="mismatch-subject">"${escapeHtmlStat(g.subject)}"</span>
+                            <span class="mismatch-count">${g.students.length}명 · 지금 환경설정에는 없는 과목명입니다</span>
+                        </div>
+                        <div class="mismatch-students">${escapeHtmlStat(studentList)}</div>
+                        <div class="mismatch-fix">
+                            <select id="mismatchSelect_${idx}">
+                                <option value="">→ 연결할 현재 과목 선택 (또는 학생에게 재신청 안내)</option>
+                                ${options}
+                            </select>
+                            <button onclick="remapMismatchGroup(${idx})">🔗 선택한 과목으로 일괄 연결</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            resultsEl.innerHTML = summaryHtml + groupsHtml;
+        }
+
+        async function remapMismatchGroup(idx) {
+            const group = lastMismatchGroups[idx];
+            if (!group) return;
+
+            const select = document.getElementById(`mismatchSelect_${idx}`);
+            const newName = select.value;
+            if (!newName) {
+                alert("먼저 연결할 현재 과목을 선택해주세요.\n\n(과목 자체가 없어진 경우라면 연결하지 말고, 학생에게 학생용 신청 페이지에서 다시 신청하도록 안내해주세요.)");
+                return;
+            }
+
+            const ok = confirm(
+                `"${group.subject}" 로 신청된 ${group.grade}학년 학생 ${group.students.length}명을 ` +
+                `"${newName}" 과목으로 일괄 변경합니다.\n\n` +
+                `대상 학번: ${group.students.map(s => s.id).join(', ')}\n\n` +
+                `이 작업은 되돌리기 버튼이 없습니다. 계속하시겠습니까?`
+            );
+            if (!ok) return;
+
+            // 같은 과목명이라도 다른 학년의 정상 신청 건까지 건드리지 않도록, 학번 첫 자리(학년)까지 함께 조건으로 걸어줍니다.
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .update({ subject_name: newName })
+                .eq('subject_name', group.subject)
+                .like('student_id', `${group.grade}____`);
+
+            if (error) {
+                alert("일괄 연결 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            alert(`✅ ${group.students.length}명의 신청 내역을 "${newName}" 과목으로 연결했습니다.`);
+            runMismatchCheck();
         }
 
         // ---------------- [통계현황 표로보기 기능] ----------------
