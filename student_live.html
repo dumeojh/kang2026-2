@@ -3,13 +3,19 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-tap-highlight" content="no">
   <title>오늘의 문제 풀이 올리기 (학생용)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
@@ -18,52 +24,108 @@
 
   <style>
     :root {
-      --navy: #16233B;
-      --slate: #64748B;
-      --bg: #F3F5F8;
-      --red: #C0392B;
-      --green: #2E7D32;
+      --paper: #F5F7FA;
+      --line: #DFE5EC;
+      --card: #FFFFFF;
+      --ink: #1E2433;
+      --ink-soft: #707B8C;
+      --brand: #3452C6;
+      --brand-dark: #26399C;
+      --brand-soft: #E9EDFB;
+      --red: #E14434;
+      --red-soft: #FDE9E6;
+      --green: #1E9E6B;
+      --green-soft: #E3F6EE;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+
     body {
       margin: 0;
-      font-family: 'Noto Sans KR', sans-serif;
-      background: var(--bg);
-      color: var(--navy);
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 26px 26px;
+      color: var(--ink);
       min-height: 100vh;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input,
+    textarea {
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     .wrap {
       max-width: 640px;
       margin: 0 auto;
-      padding: 30px 18px 60px;
+      padding: 34px 18px 60px;
     }
 
     .hidden {
       display: none !important;
     }
 
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px var(--red-soft);
+    }
+
     h1 {
-      font-size: 22px;
-      margin: 0 0 6px;
+      font-family: 'Gowun Batang', serif;
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
     }
 
     .subtitle {
-      color: var(--slate);
+      color: var(--ink-soft);
       font-size: 13.5px;
-      margin-bottom: 24px;
+      line-height: 1.6;
+      margin-bottom: 26px;
     }
 
     .card {
-      background: #fff;
-      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
       padding: 26px 24px;
-      box-shadow: 0 6px 20px -12px rgba(22, 35, 59, 0.25);
-      margin-bottom: 20px;
+      box-shadow: 0 10px 28px -18px rgba(30, 36, 51, 0.22);
+      margin-bottom: 18px;
     }
 
     .field {
@@ -74,7 +136,7 @@
       display: block;
       font-size: 13px;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 7px;
     }
 
     .field input,
@@ -82,32 +144,56 @@
       width: 100%;
       font-size: 16px;
       padding: 12px 14px;
-      border-radius: 8px;
-      border: 1.5px solid rgba(22, 35, 59, 0.2);
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
       font-family: inherit;
+      color: var(--ink);
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
     }
 
     .btn {
       width: 100%;
       padding: 14px;
-      border-radius: 10px;
+      border-radius: 999px;
       border: none;
-      background: var(--navy);
+      background: var(--brand);
       color: #fff;
       font-weight: 700;
       font-size: 16px;
+      font-family: inherit;
       cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .btn:hover {
+      background: var(--brand-dark);
+    }
+
+    .btn:active {
+      transform: scale(0.99);
     }
 
     .btn:disabled {
-      background: #B7C0CC;
+      background: #C7CDD6;
       cursor: not-allowed;
     }
 
     .btn.secondary {
       background: #fff;
-      color: var(--navy);
-      border: 1.5px solid var(--navy);
+      color: var(--brand);
+      border: 1.5px solid var(--line);
+    }
+
+    .btn.secondary:hover {
+      background: var(--brand-soft);
+      border-color: var(--brand);
     }
 
     .top-status {
@@ -119,25 +205,31 @@
 
     .student-chip {
       font-size: 13.5px;
-      color: var(--slate);
+      color: var(--ink-soft);
     }
 
     .student-chip b {
-      color: var(--navy);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .problem-box {
+      position: relative;
     }
 
     .problem-box .ptag {
-      font-size: 11.5px;
-      font-weight: 900;
-      color: var(--slate);
-      letter-spacing: 0.06em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .problem-box .ptext {
       font-size: 18px;
-      line-height: 1.6;
+      line-height: 1.7;
       margin-bottom: 4px;
     }
 
@@ -145,42 +237,65 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px dashed rgba(22, 35, 59, 0.2);
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1.5px dashed var(--line);
     }
 
     .timer-label {
       font-size: 13px;
-      color: var(--slate);
+      color: var(--ink-soft);
     }
 
     .timer-value {
-      font-size: 24px;
-      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      padding: 6px 14px;
+      border-radius: 999px;
     }
 
     .timer-value.warning {
-      color: var(--red);
+      background: var(--red);
+      color: #fff;
     }
 
     .submitted-badge {
-      display: inline-block;
-      background: #E8F5E9;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--green-soft);
       color: var(--green);
       font-weight: 700;
-      font-size: 13.5px;
-      padding: 8px 14px;
-      border-radius: 20px;
+      font-size: 13px;
+      padding: 8px 14px 8px 10px;
+      border-radius: 999px;
       margin-bottom: 14px;
+    }
+
+    .submitted-badge::before {
+      content: '✓';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
     }
 
     .waiting {
       text-align: center;
-      color: var(--slate);
+      color: var(--ink-soft);
       padding: 50px 10px;
       font-size: 15px;
+      line-height: 1.7;
     }
 
     .canvas-toolbar {
@@ -191,28 +306,28 @@
     }
 
     .tool-btn {
-      font-family: 'Noto Sans KR', sans-serif;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
       font-size: 12.5px;
       font-weight: 700;
-      padding: 7px 11px;
-      border-radius: 16px;
-      border: 1.5px solid rgba(22, 35, 59, 0.25);
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
       background: #fff;
-      color: var(--navy);
+      color: var(--ink);
       cursor: pointer;
     }
 
     .tool-btn.active {
-      background: var(--navy);
+      background: var(--ink);
       color: #fff;
-      border-color: var(--navy);
+      border-color: var(--ink);
     }
 
     .draw-canvas {
       display: block;
       width: 100%;
-      border: 1.5px solid rgba(22, 35, 59, 0.25);
-      border-radius: 8px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-sm);
       background: #fff;
       touch-action: none;
       cursor: crosshair;
@@ -223,16 +338,35 @@
       top: max(10px, env(safe-area-inset-top));
       right: max(10px, env(safe-area-inset-right));
       z-index: 999;
-      font-family: 'Noto Sans KR', sans-serif;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
       font-size: 12.5px;
       font-weight: 700;
-      padding: 8px 13px;
-      border-radius: 20px;
-      border: 1.5px solid rgba(22, 35, 59, 0.25);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
       background: rgba(255, 255, 255, 0.92);
-      color: var(--navy);
+      backdrop-filter: blur(6px);
+      color: var(--ink);
       cursor: pointer;
-      box-shadow: 0 4px 12px -6px rgba(22, 35, 59, 0.35);
+      box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3);
+    }
+
+    .fs-btn.needs-attention {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      animation: fsPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes fsPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3), 0 0 0 0 var(--brand-soft);
+      }
+
+      50% {
+        box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3), 0 0 0 6px var(--brand-soft);
+      }
     }
   </style>
 </head>
@@ -242,7 +376,8 @@
   <button id="fsBtn" class="fs-btn" onclick="toggleFullscreen()" type="button">⛶ 전체화면</button>
 
   <div class="wrap">
-    <h1>🚀 오늘의 문제 풀이 올리기</h1>
+    <div class="eyebrow">Live Quiz</div>
+    <h1>오늘의 문제 풀이 올리기</h1>
     <div class="subtitle">태블릿으로 접속해서 문제를 풀고, 다 풀면 제일 먼저 올려보세요!!</div>
 
     <!-- 1단계: 로그인 -->
@@ -314,32 +449,56 @@
       return Promise.reject(new Error('전체화면 API 미지원'));
     }
 
+    // 전체화면 진입에 성공하면(윈도우 태블릿의 크롬/엣지 등) 가로모드로 고정을 시도합니다.
+    // 지원하지 않는 브라우저(예: 아이패드 사파리)에서는 조용히 무시합니다.
+    function tryLockLandscape() {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => { });
+        }
+      } catch (e) { /* 무시 */ }
+    }
+
     async function toggleFullscreen() {
       try {
         if (isFullscreen()) {
           await exitFS();
         } else {
           await requestFS(document.documentElement);
+          tryLockLandscape();
         }
       } catch (e) {
-        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.\n\n📱 아이패드(Safari)라면: 공유 버튼 → "홈 화면에 추가"로 등록하면 주소창 없이 앱처럼 꽉 찬 화면으로 사용할 수 있어요.');
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.\n\n📱 아이패드(Safari)라면: 공유 버튼 → "홈 화면에 추가"로 등록하면 주소창 없이 앱처럼 꽉 찬 화면으로 사용할 수 있어요.\n\n💻 윈도우 태블릿(크롬/엣지)이라면 화면 아무 곳이나 한 번 터치한 뒤 다시 시도해주세요.');
       }
     }
 
     function updateFsBtn() {
       const btn = document.getElementById('fsBtn');
       if (!btn) return;
-      btn.textContent = isFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면';
+      const fs = isFullscreen();
+      btn.textContent = fs ? '↙️ 전체화면 종료' : '⛶ 전체화면';
+      btn.classList.toggle('needs-attention', !fs);
     }
     ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
       document.addEventListener(evt, updateFsBtn);
     });
+    updateFsBtn();
+
+    // 로그인 화면이 뜨기 전, 태블릿에서 첫 터치가 들어오는 즉시 전체화면을 한 번 시도합니다.
+    // (브라우저 정책상 사용자의 실제 터치/클릭이 있어야 전체화면 API가 동작합니다)
+    function firstTouchFullscreen() {
+      if (!isFullscreen()) {
+        requestFS(document.documentElement).then(tryLockLandscape).catch(() => { /* 무시하고 버튼으로 재시도 가능 */ });
+      }
+      document.removeEventListener('pointerdown', firstTouchFullscreen);
+    }
+    document.addEventListener('pointerdown', firstTouchFullscreen, { once: true });
 
     async function verifyStudent() {
       // 학생이 처음 버튼을 누르는 순간(사용자 클릭 직후)에 자동으로 전체화면을 시도합니다.
       // 지원되지 않는 기기라면 조용히 무시하고 그대로 진행합니다(오른쪽 위 버튼으로 나중에 다시 시도 가능).
       if (!isFullscreen()) {
-        try { await requestFS(document.documentElement); } catch (e) { /* 무시 */ }
+        try { await requestFS(document.documentElement); tryLockLandscape(); } catch (e) { /* 무시 */ }
       }
 
       const sId = document.getElementById('studentIdInput').value.trim();
@@ -432,7 +591,7 @@
       }
 
       const submittedBadge = mySubmission
-        ? `<div class="submitted-badge">✅ 제출 완료 (${new Date(mySubmission.updated_at || mySubmission.submitted_at).toLocaleTimeString('ko-KR')})</div>`
+        ? `<div class="submitted-badge">제출 완료 · ${new Date(mySubmission.updated_at || mySubmission.submitted_at).toLocaleTimeString('ko-KR')}</div>`
         : '';
 
       area.innerHTML = `

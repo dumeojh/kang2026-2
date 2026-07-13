@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>실시간 풀이 제출 현황판 (교사용)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
@@ -15,16 +16,24 @@
 
   <style>
     :root {
-      --bg: #F3F5F8;
-      --navy: #16233B;
-      --navy-soft: #22334F;
-      --ink: #1B2A3D;
-      --slate: #64748B;
-      --gold: #E3A008;
-      --silver: #9AA5B1;
-      --bronze: #B8703D;
-      --red: #C0392B;
-      --green: #2E7D32;
+      --paper: #F5F7FA;
+      --line: #E1E6ED;
+      --card: #FFFFFF;
+      --ink: #1E2433;
+      --ink-soft: #707B8C;
+      --sidebar: #1B2440;
+      --sidebar-soft: #29335A;
+      --sidebar-line: rgba(255, 255, 255, 0.1);
+      --brand: #3452C6;
+      --brand-dark: #26399C;
+      --brand-soft: #E9EDFB;
+      --red: #E14434;
+      --red-soft: #FDE9E6;
+      --green: #1E9E6B;
+      --green-soft: #E3F6EE;
+      --gold: #D9A62B;
+      --silver: #A6B0BD;
+      --bronze: #BC7A48;
     }
 
     * {
@@ -33,8 +42,8 @@
 
     body {
       margin: 0;
-      font-family: 'Noto Sans KR', sans-serif;
-      background: var(--bg);
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background: var(--paper);
       color: var(--ink);
       height: 100vh;
       overflow: hidden;
@@ -49,55 +58,60 @@
     .sidebar {
       width: 320px;
       flex-shrink: 0;
-      background: var(--navy);
+      background: var(--sidebar);
       color: #fff;
       display: flex;
       flex-direction: column;
     }
 
     .sidebar-head {
-      padding: 18px 20px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--sidebar-line);
     }
 
     .sidebar-head .label {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.1em;
-      color: #9FB4D6;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #8CA0D6;
       text-transform: uppercase;
     }
 
     .sidebar-head .count {
-      font-size: 26px;
-      font-weight: 900;
-      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 6px;
+      font-variant-numeric: tabular-nums;
     }
 
     .sub-list {
       flex: 1;
       overflow-y: auto;
-      padding: 10px 12px;
+      padding: 12px;
     }
 
     .sub-item {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       padding: 12px 12px;
-      border-radius: 8px;
+      border-radius: 12px;
       margin-bottom: 6px;
       cursor: pointer;
-      background: var(--navy-soft);
-      transition: background 0.15s ease;
+      background: var(--sidebar-soft);
+      border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
 
     .sub-item:hover {
-      background: #2B3F60;
+      background: #34406C;
     }
 
     .sub-item.selected {
-      background: #34517A;
+      background: #384A80;
+      border-color: #5E75C2;
     }
 
     .sub-item .rank {
@@ -108,24 +122,25 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
       font-size: 13px;
       flex-shrink: 0;
     }
 
     .sub-item.rank-1 .rank {
       background: var(--gold);
-      color: #16233B;
+      color: #1B2440;
     }
 
     .sub-item.rank-2 .rank {
       background: var(--silver);
-      color: #16233B;
+      color: #1B2440;
     }
 
     .sub-item.rank-3 .rank {
       background: var(--bronze);
-      color: #16233B;
+      color: #1B2440;
     }
 
     .sub-item .name {
@@ -135,15 +150,18 @@
     }
 
     .sub-item .time {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      color: #B9C6DE;
+      color: #A9B7DE;
+      font-variant-numeric: tabular-nums;
     }
 
     .empty-msg {
-      color: #9FB4D6;
+      color: #8CA0D6;
       font-size: 13.5px;
       padding: 20px 10px;
       text-align: center;
+      line-height: 1.6;
     }
 
     /* ---------- 오른쪽: 문제 + 풀이 ---------- */
@@ -157,27 +175,42 @@
     .topbar {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 14px 28px;
-      background: #fff;
-      border-bottom: 2px solid var(--navy);
+      gap: 12px;
+      padding: 16px 28px;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
     }
 
     .topbar h1 {
-      font-size: 16px;
+      font-family: 'Gowun Batang', serif;
+      font-size: 18px;
       margin: 0;
-      font-weight: 900;
+      font-weight: 700;
       margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .topbar h1::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px var(--red-soft);
+      flex-shrink: 0;
     }
 
     .timer {
-      font-size: 30px;
-      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
-      color: var(--navy);
-      padding: 4px 16px;
-      border-radius: 8px;
-      background: #EAF0FA;
+      color: var(--brand-dark);
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: var(--brand-soft);
     }
 
     .timer.warning {
@@ -186,19 +219,21 @@
     }
 
     .btn {
-      font-family: 'Noto Sans KR', sans-serif;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
       font-weight: 700;
       font-size: 13.5px;
       padding: 9px 16px;
-      border-radius: 20px;
-      border: 1.5px solid var(--navy);
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
       background: #fff;
-      color: var(--navy);
+      color: var(--ink);
       cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .btn:hover {
-      background: var(--navy);
+      background: var(--ink);
+      border-color: var(--ink);
       color: #fff;
     }
 
@@ -209,6 +244,7 @@
 
     .btn.danger:hover {
       background: var(--red);
+      border-color: var(--red);
       color: #fff;
     }
 
@@ -216,42 +252,49 @@
       flex: 1;
       overflow-y: auto;
       padding: 26px 34px;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 26px 26px;
     }
 
     .problem-card {
-      background: #fff;
-      border: 1px solid rgba(22, 35, 59, 0.12);
-      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
       padding: 22px 26px;
       margin-bottom: 22px;
-      box-shadow: 0 6px 18px -10px rgba(22, 35, 59, 0.2);
+      box-shadow: 0 10px 26px -18px rgba(30, 36, 51, 0.25);
     }
 
     .problem-card .ptag {
-      font-size: 11.5px;
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      color: var(--slate);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand);
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .problem-card .ptext {
       font-size: 19px;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     .no-problem {
       text-align: center;
-      color: var(--slate);
+      color: var(--ink-soft);
       padding: 80px 20px;
       font-size: 16px;
+      line-height: 1.7;
     }
 
     .solution-view {
-      background: #fff;
-      border: 1px solid rgba(22, 35, 59, 0.12);
-      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
       padding: 24px 28px;
       min-height: 260px;
     }
@@ -261,18 +304,19 @@
       align-items: baseline;
       gap: 10px;
       margin-bottom: 14px;
-      border-bottom: 1px dashed rgba(22, 35, 59, 0.2);
-      padding-bottom: 12px;
+      border-bottom: 1.5px dashed var(--line);
+      padding-bottom: 14px;
     }
 
     .solution-view .sv-name {
+      font-family: 'Gowun Batang', serif;
       font-size: 20px;
-      font-weight: 900;
+      font-weight: 700;
     }
 
     .solution-view .sv-time {
       font-size: 13px;
-      color: var(--slate);
+      color: var(--ink-soft);
     }
 
     .solution-view .sv-body {
@@ -282,17 +326,18 @@
     }
 
     .solution-placeholder {
-      color: var(--slate);
+      color: var(--ink-soft);
       text-align: center;
       padding: 60px 10px;
       font-size: 15px;
+      line-height: 1.7;
     }
 
     /* ---------- 새 문제 출제 모달 ---------- */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(22, 35, 59, 0.55);
+      background: rgba(20, 26, 41, 0.55);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -304,23 +349,25 @@
     }
 
     .modal-box {
-      background: #fff;
-      border-radius: 12px;
+      background: var(--card);
+      border-radius: 18px;
       padding: 28px 30px;
       width: min(560px, 92vw);
-      box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 24px 60px -20px rgba(10, 14, 26, 0.45);
     }
 
     .modal-box h2 {
-      margin: 0 0 16px;
-      font-size: 18px;
+      font-family: 'Gowun Batang', serif;
+      margin: 0 0 18px;
+      font-size: 19px;
+      font-weight: 700;
     }
 
     .modal-box label {
       display: block;
       font-size: 12.5px;
       font-weight: 700;
-      color: var(--slate);
+      color: var(--ink-soft);
       margin-bottom: 6px;
     }
 
@@ -330,10 +377,19 @@
       width: 100%;
       font-size: 14.5px;
       padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(22, 35, 59, 0.25);
+      border-radius: 10px;
+      border: 1.5px solid var(--line);
       margin-bottom: 16px;
       font-family: inherit;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .modal-box textarea:focus,
+    .modal-box input:focus,
+    .modal-box select:focus {
+      outline: none;
+      border-color: var(--brand);
       background: #fff;
     }
 
@@ -364,20 +420,20 @@
     }
 
     .filter-tab {
-      border: 1px solid rgba(22, 35, 59, 0.2);
+      border: 1.5px solid var(--line);
       background: #fff;
-      color: var(--slate);
+      color: var(--ink-soft);
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       padding: 6px 12px;
       border-radius: 999px;
       cursor: pointer;
     }
 
     .filter-tab.active {
-      background: var(--navy);
+      background: var(--ink);
       color: #fff;
-      border-color: var(--navy);
+      border-color: var(--ink);
     }
 
     .cat-badge {
@@ -415,8 +471,8 @@
       align-items: center;
       gap: 12px;
       padding: 12px 14px;
-      border: 1px solid rgba(22, 35, 59, 0.12);
-      border-radius: 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
       margin-bottom: 8px;
     }
 
@@ -436,7 +492,7 @@
 
     .bank-meta {
       font-size: 12px;
-      color: var(--slate);
+      color: var(--ink-soft);
     }
 
     .bank-item-actions {
@@ -452,7 +508,7 @@
 
     .bank-empty {
       text-align: center;
-      color: var(--slate);
+      color: var(--ink-soft);
       padding: 30px 10px;
       font-size: 14px;
     }
@@ -464,19 +520,20 @@
 
     .btn.answer-btn {
       border-color: var(--gold);
-      color: #8a6400;
+      color: #92660F;
     }
 
     .btn.answer-btn:hover {
       background: var(--gold);
+      border-color: var(--gold);
       color: #fff;
     }
 
     .answer-panel {
       margin-top: 12px;
-      background: #FFF8E6;
+      background: #FBF3DF;
       border: 1.5px dashed var(--gold);
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 14px 18px;
       font-size: 16px;
       line-height: 1.6;
@@ -487,10 +544,11 @@
     }
 
     .answer-panel .a-label {
-      font-size: 11.5px;
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      color: #8a6400;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #92660F;
       text-transform: uppercase;
       margin-bottom: 6px;
     }
@@ -520,19 +578,20 @@
       align-items: center;
       gap: 14px;
       padding: 18px 30px;
-      border-bottom: 2px solid var(--navy);
+      border-bottom: 1px solid var(--line);
       flex-shrink: 0;
     }
 
     .present-header .p-name {
+      font-family: 'Gowun Batang', serif;
       font-size: 24px;
-      font-weight: 900;
+      font-weight: 700;
       margin-right: auto;
     }
 
     .present-header .p-time {
       font-size: 14px;
-      color: var(--slate);
+      color: var(--ink-soft);
     }
 
     .present-body {
@@ -547,8 +606,8 @@
     .present-body img {
       max-width: 100%;
       max-height: 72vh;
-      border: 1px solid rgba(22, 35, 59, 0.15);
-      border-radius: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
       margin-bottom: 20px;
     }
 
@@ -613,7 +672,7 @@
       <div class="modal-actions">
         <button class="btn" onclick="closeNewProblemModal()">취소</button>
         <button class="btn" onclick="saveToBankOnly()">💾 은행에 저장</button>
-        <button class="btn" style="background:var(--navy); color:#fff;" onclick="saveAndIssue()">🚀 저장하고 출제</button>
+        <button class="btn" style="background:var(--brand); color:#fff;" onclick="saveAndIssue()">🚀 저장하고 출제</button>
       </div>
     </div>
   </div>
@@ -642,10 +701,10 @@
 
       <div
         style="display:flex; align-items:center; gap:8px; margin-bottom:14px; padding:12px; background:#F6F7FA; border-radius:8px;">
-        <span style="font-size:13px; color:var(--slate); white-space:nowrap;">아래 기간보다 오래된 기록 한꺼번에 삭제:</span>
+        <span style="font-size:13px; color:var(--ink-soft); white-space:nowrap;">아래 기간보다 오래된 기록 한꺼번에 삭제:</span>
         <input id="archiveCutoffDays" type="number" value="30" min="1"
           style="width:70px; padding:6px 8px; border-radius:6px; border:1px solid rgba(22,35,59,0.25);">
-        <span style="font-size:13px; color:var(--slate);">일</span>
+        <span style="font-size:13px; color:var(--ink-soft);">일</span>
         <button class="btn danger" style="margin-left:auto;" onclick="bulkDeleteOldProblems()">일괄 삭제</button>
       </div>
 
@@ -1005,7 +1064,7 @@
           <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
-          <button class="btn" style="background:var(--navy); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
+          <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
           <button class="btn" onclick="closeBankModal(); openEditBankModal(${row.id});">✏️ 수정</button>
           <button class="btn danger" onclick="deleteBankRow(${row.id})">🗑</button>
         </div>
