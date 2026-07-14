@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문제 은행 관리 (교사용)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" async></script>
+
+  <style>
+    :root {
+      --paper: #F5F7FA;
+      --line: #E1E6ED;
+      --card: #FFFFFF;
+      --ink: #1E2433;
+      --ink-soft: #707B8C;
+      --brand: #3452C6;
+      --brand-dark: #26399C;
+      --brand-soft: #E9EDFB;
+      --red: #E14434;
+      --red-soft: #FDE9E6;
+      --green: #1E9E6B;
+      --green-soft: #E3F6EE;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    .page-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .page-head h1 {
+      font-family: 'Gowun Batang', serif;
+      font-size: 22px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .page-head h1::before {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-soft);
+    }
+
+    .page-head .sub {
+      font-size: 13px;
+      color: var(--ink-soft);
+      width: 100%;
+    }
+
+    .btn {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--brand-dark);
+      border-color: var(--brand-dark);
+    }
+
+    .btn.danger {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .btn.danger:hover {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 180px;
+      font-size: 14px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--brand);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .filter-tab.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .cat-badge {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+    }
+
+    .cat-badge.cat-suneung { background: #E5EDFF; color: #2C4CBB; }
+    .cat-badge.cat-textbook { background: #E4F6E9; color: #227A46; }
+    .cat-badge.cat-other { background: #EFEFF2; color: #5B5F6B; }
+
+    .bank-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bank-item {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 20px -16px rgba(30, 36, 51, 0.3);
+    }
+
+    .bank-item-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .bank-item-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .bank-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .bank-text-preview {
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      max-height: 4.8em;
+      overflow: hidden;
+    }
+
+    .bank-meta {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 8px;
+    }
+
+    .bank-item-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .bank-item-actions .btn {
+      padding: 7px 12px;
+      font-size: 12.5px;
+    }
+
+    .bank-empty {
+      text-align: center;
+      color: var(--ink-soft);
+      padding: 60px 10px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    /* ---------- 모달 ---------- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 26, 41, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+
+    .modal-backdrop.hidden { display: none; }
+
+    .modal-box {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 28px 30px;
+      width: min(560px, 92vw);
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px -20px rgba(10, 14, 26, 0.45);
+    }
+
+    .modal-box h2 {
+      font-family: 'Gowun Batang', serif;
+      margin: 0 0 18px;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .modal-box label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .modal-box textarea,
+    .modal-box input,
+    .modal-box select {
+      width: 100%;
+      font-size: 14.5px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--line);
+      margin-bottom: 16px;
+      font-family: inherit;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .modal-box textarea:focus,
+    .modal-box input:focus,
+    .modal-box select:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .field-row > div { flex: 1; }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="page-head">
+      <h1>📚 문제 은행 관리</h1>
+      <button class="btn primary" style="margin-left:auto;" onclick="openEditModal(null)">＋ 새 문제 만들기</button>
+      <div class="sub">여기서 만들고 정리한 문제는 교사 화면(teacher_live.html)의 "문제 은행"에서 골라 바로 출제할 수 있어요.</div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="renderList()">
+    </div>
+
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-cat="전체" onclick="setFilter('전체')">전체</button>
+      <button class="filter-tab" data-cat="수능특강" onclick="setFilter('수능특강')">수능특강</button>
+      <button class="filter-tab" data-cat="교과서" onclick="setFilter('교과서')">교과서</button>
+      <button class="filter-tab" data-cat="기타문제" onclick="setFilter('기타문제')">기타문제</button>
+    </div>
+
+    <div class="bank-list" id="bankList"><div class="bank-empty">불러오는 중...</div></div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="editModal">
+    <div class="modal-box">
+      <h2 id="editModalTitle">📝 새 문제 만들기</h2>
+      <label>제목 (선택 — 목록에서 알아보기 쉽게)</label>
+      <input id="fieldTitle" type="text" placeholder="예: 접선과 정적분 활용">
+      <label>분류</label>
+      <select id="fieldCategory">
+        <option value="수능특강">수능특강</option>
+        <option value="교과서">교과서</option>
+        <option value="기타문제">기타문제</option>
+      </select>
+      <label>문제 본문 (LaTeX은 $...$ 로 감싸서 입력)</label>
+      <textarea id="fieldText" rows="5" placeholder="문제를 입력하세요"></textarea>
+      <div class="field-row">
+        <div>
+          <label>제한시간 (분)</label>
+          <input id="fieldMinutes" type="number" value="5" min="1" max="60">
+        </div>
+        <div>
+          <label>🎙 음성 설명 녹음 제한시간 (초)</label>
+          <input id="fieldVoiceSeconds" type="number" value="60" min="10" max="300" step="10">
+        </div>
+      </div>
+      <label>정답 (선택 — 학생 화면 "정답 보기" 버튼으로 원할 때만 공개)</label>
+      <textarea id="fieldAnswer" rows="3" placeholder="예: 27/4"></textarea>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeEditModal()">취소</button>
+        <button class="btn primary" onclick="saveRow()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let bankRows = [];
+    let filterCategory = '전체';
+    let editingId = null; // null이면 새로 만들기, 값이 있으면 수정 중
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function categoryBadgeClass(category) {
+      if (category === '수능특강') return 'cat-suneung';
+      if (category === '교과서') return 'cat-textbook';
+      return 'cat-other';
+    }
+
+    function setFilter(cat) {
+      filterCategory = cat;
+      document.querySelectorAll('#filterTabs .filter-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+      });
+      renderList();
+    }
+
+    async function loadBank() {
+      const listEl = document.getElementById('bankList');
+      listEl.innerHTML = '<div class="bank-empty">불러오는 중...</div>';
+
+      const { data, error } = await supabaseClient
+        .from('live_problem_bank')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${escapeHtml(error.message)}</div>`;
+        return;
+      }
+      bankRows = data || [];
+      renderList();
+    }
+
+    function renderList() {
+      const listEl = document.getElementById('bankList');
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      let rows = filterCategory === '전체'
+        ? bankRows
+        : bankRows.filter(r => (r.category || '기타문제') === filterCategory);
+
+      if (keyword) {
+        rows = rows.filter(r =>
+          (r.title || '').toLowerCase().includes(keyword) ||
+          (r.problem_text || '').toLowerCase().includes(keyword)
+        );
+      }
+
+      if (rows.length === 0) {
+        listEl.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "＋ 새 문제 만들기"로 첫 문제를 추가해보세요.' : '조건에 맞는 문제가 없습니다.'}</div>`;
+        return;
+      }
+
+      listEl.innerHTML = rows.map(row => {
+        const label = row.title || '(제목 없음)';
+        const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
+        const category = row.category || '기타문제';
+        return `
+      <div class="bank-item">
+        <div class="bank-item-top">
+          <div class="bank-item-main">
+            <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${escapeHtml(label)}</div>
+            <div class="bank-text-preview">${escapeHtml(row.problem_text)}</div>
+            <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
+          </div>
+          <div class="bank-item-actions">
+            <button class="btn" onclick="openEditModal(${row.id})">✏️ 수정</button>
+            <button class="btn danger" onclick="deleteRow(${row.id})">🗑</button>
+          </div>
+        </div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    function openEditModal(id) {
+      editingId = id;
+      const row = id ? bankRows.find(r => r.id === id) : null;
+
+      document.getElementById('editModalTitle').textContent = row ? '✏️ 문제 수정' : '📝 새 문제 만들기';
+      document.getElementById('fieldTitle').value = row ? (row.title || '') : '';
+      document.getElementById('fieldCategory').value = row ? (row.category || '기타문제') : '수능특강';
+      document.getElementById('fieldText').value = row ? (row.problem_text || '') : '';
+      document.getElementById('fieldMinutes').value = row ? Math.round((row.time_limit_seconds || 300) / 60) : 5;
+      document.getElementById('fieldVoiceSeconds').value = row ? (row.voice_limit_seconds || 60) : 60;
+      document.getElementById('fieldAnswer').value = row ? (row.answer_text || '') : '';
+
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    async function saveRow() {
+      const title = document.getElementById('fieldTitle').value.trim();
+      const category = document.getElementById('fieldCategory').value;
+      const text = document.getElementById('fieldText').value.trim();
+      const minutes = parseFloat(document.getElementById('fieldMinutes').value) || 5;
+      const voiceSeconds = parseInt(document.getElementById('fieldVoiceSeconds').value, 10) || 60;
+      const answer = document.getElementById('fieldAnswer').value.trim();
+
+      if (!text) { alert('문제 본문을 입력해주세요.'); return; }
+
+      const payload = {
+        title: title || null,
+        category: category,
+        problem_text: text,
+        time_limit_seconds: Math.round(minutes * 60),
+        voice_limit_seconds: voiceSeconds,
+        answer_text: answer || null
+      };
+
+      let error;
+      if (editingId) {
+        ({ error } = await supabaseClient.from('live_problem_bank').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supabaseClient.from('live_problem_bank').insert([payload]));
+      }
+
+      if (error) {
+        alert('저장 중 오류가 발생했습니다: ' + error.message);
+        return;
+      }
+
+      closeEditModal();
+      loadBank();
+    }
+
+    async function deleteRow(id) {
+      if (!confirm('이 문제를 삭제할까요? (이미 출제된 문제 기록에는 영향 없습니다)')) return;
+      const { error } = await supabaseClient.from('live_problem_bank').delete().eq('id', id);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+      loadBank();
+    }
+
+    loadBank();
+  </script>
+</body>
+
+</html>
