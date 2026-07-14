@@ -617,6 +617,86 @@
       white-space: pre-wrap;
       text-align: center;
     }
+
+    /* ---------- 담당 교사 / 입장코드 / 학급 설정 ---------- */
+    .teacher-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      padding: 6px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .teacher-chip:hover {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+    }
+
+    .teacher-chip b {
+      color: var(--ink);
+    }
+
+    .room-code-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+
+    .modal-box .scope-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 10px 0 16px;
+    }
+
+    .modal-box .scope-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .modal-box .scope-row .grade-label {
+      font-weight: 700;
+      font-size: 14px;
+      width: 52px;
+      flex-shrink: 0;
+    }
+
+    .modal-box .scope-row label.scope-all {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .modal-box .scope-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .setup-hint {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 
@@ -636,7 +716,9 @@
     <main class="main">
       <div class="topbar">
         <h1 id="problemLabel">오늘의 문제</h1>
+        <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
+        <div class="teacher-chip" id="teacherChip" onclick="openTeacherSetupModal(false)">🧑‍🏫 <b id="teacherChipName">담당 학급 설정</b></div>
         <button class="btn" onclick="openBankModal()">📚 문제 은행</button>
         <button class="btn" onclick="openArchiveModal()">🗑 기록 관리</button>
         <button class="btn" onclick="openNewProblemModal()">＋ 새 문제 출제</button>
@@ -717,6 +799,42 @@
     </div>
   </div>
 
+  <div class="modal-backdrop hidden" id="teacherSetupModal">
+    <div class="modal-box" style="width:min(560px, 92vw);">
+      <h2>🧑‍🏫 담당 학급 설정</h2>
+      <div class="setup-hint">
+        여기서 설정한 학급의 학생에게만 문제가 보입니다. 다른 선생님이 같은 시간에 문제를 내도
+        학생은 자기 반 담당 선생님의 문제만 자동으로 받게 됩니다.<br>
+        정해진 반이 아닌 학생도 들어와야 한다면(보충수업, 합반 등) 출제 후 화면에 뜨는
+        <b>입장코드</b>를 알려주세요.
+      </div>
+      <label>선생님 이름</label>
+      <input id="teacherNameInput" type="text" placeholder="예: 김민준">
+      <label>담당 학급 (학년별로 반 번호를 콤마로 구분해서 입력, 예: 1,3,5)</label>
+      <div class="scope-grid">
+        <div class="scope-row">
+          <span class="grade-label">1학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG1" onchange="toggleScopeAllInput(1)"> 학년 전체</label>
+          <input type="text" id="scopeClassesG1" placeholder="예: 1,3,5">
+        </div>
+        <div class="scope-row">
+          <span class="grade-label">2학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG2" onchange="toggleScopeAllInput(2)"> 학년 전체</label>
+          <input type="text" id="scopeClassesG2" placeholder="예: 2,4">
+        </div>
+        <div class="scope-row">
+          <span class="grade-label">3학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG3" onchange="toggleScopeAllInput(3)"> 학년 전체</label>
+          <input type="text" id="scopeClassesG3" placeholder="예: 6,7">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn hidden" id="teacherSetupCancelBtn" onclick="closeTeacherSetupModal()">취소</button>
+        <button class="btn" style="background:var(--brand); color:#fff;" onclick="saveTeacherProfile()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+
   <div class="present-overlay hidden" id="presentOverlay"></div>
 
   <script>
@@ -730,11 +848,135 @@
     let timerInterval = null;
     let realtimeChannel = null;
 
+    // ---------------- [담당 교사 / 담당 학급 프로필] ----------------
+    // 이 브라우저(이 컴퓨터)에서 활동하는 선생님이 누구이고, 어느 학급을 담당하는지를 저장합니다.
+    // 학생 화면은 이 정보(target_scope)를 보고 "내 반 담당 선생님의 문제"만 자동으로 받습니다.
+    const TEACHER_PROFILE_KEY = 'liveTeacherProfile';
+    let teacherProfile = null; // { teacherId, teacherName, scope: ["1-01","2-ALL", ...] }
+
+    function loadTeacherProfileFromStorage() {
+      try {
+        const raw = localStorage.getItem(TEACHER_PROFILE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function generateTeacherId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function updateTeacherChip() {
+      const nameEl = document.getElementById('teacherChipName');
+      if (!teacherProfile) {
+        nameEl.textContent = '담당 학급 설정';
+        return;
+      }
+      const scopeLabel = (teacherProfile.scope || []).map(formatScopeToken).join(', ') || '학급 미지정';
+      nameEl.textContent = `${teacherProfile.teacherName} · ${scopeLabel}`;
+    }
+
+    function formatScopeToken(token) {
+      const [g, c] = token.split('-');
+      return c === 'ALL' ? `${g}학년 전체` : `${g}학년 ${parseInt(c, 10)}반`;
+    }
+
+    function toggleScopeAllInput(grade) {
+      const allChk = document.getElementById(`scopeAllG${grade}`);
+      const classesInput = document.getElementById(`scopeClassesG${grade}`);
+      classesInput.disabled = allChk.checked;
+      if (allChk.checked) classesInput.value = '';
+    }
+
+    function openTeacherSetupModal(forced) {
+      // forced=true면(아직 설정이 없어서 강제로 띄우는 경우) 취소 버튼을 숨겨서 반드시 저장하게 합니다.
+      document.getElementById('teacherSetupCancelBtn').classList.toggle('hidden', !!forced);
+
+      document.getElementById('teacherNameInput').value = teacherProfile ? teacherProfile.teacherName : '';
+      [1, 2, 3].forEach(g => {
+        const scopeSet = new Set(teacherProfile ? teacherProfile.scope : []);
+        const isAll = scopeSet.has(`${g}-ALL`);
+        document.getElementById(`scopeAllG${g}`).checked = isAll;
+        const classNums = Array.from(scopeSet)
+          .filter(t => t.startsWith(`${g}-`) && t !== `${g}-ALL`)
+          .map(t => parseInt(t.split('-')[1], 10))
+          .sort((a, b) => a - b);
+        document.getElementById(`scopeClassesG${g}`).value = classNums.join(',');
+        toggleScopeAllInput(g);
+      });
+
+      document.getElementById('teacherSetupModal').classList.remove('hidden');
+    }
+
+    function closeTeacherSetupModal() {
+      if (!teacherProfile) return; // 아직 설정 전이면 닫지 못하게 합니다 (반드시 설정 필요).
+      document.getElementById('teacherSetupModal').classList.add('hidden');
+    }
+
+    function saveTeacherProfile() {
+      const name = document.getElementById('teacherNameInput').value.trim();
+      if (!name) { alert('선생님 이름을 입력해주세요.'); return; }
+
+      const scope = [];
+      [1, 2, 3].forEach(g => {
+        const isAll = document.getElementById(`scopeAllG${g}`).checked;
+        if (isAll) { scope.push(`${g}-ALL`); return; }
+        const raw = document.getElementById(`scopeClassesG${g}`).value.trim();
+        if (!raw) return;
+        raw.split(',').map(s => s.trim()).filter(Boolean).forEach(numStr => {
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > 0) scope.push(`${g}-${String(num).padStart(2, '0')}`);
+        });
+      });
+
+      if (scope.length === 0) { alert('담당 학급을 하나 이상 입력해주세요.'); return; }
+
+      teacherProfile = {
+        teacherId: (teacherProfile && teacherProfile.teacherId) || generateTeacherId(),
+        teacherName: name,
+        scope: scope
+      };
+      localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(teacherProfile));
+      updateTeacherChip();
+      document.getElementById('teacherSetupModal').classList.add('hidden');
+
+      // 설정을 마친 뒤에는 내 담당 학급 기준으로 현재 진행 중인 문제를 다시 불러옵니다.
+      loadMyActiveProblem();
+    }
+
+    function requireTeacherProfile() {
+      if (teacherProfile) return true;
+      alert('먼저 담당 학급을 설정해주세요.');
+      openTeacherSetupModal(true);
+      return false;
+    }
+
+    function generateRoomCode() {
+      return String(Math.floor(1000 + Math.random() * 9000)); // 4자리 입장코드
+    }
+
     async function init() {
+      teacherProfile = loadTeacherProfileFromStorage();
+      updateTeacherChip();
+
+      if (!teacherProfile) {
+        renderNoProblem();
+        openTeacherSetupModal(true);
+        return;
+      }
+
+      await loadMyActiveProblem();
+    }
+
+    async function loadMyActiveProblem() {
+      if (!teacherProfile) return;
       const { data } = await supabaseClient
         .from('live_problems')
         .select('*')
         .eq('is_active', true)
+        .eq('teacher_id', teacherProfile.teacherId)
         .order('started_at', { ascending: false })
         .limit(1);
 
@@ -749,16 +991,28 @@
       activeProblem = null;
       document.getElementById('problemLabel').textContent = '오늘의 문제';
       document.getElementById('timerDisplay').textContent = '--:--';
+      document.getElementById('roomCodeBadge').classList.add('hidden');
       document.getElementById('problemArea').innerHTML = `<div class="no-problem">아직 출제된 문제가 없습니다. "＋ 새 문제 출제"를 눌러 시작하세요.</div>`;
       document.getElementById('subList').innerHTML = `<div class="empty-msg">아직 제출한 학생이 없습니다.</div>`;
       document.getElementById('subCount').textContent = '0명 제출';
       clearInterval(timerInterval);
+      if (realtimeChannel) { supabaseClient.removeChannel(realtimeChannel); realtimeChannel = null; }
     }
 
     function setActiveProblem(problem) {
       activeProblem = problem;
       selectedStudentId = null;
       document.getElementById('problemLabel').textContent = `문제 #${problem.id}`;
+
+      const badge = document.getElementById('roomCodeBadge');
+      if (problem.room_code) {
+        const scopeLabel = (problem.target_scope || []).map(formatScopeToken).join(', ');
+        badge.textContent = `🔑 입장코드 ${problem.room_code} · ${scopeLabel}`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
       document.getElementById('problemArea').innerHTML = `
     <div class="problem-card">
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
@@ -924,6 +1178,7 @@
     let editingBankId = null; // 지금 문제 은행에서 수정 중인 항목의 id (새로 만드는 중이면 null)
 
     function openNewProblemModal() {
+      if (!requireTeacherProfile()) return;
       editingBankId = null;
       document.getElementById('newProblemModalTitle').textContent = '📝 새 문제 만들기';
       document.getElementById('newProblemTitle').value = '';
@@ -1010,8 +1265,13 @@
     }
 
     async function issueFromBankRow(row) {
-      // 이전에 켜져 있던 문제는 모두 마감 처리
-      await supabaseClient.from('live_problems').update({ is_active: false }).eq('is_active', true);
+      if (!requireTeacherProfile()) return;
+
+      // 이전에 켜져 있던 "내" 문제만 마감 처리합니다. 다른 선생님이 진행 중인 문제는 건드리지 않습니다.
+      await supabaseClient.from('live_problems')
+        .update({ is_active: false })
+        .eq('is_active', true)
+        .eq('teacher_id', teacherProfile.teacherId);
 
       const { data, error } = await supabaseClient.from('live_problems').insert([{
         problem_text: row.problem_text,
@@ -1019,7 +1279,11 @@
         voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
         is_active: true,
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        teacher_id: teacherProfile.teacherId,
+        teacher_name: teacherProfile.teacherName,
+        target_scope: teacherProfile.scope,
+        room_code: generateRoomCode()
       }]).select().single();
 
       if (error) { alert('출제 중 오류가 발생했습니다: ' + error.message); return; }
@@ -1218,7 +1482,6 @@
       if (!confirm('현재 문제를 마감할까요? 학생들은 더 이상 이 문제에 제출할 수 없습니다.')) return;
       await supabaseClient.from('live_problems').update({ is_active: false }).eq('id', activeProblem.id);
       renderNoProblem();
-      if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
     }
 
     init();

@@ -407,6 +407,70 @@
       color: var(--red);
       font-variant-numeric: tabular-nums;
     }
+
+    /* ---------- 입장코드 / 담당 선생님 표시 ---------- */
+    .code-toggle-link {
+      background: none;
+      border: none;
+      color: var(--ink-soft);
+      font-size: 12.5px;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 4px 0;
+      width: auto;
+    }
+
+    .code-entry-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .code-entry-row input {
+      flex: 1;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--line);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.1em;
+    }
+
+    .code-entry-row button {
+      width: auto;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+    }
+
+    .teacher-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .manual-code-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+    }
+
+    .manual-code-badge button {
+      width: auto;
+      padding: 3px 9px;
+      font-size: 11.5px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+    }
   </style>
 </head>
 
@@ -435,6 +499,12 @@
         <div class="field-hint">선생님 화면(칠판)에 이름 대신 이 별명이 보여요.</div>
       </div>
       <button class="btn" onclick="verifyStudent()">✅ 확인하고 시작하기</button>
+
+      <button class="code-toggle-link" type="button" id="codeToggleLink" onclick="toggleLoginCodeRow()">🔑 선생님이 알려준 입장코드가 있나요?</button>
+      <div class="code-entry-row hidden" id="loginCodeRow">
+        <input type="text" id="loginCodeInput" placeholder="입장코드 4자리" inputmode="numeric" maxlength="6">
+      </div>
+      <div class="field-hint" id="loginCodeHint" class="hidden" style="display:none;">평소엔 비워두세요. 우리 반 담당 선생님 문제가 자동으로 나타납니다.</div>
     </div>
 
     <!-- 2단계: 문제 + 제출 -->
@@ -457,6 +527,16 @@
     let verifiedStudentId = '';
     let verifiedStudentName = '';
     let verifiedNickname = '';
+    let myScopeTokens = [];      // 예: ["1-03", "1-ALL"] — 내 학년-반을 나타내는 토큰들
+    let manualRoomCode = null;   // 학생이 직접 입력한 입장코드 (있으면 학년/반 매칭 대신 이 코드로만 접속)
+
+    function toggleLoginCodeRow() {
+      const row = document.getElementById('loginCodeRow');
+      row.classList.toggle('hidden');
+      document.getElementById('codeToggleLink').textContent = row.classList.contains('hidden')
+        ? '🔑 선생님이 알려준 입장코드가 있나요?'
+        : '🔼 입장코드 입력창 닫기';
+    }
 
     // ---------------- [음성 설명 녹음 상태] ----------------
     let mediaRecorder = null;
@@ -588,6 +668,13 @@
       verifiedStudentName = matched.name;
       verifiedNickname = sNickname;
 
+      const grade = sId.charAt(0);
+      const classNo = sId.substring(1, 3);
+      myScopeTokens = [`${grade}-${classNo}`, `${grade}-ALL`];
+
+      const codeInput = document.getElementById('loginCodeInput').value.trim();
+      manualRoomCode = codeInput || null;
+
       document.getElementById('loginCard').classList.add('hidden');
       document.getElementById('mainArea').classList.remove('hidden');
       document.getElementById('studentChipName').textContent = verifiedNickname
@@ -605,20 +692,35 @@
       verifiedStudentId = '';
       verifiedStudentName = '';
       verifiedNickname = '';
+      myScopeTokens = [];
+      manualRoomCode = null;
+      activeProblem = null;
+      mySubmission = null;
       document.getElementById('studentIdInput').value = '';
       document.getElementById('studentNameInput').value = '';
       document.getElementById('studentNicknameInput').value = '';
+      document.getElementById('loginCodeInput').value = '';
+      document.getElementById('loginCodeRow').classList.add('hidden');
+      document.getElementById('codeToggleLink').textContent = '🔑 선생님이 알려준 입장코드가 있나요?';
       document.getElementById('loginCard').classList.remove('hidden');
       document.getElementById('mainArea').classList.add('hidden');
     }
 
     async function checkActiveProblem() {
-      const { data } = await supabaseClient
+      let query = supabaseClient
         .from('live_problems')
         .select('*')
-        .eq('is_active', true)
-        .order('started_at', { ascending: false })
-        .limit(1);
+        .eq('is_active', true);
+
+      if (manualRoomCode) {
+        // 입장코드를 입력한 경우: 학년/반과 무관하게 해당 코드의 방에만 연결합니다.
+        query = query.eq('room_code', manualRoomCode);
+      } else {
+        // 평소: 내 학년-반(또는 그 학년 전체 대상) 문제만 자동으로 연결합니다.
+        query = query.overlaps('target_scope', myScopeTokens);
+      }
+
+      const { data } = await query.order('started_at', { ascending: false }).limit(1);
 
       const problem = (data && data.length > 0) ? data[0] : null;
 
@@ -631,6 +733,20 @@
       } else if (problem) {
         activeProblem = problem; // 시간 등 갱신
       }
+    }
+
+    async function promptManualCode() {
+      const code = prompt('선생님이 알려준 입장코드를 입력해주세요.');
+      if (!code) return;
+      manualRoomCode = code.trim();
+      await checkActiveProblem();
+    }
+
+    async function clearManualCode() {
+      manualRoomCode = null;
+      activeProblem = null;
+      mySubmission = null;
+      await checkActiveProblem();
     }
 
     async function loadMySubmission() {
@@ -649,7 +765,12 @@
       clearInterval(timerInterval);
 
       if (!activeProblem) {
-        area.innerHTML = `<div class="card"><div class="waiting">⏳ 아직 출제된 문제가 없습니다.<br>선생님이 문제를 올리면 자동으로 나타납니다.</div></div>`;
+        const modeHint = manualRoomCode
+          ? `입력하신 입장코드(${escapeHtml(manualRoomCode)})로 진행 중인 문제를 찾을 수 없습니다. 코드가 맞는지 선생님께 확인해주세요.
+             <div class="manual-code-badge"><button onclick="clearManualCode()">🔙 우리 반 문제로 돌아가기</button></div>`
+          : `아직 출제된 문제가 없습니다.<br>선생님이 문제를 올리면 자동으로 나타납니다.
+             <div class="manual-code-badge">다른 반 문제를 풀어야 하나요? <button onclick="promptManualCode()">🔑 입장코드 입력</button></div>`;
+        area.innerHTML = `<div class="card"><div class="waiting">⏳ ${modeHint}</div></div>`;
         return;
       }
 
@@ -661,14 +782,23 @@
         ? `<div class="field-hint" style="margin-bottom:6px;">이전에 제출한 음성:</div><audio controls src="${mySubmission.solution_audio_url}" style="width:100%; margin-bottom:10px;"></audio>`
         : '';
 
+      const teacherTagHtml = activeProblem.teacher_name
+        ? `<div class="teacher-tag">🧑‍🏫 ${escapeHtml(activeProblem.teacher_name)} 선생님</div><br>`
+        : '';
+      const manualBadgeHtml = manualRoomCode
+        ? `<div class="manual-code-badge">🔑 입장코드(${escapeHtml(manualRoomCode)})로 접속 중 <button onclick="clearManualCode()">🔙 우리 반으로</button></div>`
+        : '';
+
       area.innerHTML = `
     <div class="card problem-box">
+      ${teacherTagHtml}
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(activeProblem.time_limit_seconds / 60)}분</div>
       <div class="ptext">${activeProblem.problem_text}</div>
       <div class="timer-row">
         <div class="timer-label">남은 시간</div>
         <div class="timer-value" id="studentTimer">--:--</div>
       </div>
+      ${manualBadgeHtml}
     </div>
 
     <div class="card">
