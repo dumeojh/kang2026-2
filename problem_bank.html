@@ -292,6 +292,16 @@
       color: #fff;
     }
 
+    button.reveal-btn.concept-btn {
+      border-color: var(--ink-soft);
+      color: var(--ink-soft);
+    }
+
+    button.reveal-btn.concept-btn:hover {
+      background: var(--ink-soft);
+      color: #fff;
+    }
+
     .panel {
       max-height: 0;
       overflow: hidden;
@@ -299,7 +309,7 @@
     }
 
     .panel.open {
-      max-height: 600px;
+      max-height: 2600px;
     }
 
     .panel-body {
@@ -308,7 +318,8 @@
       border-top: 1px dashed rgba(27, 58, 92, 0.25);
     }
 
-    .solution-label {
+    .solution-label,
+    .concept-label {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -316,7 +327,58 @@
       font-weight: 700;
       font-size: 14px;
       margin-bottom: 10px;
+    }
+
+    .solution-label {
       color: var(--red);
+    }
+
+    .concept-label {
+      color: var(--ink-soft);
+    }
+
+    .solution-steps {
+      font-size: 15px;
+      color: var(--ink);
+      white-space: pre-wrap;
+    }
+
+    .solution-steps p {
+      margin: 0 0 10px;
+    }
+
+    .concept-body {
+      font-size: 15px;
+      color: var(--ink);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .concept-body p {
+      margin: 0 0 10px;
+    }
+
+    .practice-box {
+      background: #F6F3EA;
+      border: 1px dashed rgba(27, 58, 92, 0.3);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-top: 14px;
+    }
+
+    .practice-box .ptitle {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--slate);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .practice-statement {
+      font-size: 15px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
     }
 
     .answer-stamp {
@@ -661,6 +723,9 @@
         const category = row.category || '기타문제';
         const label = row.title || '(제목 없음)';
         const ansId = `ans-${row.id}`;
+        const solId = `sol-${row.id}`;
+        const conceptId = `concept-${row.id}`;
+        const practiceSolId = `psol-${row.id}`;
         const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
         const metaStr = `제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}`;
 
@@ -669,6 +734,38 @@
           <div class="panel-body">
             <div class="solution-label">✎ 정답</div>
             <span class="answer-stamp">${esc(row.answer_text)}</span>
+          </div>
+        </div>` : '';
+
+        const solutionHtml = row.solution_html ? `
+        <div class="panel" id="${solId}">
+          <div class="panel-body">
+            <div class="solution-label">✎ 풀이</div>
+            <div class="solution-steps">${esc(row.solution_html)}</div>
+          </div>
+        </div>` : '';
+
+        const hasPractice = row.practice_statement || row.practice_solution;
+        const practiceHtml = hasPractice ? `
+          <div class="practice-box">
+            <div class="ptitle">기초개념 연습문제</div>
+            <div class="practice-statement">${esc(row.practice_statement)}</div>
+            <button class="reveal-btn" onclick="toggle('${practiceSolId}')">🖊 연습문제 풀이 보기</button>
+            <div class="panel" id="${practiceSolId}">
+              <div class="panel-body">
+                <div class="solution-label">✎ 풀이</div>
+                <div class="solution-steps">${esc(row.practice_solution)}</div>
+                ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
+              </div>
+            </div>
+          </div>` : '';
+
+        const conceptHtml = row.concept_title || row.concept_body ? `
+        <div class="panel" id="${conceptId}">
+          <div class="panel-body">
+            <div class="concept-label">📘 ${esc(row.concept_title)}</div>
+            <div class="concept-body">${esc(row.concept_body)}</div>
+            ${practiceHtml}
           </div>
         </div>` : '';
 
@@ -684,9 +781,13 @@
           <div class="statement">${esc(row.problem_text)}</div>
           <div class="btn-row">
             ${row.answer_text ? `<button class="reveal-btn answer-btn" onclick="toggle('${ansId}')">🖊 정답 보기</button>` : ''}
+            ${row.solution_html ? `<button class="reveal-btn" onclick="toggle('${solId}')">🖊 풀이 보기</button>` : ''}
+            ${(row.concept_title || row.concept_body) ? `<button class="reveal-btn concept-btn" onclick="toggle('${conceptId}')">📘 기초개념</button>` : ''}
             <button class="reveal-btn" onclick="openEditor(${row.id})">✏️ 편집</button>
           </div>
           ${answerHtml}
+          ${solutionHtml}
+          ${conceptHtml}
         </div>
       </div>
     `;
@@ -702,7 +803,13 @@
         problem_text: '',
         time_limit_seconds: 300,
         voice_limit_seconds: 60,
-        answer_text: ''
+        answer_text: '',
+        solution_html: '',
+        concept_title: '',
+        concept_body: '',
+        practice_statement: '',
+        practice_answer: '',
+        practice_solution: ''
       };
     }
 
@@ -805,7 +912,13 @@
         problem_text: val('problem_text').trim(),
         time_limit_seconds: Math.round(minutes * 60),
         voice_limit_seconds: voiceSeconds,
-        answer_text: val('answer_text').trim() || null
+        answer_text: val('answer_text').trim() || null,
+        solution_html: val('solution_html').trim() || null,
+        concept_title: val('concept_title').trim() || null,
+        concept_body: val('concept_body').trim() || null,
+        practice_statement: val('practice_statement').trim() || null,
+        practice_answer: val('practice_answer').trim() || null,
+        practice_solution: val('practice_solution').trim() || null
       };
     }
 
@@ -860,6 +973,33 @@
       <label>정답 (선택 — 학생 화면 "정답 보기" 버튼으로 원할 때만 공개)</label>
       <textarea data-field="answer_text" rows="3" placeholder="예: 27/4" oninput="schedulePreview()">${esc(row.answer_text)}</textarea>
     </div>
+
+    <div class="edit-field">
+      <label>풀이 (학생 수준에 맞게 자유롭게 수정하세요)</label>
+      <textarea data-field="solution_html" rows="7" placeholder="풀이 과정을 단계별로 입력하세요." oninput="schedulePreview()">${esc(row.solution_html)}</textarea>
+    </div>
+
+    <div class="edit-field">
+      <label>기초개념 제목</label>
+      <input type="text" data-field="concept_title" value="${esc(row.concept_title)}" placeholder="예: 정적분과 넓이" oninput="schedulePreview()">
+    </div>
+    <div class="edit-field">
+      <label>기초개념 설명</label>
+      <textarea data-field="concept_body" rows="5" placeholder="개념 설명을 입력하세요." oninput="schedulePreview()">${esc(row.concept_body)}</textarea>
+    </div>
+
+    <div class="edit-field">
+      <label>기초개념 연습문제 본문</label>
+      <textarea data-field="practice_statement" rows="3" placeholder="쉬운 연습문제 본문을 입력하세요." oninput="schedulePreview()">${esc(row.practice_statement)}</textarea>
+    </div>
+    <div class="edit-field">
+      <label>연습문제 정답 표시</label>
+      <input type="text" data-field="practice_answer" value="${esc(row.practice_answer)}" oninput="schedulePreview()">
+    </div>
+    <div class="edit-field">
+      <label>연습문제 풀이</label>
+      <textarea data-field="practice_solution" rows="4" placeholder="연습문제 풀이를 입력하세요." oninput="schedulePreview()">${esc(row.practice_solution)}</textarea>
+    </div>
   `;
     }
 
@@ -874,6 +1014,27 @@
       <span class="answer-stamp">${esc(row.answer_text)}</span>
     ` : '';
 
+      const solutionHtml = row.solution_html ? `
+      <div class="solution-label" style="margin-top:18px;">✎ 풀이</div>
+      <div class="solution-steps">${esc(row.solution_html)}</div>
+    ` : '';
+
+      const practiceHtml = (row.practice_statement || row.practice_solution) ? `
+      <div class="practice-box">
+        <div class="ptitle">기초개념 연습문제</div>
+        <div class="practice-statement">${esc(row.practice_statement)}</div>
+        <div class="solution-label" style="margin-top:10px;">✎ 연습문제 풀이</div>
+        <div class="solution-steps">${esc(row.practice_solution)}</div>
+        ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
+      </div>
+    ` : '';
+
+      const conceptHtml = (row.concept_title || row.concept_body) ? `
+      <div class="concept-label" style="margin-top:20px;">📘 ${esc(row.concept_title)}</div>
+      <div class="concept-body">${esc(row.concept_body)}</div>
+      ${practiceHtml}
+    ` : '';
+
       return `
     <div class="card-tags">
       <span class="cat-badge ${categoryBadgeClass(category)}">${esc(category)}</span>
@@ -882,6 +1043,8 @@
     </div>
     <div class="statement">${esc(row.problem_text) || '<span style="color:var(--slate)">문제 본문을 입력하면 여기에 표시됩니다.</span>'}</div>
     ${answerHtml}
+    ${solutionHtml}
+    ${conceptHtml}
   `;
     }
 
