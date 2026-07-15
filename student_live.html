@@ -220,7 +220,12 @@
     }
 
     .problem-box {
-      position: relative;
+      position: sticky;
+      top: max(8px, env(safe-area-inset-top));
+      z-index: 500;
+      padding-top: 46px;
+      /* fs-btn(전체화면 버튼)이 우측 상단에 고정으로 떠 있으므로 그 아래 여백을 확보 */
+      box-shadow: 0 16px 26px -16px rgba(30, 36, 51, 0.4);
     }
 
     .problem-box .ptag {
@@ -237,6 +242,33 @@
       font-size: 18px;
       line-height: 1.7;
       margin-bottom: 4px;
+    }
+
+    /* ---------- 풀이 공간 (여러 캔버스 페이지) ---------- */
+    .canvas-pages {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .page-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .page-divider::before,
+    .page-divider::after {
+      content: '';
+      flex: 1;
+      border-top: 1.5px dashed var(--line);
+    }
+
+    .add-page-btn {
+      margin-top: 10px;
     }
 
     .timer-row {
@@ -830,18 +862,13 @@
     let pollInterval = null;
 
     // ---------------- [손글씨 캔버스 상태] ----------------
-    let ctx = null;
-    let strokes = [];
-    let bgImage = null;
-    let currentStroke = null;
-    let isDrawing = false;
+    // 풀이 공간이 부족하면 캔버스를 지우는 대신 새 페이지를 이어붙일 수 있도록
+    // 여러 개의 캔버스(pages)를 배열로 관리합니다. 제출 시 모든 페이지를 세로로 이어 붙여 하나의 이미지로 만듭니다.
+    let pages = []; // { canvas, ctx, strokes, bgImage, cssWidth, cssHeight, currentStroke, isDrawing, activePointerIds, gestureMode }
+    let activePageIndex = 0; // 되돌리기(undo) 등 도구가 적용될, 마지막으로 손을 댄 페이지
     let currentColor = '#1B2A3D';
     let currentSize = 3;
     let isEraser = false;
-    let canvasCssWidth = 0;
-    let canvasCssHeight = 320;
-    let activePointerIds = new Set(); // 캔버스 위에 동시에 닿아있는 손가락/펜 개수 추적 (두 손가락 확대 제스처 감지용)
-    let gestureMode = false; // 두 손가락 이상이 닿으면 true, 모두 뗄 때까지 낙서를 그리지 않음
 
     // ---------------- [전체화면 모드] ----------------
     function isFullscreen() {
@@ -1091,7 +1118,8 @@
           <button class="tool-btn" onclick="undoStroke()">↩️ 되돌리기</button>
           <button class="tool-btn" onclick="clearCanvas()">🗑 전체지우기</button>
         </div>
-        <canvas id="drawCanvas" class="draw-canvas"></canvas>
+        <div id="canvasPagesContainer" class="canvas-pages"></div>
+        <button type="button" class="btn secondary add-page-btn" onclick="addCanvasPage()">➕ 풀이 공간 더 추가하기 (지우지 않고 이어쓰기)</button>
       </div>
       <div class="field">
         <label>🎙 (선택) 목소리로 풀이 설명하기</label>
@@ -1113,7 +1141,7 @@
   `;
 
       if (window.MathJax) MathJax.typesetPromise([area.querySelector('.problem-box')]);
-      initCanvas();
+      initCanvasPages();
       resetVoiceRecordingState();
 
       timerInterval = setInterval(updateStudentTimer, 1000);
@@ -1218,45 +1246,84 @@
       }, 1000);
     }
 
-    // ---------------- [손글씨 캔버스] ----------------
-    function setupCanvasBackingStore(canvas, cssWidth, cssHeight) {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = cssWidth * dpr;
-      canvas.height = cssHeight * dpr;
-      canvas.style.height = cssHeight + 'px';
-      ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+    // ---------------- [손글씨 캔버스 - 여러 페이지] ----------------
+    function createPageState() {
+      return {
+        canvas: null, ctx: null,
+        strokes: [], bgImage: null,
+        cssWidth: 0, cssHeight: 320,
+        currentStroke: null, isDrawing: false,
+        activePointerIds: new Set(), gestureMode: false
+      };
     }
 
-    function initCanvas() {
-      const canvas = document.getElementById('drawCanvas');
-      if (!canvas) return;
+    function setupCanvasBackingStore(canvas, page) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = page.cssWidth * dpr;
+      canvas.height = page.cssHeight * dpr;
+      canvas.style.height = page.cssHeight + 'px';
+      page.ctx = canvas.getContext('2d');
+      page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      page.ctx.scale(dpr, dpr);
+      page.ctx.lineCap = 'round';
+      page.ctx.lineJoin = 'round';
+    }
 
-      canvasCssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
-      canvasCssHeight = 320;
-      setupCanvasBackingStore(canvas, canvasCssWidth, canvasCssHeight);
+    // 문제가 새로 열릴 때(renderProblemArea) 호출: 페이지를 1개로 초기화합니다.
+    function initCanvasPages() {
+      pages = [createPageState()];
+      activePageIndex = 0;
+      const container = document.getElementById('canvasPagesContainer');
+      if (!container) return;
+      container.innerHTML = '<canvas class="draw-canvas" id="drawCanvas_0"></canvas>';
+      setupPageCanvas(0);
 
-      strokes = [];
-      bgImage = null;
-      activePointerIds.clear();
-      gestureMode = false;
-      redrawAll();
-
-      // 이전에 제출한 손글씨가 있으면 배경으로 불러와서 이어서 그릴 수 있게 합니다.
+      // 이전에 제출한 손글씨가 있으면 첫 페이지의 배경으로 불러와서 이어서 그릴 수 있게 합니다.
       if (mySubmission && mySubmission.solution_image) {
         const img = new Image();
-        img.onload = () => { bgImage = img; redrawAll(); };
+        img.onload = () => { pages[0].bgImage = img; redrawPage(0); };
         img.src = mySubmission.solution_image;
       }
+    }
 
-      canvas.onpointerdown = onPointerDown;
-      canvas.onpointermove = onPointerMove;
-      canvas.onpointerup = onPointerUp;
-      canvas.onpointerleave = onPointerUp;
-      canvas.onpointercancel = onPointerUp;
+    // 풀이 공간이 부족할 때: 기존 페이지는 그대로 두고 새 캔버스를 아래에 이어붙입니다.
+    function addCanvasPage() {
+      const page = createPageState();
+      pages.push(page);
+      const idx = pages.length - 1;
+
+      const container = document.getElementById('canvasPagesContainer');
+      if (!container) return;
+
+      const divider = document.createElement('div');
+      divider.className = 'page-divider';
+      divider.textContent = `✂️ ${idx + 1}번째 이어쓰기 공간`;
+      container.appendChild(divider);
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'draw-canvas';
+      canvas.id = `drawCanvas_${idx}`;
+      container.appendChild(canvas);
+
+      setupPageCanvas(idx);
+      activePageIndex = idx;
+      canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function setupPageCanvas(i) {
+      const canvas = document.getElementById(`drawCanvas_${i}`);
+      const page = pages[i];
+      if (!canvas || !page) return;
+      page.canvas = canvas;
+      page.cssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      setupCanvasBackingStore(canvas, page);
+      redrawPage(i);
+
+      canvas.onpointerdown = (e) => onPointerDown(e, i);
+      canvas.onpointermove = (e) => onPointerMove(e, i);
+      canvas.onpointerup = (e) => onPointerUp(e, i);
+      canvas.onpointerleave = (e) => onPointerUp(e, i);
+      canvas.onpointercancel = (e) => onPointerUp(e, i);
     }
 
     function getCanvasPos(canvas, e) {
@@ -1264,70 +1331,99 @@
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
-    function onPointerDown(e) {
+    function onPointerDown(e, i) {
+      const page = pages[i];
+      if (!page) return;
       e.preventDefault();
-      activePointerIds.add(e.pointerId);
+      activePageIndex = i;
+      page.activePointerIds.add(e.pointerId);
 
       // 손가락(또는 펜)이 두 개 이상 동시에 닿으면 확대/축소 제스처로 간주하고
       // 방금 그려지던 선은 취소해서 낙서가 남지 않도록 합니다.
-      if (activePointerIds.size > 1) {
-        gestureMode = true;
-        if (isDrawing && currentStroke) {
-          const idx = strokes.indexOf(currentStroke);
-          if (idx !== -1) strokes.splice(idx, 1);
+      if (page.activePointerIds.size > 1) {
+        page.gestureMode = true;
+        if (page.isDrawing && page.currentStroke) {
+          const idx = page.strokes.indexOf(page.currentStroke);
+          if (idx !== -1) page.strokes.splice(idx, 1);
         }
-        isDrawing = false;
-        currentStroke = null;
-        redrawAll();
+        page.isDrawing = false;
+        page.currentStroke = null;
+        redrawPage(i);
         return;
       }
 
-      if (gestureMode) return; // 손가락을 아직 다 떼지 않았으면 새 선을 시작하지 않음
+      if (page.gestureMode) return; // 손가락을 아직 다 떼지 않았으면 새 선을 시작하지 않음
 
-      isDrawing = true;
+      page.isDrawing = true;
       const canvas = e.target;
       canvas.setPointerCapture(e.pointerId);
       const pos = getCanvasPos(canvas, e);
-      currentStroke = { color: isEraser ? '#FFFFFF' : currentColor, size: isEraser ? 22 : currentSize, points: [pos] };
-      strokes.push(currentStroke);
+      page.currentStroke = { color: isEraser ? '#FFFFFF' : currentColor, size: isEraser ? 22 : currentSize, points: [pos] };
+      page.strokes.push(page.currentStroke);
     }
 
-    function onPointerMove(e) {
-      if (gestureMode || activePointerIds.size > 1) return; // 제스처 중에는 그리지 않음
-      if (!isDrawing || !currentStroke) return;
+    function onPointerMove(e, i) {
+      const page = pages[i];
+      if (!page) return;
+      if (page.gestureMode || page.activePointerIds.size > 1) return; // 제스처 중에는 그리지 않음
+      if (!page.isDrawing || !page.currentStroke) return;
       e.preventDefault();
       const pos = getCanvasPos(e.target, e);
-      currentStroke.points.push(pos);
-      redrawAll();
+      page.currentStroke.points.push(pos);
+      redrawPage(i);
     }
 
-    function onPointerUp(e) {
-      if (e && e.pointerId !== undefined) activePointerIds.delete(e.pointerId);
-      if (activePointerIds.size === 0) gestureMode = false; // 모든 손가락을 뗀 뒤에야 제스처 모드 해제
-      isDrawing = false;
-      currentStroke = null;
+    function onPointerUp(e, i) {
+      const page = pages[i];
+      if (!page) return;
+      if (e && e.pointerId !== undefined) page.activePointerIds.delete(e.pointerId);
+      if (page.activePointerIds.size === 0) page.gestureMode = false; // 모든 손가락을 뗀 뒤에야 제스처 모드 해제
+      page.isDrawing = false;
+      page.currentStroke = null;
     }
 
-    function redrawAll() {
-      const canvas = document.getElementById('drawCanvas');
-      if (!canvas || !ctx) return;
+    function redrawPage(i) {
+      const page = pages[i];
+      if (!page || !page.canvas || !page.ctx) return;
+      const ctx = page.ctx;
       const dpr = window.devicePixelRatio || 1;
-      const cssWidth = canvas.width / dpr;
-      const cssHeight = canvas.height / dpr;
+      const cssWidth = page.canvas.width / dpr;
+      const cssHeight = page.canvas.height / dpr;
 
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, cssWidth, cssHeight);
-      if (bgImage) ctx.drawImage(bgImage, 0, 0, cssWidth, cssHeight);
+      if (page.bgImage) ctx.drawImage(page.bgImage, 0, 0, cssWidth, cssHeight);
 
-      strokes.forEach(stroke => {
+      page.strokes.forEach(stroke => {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.size;
         ctx.beginPath();
-        stroke.points.forEach((p, i) => {
-          if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        stroke.points.forEach((p, idx) => {
+          if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
         });
         ctx.stroke();
       });
+    }
+
+    // 여러 페이지를 세로로 이어 붙여 제출용 이미지 한 장으로 합칩니다.
+    function mergePagesToDataUrl() {
+      const width = pages.reduce((max, p) => Math.max(max, p.cssWidth || 0), 300);
+      const totalHeight = pages.reduce((sum, p) => sum + (p.cssHeight || 0), 0) || 320;
+
+      const merged = document.createElement('canvas');
+      merged.width = width;
+      merged.height = totalHeight;
+      const mctx = merged.getContext('2d');
+      mctx.fillStyle = '#fff';
+      mctx.fillRect(0, 0, width, totalHeight);
+
+      let yOffset = 0;
+      pages.forEach(page => {
+        if (page.canvas) mctx.drawImage(page.canvas, 0, yOffset, width, page.cssHeight);
+        yOffset += page.cssHeight;
+      });
+
+      return merged.toDataURL('image/png');
     }
 
     function setPenColor(color, btnId) {
@@ -1347,36 +1443,39 @@
     }
 
     function undoStroke() {
-      strokes.pop();
-      redrawAll();
+      // 마지막으로 손을 댄 페이지에서 되돌립니다.
+      const page = pages[activePageIndex];
+      if (!page) return;
+      page.strokes.pop();
+      redrawPage(activePageIndex);
     }
 
     function clearCanvas() {
-      if (!confirm('전체 지우기를 할까요?')) return;
-      strokes = [];
-      bgImage = null;
-      redrawAll();
+      if (!confirm('전체 지우기를 할까요? (추가한 이어쓰기 공간도 모두 사라집니다)')) return;
+      initCanvasPages();
     }
 
     // ---------------- [화면 회전 / 크기 변경 대응] ----------------
     // 캔버스 폭이 바뀌면(회전 등) 그림을 지우지 않고, 새 크기에 맞게 좌표를 다시 배치합니다.
     function handleCanvasResize() {
-      const canvas = document.getElementById('drawCanvas');
-      if (!canvas) return; // 캔버스가 화면에 없으면(로그인/대기 화면 등) 무시
+      pages.forEach((page, i) => {
+        const canvas = page.canvas;
+        if (!canvas) return; // 캔버스가 화면에 없으면(로그인/대기 화면 등) 무시
 
-      const newWidth = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
-      if (!newWidth || Math.abs(newWidth - canvasCssWidth) < 2) return; // 실질적인 변화 없으면 무시
+        const newWidth = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+        if (!newWidth || Math.abs(newWidth - page.cssWidth) < 2) return; // 실질적인 변화 없으면 무시
 
-      const scaleX = newWidth / canvasCssWidth;
+        const scaleX = newWidth / page.cssWidth;
 
-      strokes.forEach(stroke => {
-        stroke.points.forEach(p => { p.x *= scaleX; });
-        stroke.size *= scaleX;
+        page.strokes.forEach(stroke => {
+          stroke.points.forEach(p => { p.x *= scaleX; });
+          stroke.size *= scaleX;
+        });
+
+        page.cssWidth = newWidth;
+        setupCanvasBackingStore(canvas, page);
+        redrawPage(i);
       });
-
-      canvasCssWidth = newWidth;
-      setupCanvasBackingStore(canvas, canvasCssWidth, canvasCssHeight);
-      redrawAll();
     }
 
     let resizeDebounce = null;
@@ -1412,9 +1511,9 @@
 
     async function submitSolution() {
       const note = document.getElementById('solutionNote').value.trim();
-      const canvas = document.getElementById('drawCanvas');
 
-      if (strokes.length === 0 && !bgImage) {
+      const hasContent = pages.some(p => p.strokes.length > 0 || p.bgImage);
+      if (!hasContent) {
         alert('펜으로 풀이 과정을 먼저 써주세요.');
         return;
       }
@@ -1427,7 +1526,8 @@
         return;
       }
 
-      const imageDataUrl = canvas.toDataURL('image/png');
+      // 이어쓰기로 추가한 모든 페이지를 세로로 이어 붙여 한 장의 이미지로 제출합니다.
+      const imageDataUrl = mergePagesToDataUrl();
 
       // 새로 녹음한 음성이 있으면 Storage에 올리고 그 주소를 저장합니다. 없으면 기존에 제출했던 음성 주소를 그대로 유지합니다.
       let audioUrl = (mySubmission && mySubmission.solution_audio_url) || null;
