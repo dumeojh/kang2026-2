@@ -1466,6 +1466,7 @@
     <div class="problem-card">
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
       <div class="ptext">${problem.problem_text}</div>
+      ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
       ${problem.answer_text ? `
       <div class="answer-toggle-row">
         <button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">🔑 정답 보기</button>
@@ -1710,6 +1711,7 @@
 
       const { data, error } = await supabaseClient.from('live_problems').insert([{
         problem_text: row.problem_text,
+        problem_image_url: row.problem_image_url || null,
         time_limit_seconds: row.time_limit_seconds,
         voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
@@ -1798,10 +1800,11 @@
         const videoBadge = hasVideo
           ? `<span class="cat-badge video-yes">🎬 영상 있음${videos.length > 1 ? ` ${videos.length}개` : ''}</span>`
           : '';
+        const imageBadge = row.problem_image_url ? `<span class="cat-badge">🖼 그림</span>` : '';
         return `
       <div class="bank-item">
         <div class="bank-item-main">
-          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${escapeHtml(label)}</div>
+          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${imageBadge}${escapeHtml(label)}</div>
           <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
@@ -2372,7 +2375,10 @@
       document.getElementById('studioCatBadge').className = `cat-badge ${categoryBadgeClass(category)}`;
       document.getElementById('studioCatBadge').textContent = category;
       document.getElementById('studioProblemTitle').textContent = row.title || '(제목 없음) 설명영상 녹화';
-      document.getElementById('studioProblemBox').textContent = row.problem_text || '';
+      document.getElementById('studioProblemBox').innerHTML = `
+        ${row.problem_text || ''}
+        ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; border-radius:8px; display:block; margin-top:10px;">` : ''}
+      `;
 
       const hasAnswer = !!(row.answer_text || row.solution_html);
       studioHasAnswer = hasAnswer;

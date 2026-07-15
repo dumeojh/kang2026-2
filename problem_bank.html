@@ -659,6 +659,7 @@
     let currentEditId = null;       // 지금 편집기에서 열려있는 문제의 id (새로 만드는 중이면 null)
     let editIsNew = false;          // "새 문제 만들기"로 연 것인지
     let editDirty = false;          // 편집기에서 뭔가 한 글자라도 고쳤는지
+    let editImageUrl = null;        // 편집기에서 현재 첨부된 문제 그림 URL (업로드는 즉시, 저장은 saveEdit에서)
 
     function esc(str) {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -800,6 +801,7 @@
             <span class="tag-meta">${metaStr}</span>
           </div>
           <div class="statement">${esc(row.problem_text)}</div>
+          ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; max-height:200px; border:1px solid var(--line); border-radius:8px; display:block; margin:8px 0;">` : ''}
           <div class="btn-row">
             ${row.answer_text ? `<button class="reveal-btn answer-btn" onclick="toggle('${ansId}')">🖊 정답 보기</button>` : ''}
             ${row.solution_html ? `<button class="reveal-btn" onclick="toggle('${solId}')">🖊 풀이 보기</button>` : ''}
@@ -822,6 +824,7 @@
         title: '',
         category: '수능특강',
         problem_text: '',
+        problem_image_url: null,
         time_limit_seconds: 300,
         voice_limit_seconds: 60,
         answer_text: '',
@@ -849,6 +852,7 @@
 
       const row = isNew ? blankProblem() : bankRows.find(r => r.id === id);
       if (!row) return;
+      editImageUrl = row.problem_image_url || null;
 
       const overlay = document.getElementById('editOverlay');
       overlay.innerHTML = `
@@ -920,6 +924,58 @@
       loadBank();
     }
 
+    function renderImageField() {
+      return `
+    <label>🖼 문제 그림 (선택 — 도형·그래프처럼 그림이 필요한 문제만)</label>
+    ${editImageUrl ? `
+      <img src="${editImageUrl}" alt="문제 그림" style="max-width:100%; max-height:220px; border:1px solid var(--line); border-radius:8px; display:block; margin-bottom:8px; background:#fff;">
+      <button type="button" class="reveal-btn" onclick="removeProblemImage()">🗑 그림 제거</button>
+    ` : `
+      <input type="file" accept="image/*" id="problemImageInput" onchange="handleProblemImageSelect(event)">
+      <div class="edit-hint" id="problemImageUploadStatus"></div>
+    `}
+  `;
+    }
+
+    function refreshImageField() {
+      const wrap = document.getElementById('problemImageFieldWrap');
+      if (wrap) wrap.innerHTML = renderImageField();
+    }
+
+    async function handleProblemImageSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('problemImageUploadStatus');
+      if (statusEl) statusEl.textContent = '☁️ 업로드 중...';
+
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${Date.now()}_${Math.floor(Math.random() * 100000)}.${ext}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from('problem-images')
+        .upload(path, file, { contentType: file.type || 'image/png', upsert: true });
+
+      if (uploadError) {
+        if (statusEl) statusEl.textContent = '';
+        alert('이미지 업로드 중 오류가 발생했습니다: ' + uploadError.message);
+        return;
+      }
+
+      const { data: publicUrlData } = supabaseClient.storage.from('problem-images').getPublicUrl(path);
+      editImageUrl = publicUrlData.publicUrl;
+      editDirty = true;
+      refreshImageField();
+      schedulePreview();
+    }
+
+    function removeProblemImage() {
+      editImageUrl = null;
+      editDirty = true;
+      refreshImageField();
+      schedulePreview();
+    }
+
     function readEditForm() {
       const root = document.getElementById('editOverlay');
       const val = (name) => root.querySelector(`[data-field="${name}"]`).value;
@@ -931,6 +987,7 @@
         title: val('title').trim() || null,
         category: val('category'),
         problem_text: val('problem_text').trim(),
+        problem_image_url: editImageUrl || null,
         time_limit_seconds: Math.round(minutes * 60),
         voice_limit_seconds: voiceSeconds,
         answer_text: val('answer_text').trim() || null,
@@ -978,6 +1035,8 @@
       <textarea data-field="problem_text" rows="6" oninput="schedulePreview()">${esc(row.problem_text)}</textarea>
     </div>
     <div class="edit-hint">수식은 $x^2+1$ 처럼 $ 로 감싸 쓰세요. 백슬래시는 두 번 입력 (예: \\\\dfrac, \\\\int)</div>
+
+    <div class="edit-field" id="problemImageFieldWrap">${renderImageField()}</div>
 
     <div class="edit-two-col">
       <div class="edit-field">
@@ -1063,6 +1122,7 @@
       <span class="tag-meta">제한시간 ${minutes}분 · 🎙${voiceSeconds}초</span>
     </div>
     <div class="statement">${esc(row.problem_text) || '<span style="color:var(--slate)">문제 본문을 입력하면 여기에 표시됩니다.</span>'}</div>
+    ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid var(--line); border-radius:8px; display:block; margin:10px 0;">` : ''}
     ${answerHtml}
     ${solutionHtml}
     ${conceptHtml}
