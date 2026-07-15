@@ -1455,8 +1455,8 @@
 
       const badge = document.getElementById('roomCodeBadge');
       if (problem.room_code) {
-        const scopeLabel = (problem.target_scope || []).map(formatScopeToken).join(', ');
-        badge.textContent = `🔑 입장코드 ${problem.room_code} · ${scopeLabel}`;
+        // 담당 학급(대상)은 바로 옆 "🧑‍🏫 teacher-chip"에 이미 표시되므로 여기서는 입장코드만 보여줍니다.
+        badge.textContent = `🔑 입장코드 ${problem.room_code}`;
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
