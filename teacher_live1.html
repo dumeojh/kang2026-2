@@ -65,6 +65,12 @@
       color: #fff;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .sidebar {
+      width: 0;
     }
 
     .sidebar-head {
@@ -253,13 +259,44 @@
 
     .content {
       flex: 1;
-      overflow-y: auto;
+      display: flex;
+      gap: 22px;
+      overflow: hidden;
+      /* 문제 칸과 풀이 칸이 각자 따로 스크롤되도록, 이 줄 자체는 스크롤하지 않습니다. */
       padding: 26px 34px;
       background-color: var(--paper);
       background-image:
         linear-gradient(var(--line) 1px, transparent 1px),
         linear-gradient(90deg, var(--line) 1px, transparent 1px);
       background-size: 26px 26px;
+    }
+
+    .problem-col {
+      width: 380px;
+      flex-shrink: 0;
+      height: 100%;
+      overflow-y: auto;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .problem-col {
+      width: 640px;
+    }
+
+    @media (max-width: 900px) {
+
+      /* 창이 좁아지면(예: 노트북 창을 반으로 나눠쓰는 경우) 기존처럼 위아래로 쌓이게 합니다. */
+      .content {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .problem-col,
+      .app.sidebar-collapsed .problem-col {
+        width: auto;
+        height: auto;
+        overflow-y: visible;
+      }
     }
 
     .problem-card {
@@ -300,6 +337,10 @@
       border-radius: 16px;
       padding: 24px 28px;
       min-height: 260px;
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      overflow-y: auto;
     }
 
     .solution-view .sv-head {
@@ -552,6 +593,26 @@
     }
 
     .answer-panel .a-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #92660F;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .sv-answer-box {
+      background: #FBF3DF;
+      border: 1.5px dashed var(--gold);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .sv-answer-box .a-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
@@ -1002,6 +1063,8 @@
 
     <main class="main">
       <div class="topbar">
+        <button class="btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="제출 명단을 숨기거나 다시 보여줍니다">👥 명단
+          숨기기</button>
         <h1 id="problemLabel">오늘의 문제</h1>
         <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
@@ -1015,7 +1078,7 @@
       </div>
 
       <div class="content">
-        <div id="problemArea"></div>
+        <div class="problem-col" id="problemArea"></div>
         <div class="solution-view" id="solutionView">
           <div class="solution-placeholder">왼쪽 명단에서 학생 이름을 클릭하면 풀이 과정이 여기에 표시됩니다.</div>
         </div>
@@ -1296,6 +1359,28 @@
     let selectedStudentId = null;
     let timerInterval = null;
     let realtimeChannel = null;
+    let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
+
+    // ---------------- [제출 명단 숨기기] ----------------
+    // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
+    // 그만큼의 공간을 문제 칸에 몰아줍니다. 마지막으로 고른 상태는 기억해둡니다.
+    const SIDEBAR_COLLAPSED_KEY = 'liveSidebarCollapsed';
+
+    function toggleSidebar() {
+      const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
+      document.getElementById('sidebarToggleBtn').textContent = collapsed ? '👥 명단 보이기' : '👥 명단 숨기기';
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* 무시 */ }
+    }
+
+    function initSidebarCollapsedState() {
+      let collapsed = false;
+      try { collapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'; } catch (e) { /* 무시 */ }
+      if (collapsed) {
+        document.querySelector('.app').classList.add('sidebar-collapsed');
+        document.getElementById('sidebarToggleBtn').textContent = '👥 명단 보이기';
+      }
+    }
+    initSidebarCollapsedState();
 
     // ---------------- [담당 교사 / 담당 학급 프로필] ----------------
     // 이 브라우저(이 컴퓨터)에서 활동하는 선생님이 누구이고, 어느 학급을 담당하는지를 저장합니다.
@@ -1451,12 +1536,13 @@
     function setActiveProblem(problem) {
       activeProblem = problem;
       selectedStudentId = null;
+      answerRevealed = false;
       document.getElementById('problemLabel').textContent = `문제 #${problem.id}`;
 
       const badge = document.getElementById('roomCodeBadge');
       if (problem.room_code) {
-        const scopeLabel = (problem.target_scope || []).map(formatScopeToken).join(', ');
-        badge.textContent = `🔑 입장코드 ${problem.room_code} · ${scopeLabel}`;
+        // 담당 학급(대상)은 바로 옆 "🧑‍🏫 teacher-chip"에 이미 표시되므로 여기서는 입장코드만 보여줍니다.
+        badge.textContent = `🔑 입장코드 ${problem.room_code}`;
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
@@ -1466,6 +1552,7 @@
     <div class="problem-card">
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
       <div class="ptext">${problem.problem_text}</div>
+      ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
       ${problem.answer_text ? `
       <div class="answer-toggle-row">
         <button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">🔑 정답 보기</button>
@@ -1492,8 +1579,12 @@
       const btn = document.getElementById('answerToggleBtn');
       if (!panel) return;
       const nowHidden = panel.classList.toggle('hidden');
+      answerRevealed = !nowHidden;
       btn.textContent = nowHidden ? '🔑 정답 보기' : '🙈 정답 숨기기';
       if (!nowHidden && window.MathJax) MathJax.typesetPromise([panel]);
+
+      // 오른쪽 풀이 화면에서 학생 답을 보고 있었다면, 정답 표시 여부를 그쪽에도 바로 반영합니다.
+      if (selectedStudentId) selectStudent(selectedStudentId);
     }
 
     function updateTimer() {
@@ -1562,6 +1653,12 @@
       <div class="sv-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
       <button class="btn" style="margin-left:auto;" onclick="openPresentOverlay('${studentId}')">🖥 학생들에게 크게 보여주기</button>
     </div>
+    ${(answerRevealed && activeProblem && activeProblem.answer_text) ? `
+    <div class="sv-answer-box">
+      <div class="a-label">🔑 정답</div>
+      <div id="svAnswerBody">${activeProblem.answer_text}</div>
+    </div>
+    ` : ''}
     ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; margin-bottom:14px; display:block;">` : ''}
     ${s.solution_audio_url ? `<div style="margin-bottom:14px;"><div class="ptag" style="margin-bottom:6px;">🎙 음성 설명</div><audio controls src="${s.solution_audio_url}" style="width:100%;"></audio></div>` : ''}
     ${s.solution_text ? `<div class="sv-body">${escapeHtml(s.solution_text)}</div>` : ''}
@@ -1710,6 +1807,7 @@
 
       const { data, error } = await supabaseClient.from('live_problems').insert([{
         problem_text: row.problem_text,
+        problem_image_url: row.problem_image_url || null,
         time_limit_seconds: row.time_limit_seconds,
         voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
@@ -1735,6 +1833,12 @@
       if (category === '수능특강') return 'cat-suneung';
       if (category === '교과서') return 'cat-textbook';
       return 'cat-other';
+    }
+
+    function difficultyLabel(d) {
+      if (d === '하') return '🟢하';
+      if (d === '상') return '🔴상';
+      return '🟡중';
     }
 
     function setBankFilter(cat) {
@@ -1798,11 +1902,12 @@
         const videoBadge = hasVideo
           ? `<span class="cat-badge video-yes">🎬 영상 있음${videos.length > 1 ? ` ${videos.length}개` : ''}</span>`
           : '';
+        const imageBadge = row.problem_image_url ? `<span class="cat-badge">🖼 그림</span>` : '';
         return `
       <div class="bank-item">
         <div class="bank-item-main">
-          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${escapeHtml(label)}</div>
-          <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
+          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${imageBadge}${escapeHtml(label)}</div>
+          <div class="bank-meta">${row.unit_tag ? `📎 ${escapeHtml(row.unit_tag)} · ` : ''}${difficultyLabel(row.difficulty)} · 제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
           <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
@@ -2358,6 +2463,7 @@
     let studioCanvasCssWidth = 0;
     let studioCanvasCssHeight = 480;
     let studioResizeHandler = null;
+    let studioHasAnswer = false; // 지금 문제에 정답/풀이가 있는지 (녹화 종료 후 버튼을 되돌릴 때 사용)
 
     function openLectureStudio(problemId) {
       if (!requireTeacherProfile()) return;
@@ -2371,16 +2477,20 @@
       document.getElementById('studioCatBadge').className = `cat-badge ${categoryBadgeClass(category)}`;
       document.getElementById('studioCatBadge').textContent = category;
       document.getElementById('studioProblemTitle').textContent = row.title || '(제목 없음) 설명영상 녹화';
-      document.getElementById('studioProblemBox').textContent = row.problem_text || '';
+      document.getElementById('studioProblemBox').innerHTML = `
+        ${row.problem_text || ''}
+        ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; border-radius:8px; display:block; margin-top:10px;">` : ''}
+      `;
 
       const hasAnswer = !!(row.answer_text || row.solution_html);
+      studioHasAnswer = hasAnswer;
       document.getElementById('studioAnswerToggleWrap').classList.toggle('hidden', !hasAnswer);
       const answerParts = [];
       if (row.answer_text) answerParts.push(`✎ 정답: ${row.answer_text}`);
       if (row.solution_html) answerParts.push(`✎ 풀이 참고\n${row.solution_html}`);
       document.getElementById('studioAnswerBox').textContent = answerParts.join('\n\n');
       document.getElementById('studioAnswerBox').classList.add('hidden');
-      document.getElementById('studioAnswerToggleBtn').textContent = '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+      document.getElementById('studioAnswerToggleBtn').textContent = '🔑 정답/풀이 보기 (선생님만 확인, 녹화에는 안 나와요)';
 
       resetStudioRecordUI();
       document.getElementById('studioOverlay').classList.remove('hidden');
@@ -2417,7 +2527,7 @@
       box.classList.toggle('hidden', !willShow);
       document.getElementById('studioAnswerToggleBtn').textContent = willShow
         ? '🙈 정답/풀이 숨기기'
-        : '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+        : '🔑 정답/풀이 보기 (선생님만 확인, 녹화에는 안 나와요)';
     }
 
     function resetStudioRecordUI() {
@@ -2584,8 +2694,19 @@
       studioStream = null;
     }
 
+    // 녹화가 시작되지 못했거나 끝났을 때, 정답이 있는 문제라면 정답/풀이 보기 버튼을 다시 보이게 합니다.
+    // (펼쳐져 있던 정답 내용 자체는 다시 열어주지 않고 숨김 상태로 둡니다.)
+    function restoreStudioAnswerToggle() {
+      document.getElementById('studioAnswerToggleWrap').classList.toggle('hidden', !studioHasAnswer);
+    }
+
     async function startStudioRecording() {
       if (!requireTeacherProfile()) return;
+
+      // 녹화가 시작되기 전에 미리 정답/풀이 보기 버튼과 펼쳐진 정답을 화면에서 숨겨서,
+      // 녹화 화면에는 문제와 선생님이 풀이하는 필기만 나오도록 합니다.
+      document.getElementById('studioAnswerToggleWrap').classList.add('hidden');
+      document.getElementById('studioAnswerBox').classList.add('hidden');
 
       let screenStream;
       try {
@@ -2597,6 +2718,7 @@
         });
       } catch (e) {
         alert('화면 공유 권한이 필요합니다. 화면 공유 창에서 "이 탭"을 선택해주세요.');
+        restoreStudioAnswerToggle();
         return;
       }
 
@@ -2626,6 +2748,7 @@
       } catch (e) {
         alert('이 브라우저에서는 화면 녹화를 지원하지 않습니다. 크롬 또는 엣지를 사용해주세요.');
         stopAllStudioTracks();
+        restoreStudioAnswerToggle();
         return;
       }
 
@@ -2660,6 +2783,7 @@
       clearInterval(studioRecTimerInterval);
       stopAllStudioTracks();
       resetStudioRecordUI();
+      restoreStudioAnswerToggle();
 
       studioRecordedBlob = new Blob(studioChunks, { type: (studioRecorder && studioRecorder.mimeType) || 'video/webm' });
       const videoEl = document.getElementById('studioPreviewVideo');
