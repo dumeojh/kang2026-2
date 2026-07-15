@@ -1739,6 +1739,12 @@
       return 'cat-other';
     }
 
+    function difficultyLabel(d) {
+      if (d === '하') return '🟢하';
+      if (d === '상') return '🔴상';
+      return '🟡중';
+    }
+
     function setBankFilter(cat) {
       bankFilterCategory = cat;
       document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
@@ -1805,7 +1811,7 @@
       <div class="bank-item">
         <div class="bank-item-main">
           <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${imageBadge}${escapeHtml(label)}</div>
-          <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
+          <div class="bank-meta">${row.unit_tag ? `📎 ${escapeHtml(row.unit_tag)} · ` : ''}${difficultyLabel(row.difficulty)} · 제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
           <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>

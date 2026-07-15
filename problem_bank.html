@@ -238,6 +238,50 @@
       color: var(--cat-other);
     }
 
+    .cat-badge.unit-badge {
+      background: #EEF1F6;
+      color: var(--ink-soft);
+    }
+
+    .cat-badge.diff-하 {
+      background: #E7F6EC;
+      color: #1E8A4C;
+    }
+
+    .cat-badge.diff-중 {
+      background: #FFF4E0;
+      color: #B4700A;
+    }
+
+    .cat-badge.diff-상 {
+      background: #FCE8E8;
+      color: #C0392B;
+    }
+
+    .unit-filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin: -16px 0 26px;
+      flex-wrap: wrap;
+    }
+
+    .unit-filter-tabs.hidden {
+      display: none;
+    }
+
+    .unit-filter-tabs .filter-tab {
+      font-size: 11.5px;
+      padding: 4px 11px;
+      border-color: rgba(27, 58, 92, 0.14);
+      color: var(--ink-soft);
+    }
+
+    .unit-filter-tabs .filter-tab.active {
+      background: var(--brand, var(--ink));
+      color: #fff;
+      border-color: var(--brand, var(--ink));
+    }
+
     .tag-title {
       font-size: 13.5px;
       font-weight: 700;
@@ -640,6 +684,10 @@
       <button class="filter-tab" data-cat="기타문제" onclick="setFilter('기타문제')">기타문제</button>
     </div>
 
+    <div class="unit-filter-tabs hidden" id="unitFilterTabs"></div>
+
+    <datalist id="unitTagOptions"></datalist>
+
     <div id="problemList">
       <div class="bank-empty">불러오는 중...</div>
     </div>
@@ -656,6 +704,7 @@
 
     let bankRows = [];              // Supabase에서 불러온 문제 목록
     let filterCategory = '전체';
+    let filterUnit = '전체';        // 단원 필터 (실제 존재하는 단원들로 자동 생성됨)
     let currentEditId = null;       // 지금 편집기에서 열려있는 문제의 id (새로 만드는 중이면 null)
     let editIsNew = false;          // "새 문제 만들기"로 연 것인지
     let editDirty = false;          // 편집기에서 뭔가 한 글자라도 고쳤는지
@@ -687,12 +736,51 @@
       return 'cat-other';
     }
 
+    function difficultyLabel(d) {
+      if (d === '하') return '🟢 하';
+      if (d === '상') return '🔴 상';
+      return '🟡 중';
+    }
+
     function setFilter(cat) {
       filterCategory = cat;
       document.querySelectorAll('#filterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === cat);
       });
       renderList();
+    }
+
+    function setUnitFilter(unit) {
+      filterUnit = unit;
+      renderUnitFilterTabs();
+      renderList();
+    }
+
+    // 실제 저장된 문제들에 쓰인 단원명만 모아서 필터 탭을 만듭니다.
+    // (직접 관리하는 설정 화면 없이도, 선생님들이 입력한 단원명이 자동으로 필터가 됩니다)
+    function renderUnitFilterTabs() {
+      const wrap = document.getElementById('unitFilterTabs');
+      if (!wrap) return;
+      const units = [...new Set(bankRows.map(r => r.unit_tag).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'));
+
+      if (units.length === 0) {
+        wrap.classList.add('hidden');
+        wrap.innerHTML = '';
+        return;
+      }
+      wrap.classList.remove('hidden');
+      wrap.innerHTML = ['전체', ...units].map(u => `
+        <button class="filter-tab ${filterUnit === u ? 'active' : ''}" onclick="setUnitFilter('${u.replace(/'/g, "\\'")}')">${esc(u)}</button>
+      `).join('');
+    }
+
+    // 편집기의 "단원" 입력창에서 자동완성 후보로 쓸 수 있도록,
+    // 지금까지 입력된 단원명들을 모아서 datalist를 채워둡니다.
+    function refreshUnitTagOptions() {
+      const dl = document.getElementById('unitTagOptions');
+      if (!dl) return;
+      const units = [...new Set(bankRows.map(r => r.unit_tag).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'));
+      dl.innerHTML = units.map(u => `<option value="${esc(u)}"></option>`).join('');
     }
 
     async function loadBank() {
@@ -709,6 +797,8 @@
         return;
       }
       bankRows = data || [];
+      renderUnitFilterTabs();
+      refreshUnitTagOptions();
       renderList();
     }
 
@@ -728,10 +818,15 @@
         ? bankRows
         : bankRows.filter(r => (r.category || '기타문제') === filterCategory);
 
+      if (filterUnit !== '전체') {
+        rows = rows.filter(r => r.unit_tag === filterUnit);
+      }
+
       if (keyword) {
         rows = rows.filter(r =>
           (r.title || '').toLowerCase().includes(keyword) ||
-          (r.problem_text || '').toLowerCase().includes(keyword)
+          (r.problem_text || '').toLowerCase().includes(keyword) ||
+          (r.unit_tag || '').toLowerCase().includes(keyword)
         );
       }
 
@@ -797,6 +892,8 @@
           <div class="card-tags">
             <span class="tag-num">문제 ${n}</span>
             <span class="cat-badge ${categoryBadgeClass(category)}">${esc(category)}</span>
+            ${row.unit_tag ? `<span class="cat-badge unit-badge">📎 ${esc(row.unit_tag)}</span>` : ''}
+            <span class="cat-badge diff-${row.difficulty || '중'}">${difficultyLabel(row.difficulty)}</span>
             <span class="tag-title">${esc(label)}</span>
             <span class="tag-meta">${metaStr}</span>
           </div>
@@ -825,6 +922,8 @@
         category: '수능특강',
         problem_text: '',
         problem_image_url: null,
+        unit_tag: '',
+        difficulty: '중',
         time_limit_seconds: 300,
         voice_limit_seconds: 60,
         answer_text: '',
@@ -988,6 +1087,8 @@
         category: val('category'),
         problem_text: val('problem_text').trim(),
         problem_image_url: editImageUrl || null,
+        unit_tag: val('unit_tag').trim() || null,
+        difficulty: val('difficulty') || '중',
         time_limit_seconds: Math.round(minutes * 60),
         voice_limit_seconds: voiceSeconds,
         answer_text: val('answer_text').trim() || null,
@@ -1029,6 +1130,22 @@
         <option value="기타문제" ${(!row.category || row.category === '기타문제') ? 'selected' : ''}>기타문제</option>
       </select>
     </div>
+
+    <div class="edit-two-col">
+      <div class="edit-field">
+        <label>단원 (선택 — 예: 정적분과 넓이)</label>
+        <input type="text" data-field="unit_tag" list="unitTagOptions" value="${esc(row.unit_tag)}" placeholder="예: 수열의 극한" oninput="schedulePreview()">
+      </div>
+      <div class="edit-field">
+        <label>난이도</label>
+        <select data-field="difficulty" onchange="schedulePreview()">
+          <option value="하" ${row.difficulty === '하' ? 'selected' : ''}>🟢 하</option>
+          <option value="중" ${(!row.difficulty || row.difficulty === '중') ? 'selected' : ''}>🟡 중</option>
+          <option value="상" ${row.difficulty === '상' ? 'selected' : ''}>🔴 상</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-hint">이미 썼던 단원명을 입력창 클릭 시 자동완성 목록에서 골라 쓰면, 같은 단원이 여러 이름으로 흩어지지 않아요.</div>
 
     <div class="edit-field">
       <label>문제 본문</label>
@@ -1118,6 +1235,8 @@
       return `
     <div class="card-tags">
       <span class="cat-badge ${categoryBadgeClass(category)}">${esc(category)}</span>
+      ${row.unit_tag ? `<span class="cat-badge unit-badge">📎 ${esc(row.unit_tag)}</span>` : ''}
+      <span class="cat-badge diff-${row.difficulty || '중'}">${difficultyLabel(row.difficulty)}</span>
       <span class="tag-title">${esc(label)}</span>
       <span class="tag-meta">제한시간 ${minutes}분 · 🎙${voiceSeconds}초</span>
     </div>
