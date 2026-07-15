@@ -64,6 +64,10 @@
       border-bottom: 2px solid var(--ink);
     }
 
+    .back-btn {
+      margin-bottom: 14px;
+    }
+
     .eyebrow {
       font-size: 12px;
       font-weight: 900;
@@ -618,6 +622,7 @@
 
   <div class="wrap">
     <header class="page-head">
+      <button type="button" class="util-btn back-btn" onclick="goBackToTeacher()">🔙 교사 화면으로 돌아가기</button>
       <div class="eyebrow">LIVE QUIZ PROBLEM BANK</div>
       <h1>📚 문제 은행 관리</h1>
       <p>여기서 만들고 정리한 문제는 <b>교사 화면(teacher_live.html)</b>의 "문제 은행 · 출제하기"에서 골라 바로 출제할 수 있어요.</p>
@@ -657,6 +662,22 @@
 
     function esc(str) {
       return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 교사 화면(teacher_live.html)에서 새 탭으로 열었으면 탭을 닫아서 원래 화면으로 돌아가고,
+    // 즐겨찾기 등으로 이 페이지에 바로 들어온 경우(opener가 없음)에는 teacher_live.html로 이동합니다.
+    function goBackToTeacher() {
+      if (editDirty) {
+        const msg = editIsNew
+          ? '작성 중인 새 문제를 취소할까요? 입력한 내용은 저장되지 않습니다.'
+          : '저장하지 않은 변경 내용이 있습니다. 그대로 나갈까요?';
+        if (!confirm(msg)) return;
+      }
+      if (window.opener && !window.opener.closed) {
+        window.close();
+      } else {
+        location.href = 'teacher_live.html';
+      }
     }
 
     function categoryBadgeClass(category) {
