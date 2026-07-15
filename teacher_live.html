@@ -65,6 +65,12 @@
       color: #fff;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .sidebar {
+      width: 0;
     }
 
     .sidebar-head {
@@ -270,6 +276,11 @@
       flex-shrink: 0;
       height: 100%;
       overflow-y: auto;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .problem-col {
+      width: 640px;
     }
 
     @media (max-width: 900px) {
@@ -280,7 +291,8 @@
         overflow-y: auto;
       }
 
-      .problem-col {
+      .problem-col,
+      .app.sidebar-collapsed .problem-col {
         width: auto;
         height: auto;
         overflow-y: visible;
@@ -1031,6 +1043,8 @@
 
     <main class="main">
       <div class="topbar">
+        <button class="btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="제출 명단을 숨기거나 다시 보여줍니다">👥 명단
+          숨기기</button>
         <h1 id="problemLabel">오늘의 문제</h1>
         <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
@@ -1325,6 +1339,27 @@
     let selectedStudentId = null;
     let timerInterval = null;
     let realtimeChannel = null;
+
+    // ---------------- [제출 명단 숨기기] ----------------
+    // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
+    // 그만큼의 공간을 문제 칸에 몰아줍니다. 마지막으로 고른 상태는 기억해둡니다.
+    const SIDEBAR_COLLAPSED_KEY = 'liveSidebarCollapsed';
+
+    function toggleSidebar() {
+      const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
+      document.getElementById('sidebarToggleBtn').textContent = collapsed ? '👥 명단 보이기' : '👥 명단 숨기기';
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* 무시 */ }
+    }
+
+    function initSidebarCollapsedState() {
+      let collapsed = false;
+      try { collapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'; } catch (e) { /* 무시 */ }
+      if (collapsed) {
+        document.querySelector('.app').classList.add('sidebar-collapsed');
+        document.getElementById('sidebarToggleBtn').textContent = '👥 명단 보이기';
+      }
+    }
+    initSidebarCollapsedState();
 
     // ---------------- [담당 교사 / 담당 학급 프로필] ----------------
     // 이 브라우저(이 컴퓨터)에서 활동하는 선생님이 누구이고, 어느 학급을 담당하는지를 저장합니다.
