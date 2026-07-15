@@ -471,6 +471,177 @@
       color: var(--ink-soft);
       border: 1px solid var(--line);
     }
+
+    /* ---------- 설명영상 보기 ---------- */
+    .video-btn {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .video-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      background: rgba(20, 24, 36, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .video-modal-backdrop.hidden {
+      display: none;
+    }
+
+    .video-modal-box {
+      width: 100%;
+      max-width: 640px;
+      max-height: 82vh;
+      background: var(--paper);
+      border-radius: 22px 22px 0 0;
+      padding: 20px 18px 26px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -10px 30px -10px rgba(20, 24, 36, 0.35);
+    }
+
+    .video-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+
+    .video-modal-head h2 {
+      font-family: 'Gowun Batang', serif;
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .video-modal-close {
+      width: auto;
+      padding: 7px 12px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--ink-soft);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .video-modal-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .video-empty {
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13.5px;
+      padding: 30px 10px;
+    }
+
+    .video-item {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .video-item:active {
+      background: var(--brand-soft);
+    }
+
+    .video-item .vtag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .video-item .vtitle {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .video-item .vmeta {
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .video-item .vdesc {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .video-player-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background: #0B0D14;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-player-overlay.hidden {
+      display: none;
+    }
+
+    .video-player-top {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+    }
+
+    .video-player-top .vp-title {
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .video-player-top button {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .video-player-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px 10px;
+      min-height: 0;
+    }
+
+    .video-player-body video {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 10px;
+      background: #000;
+    }
   </style>
 </head>
 
@@ -500,22 +671,51 @@
       </div>
       <button class="btn" onclick="verifyStudent()">✅ 확인하고 시작하기</button>
 
-      <button class="code-toggle-link" type="button" id="codeToggleLink" onclick="toggleLoginCodeRow()">🔑 선생님이 알려준 입장코드가 있나요?</button>
+      <button class="code-toggle-link" type="button" id="codeToggleLink" onclick="toggleLoginCodeRow()">🔑 선생님이 알려준
+        입장코드가 있나요?</button>
       <div class="code-entry-row hidden" id="loginCodeRow">
         <input type="text" id="loginCodeInput" placeholder="입장코드 4자리" inputmode="numeric" maxlength="6">
       </div>
-      <div class="field-hint" id="loginCodeHint" class="hidden" style="display:none;">평소엔 비워두세요. 우리 반 담당 선생님 문제가 자동으로 나타납니다.</div>
+      <div class="field-hint" id="loginCodeHint" class="hidden" style="display:none;">평소엔 비워두세요. 우리 반 담당 선생님 문제가 자동으로
+        나타납니다.</div>
     </div>
 
     <!-- 2단계: 문제 + 제출 -->
     <div id="mainArea" class="hidden">
       <div class="top-status">
         <div class="student-chip">👤 <b id="studentChipName"></b> 학생</div>
-        <button class="btn secondary" style="width:auto; padding:8px 14px; font-size:13px;"
-          onclick="logout()">로그아웃</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary video-btn" onclick="openVideoListModal()">🎥 설명영상</button>
+          <button class="btn secondary" style="width:auto; padding:8px 14px; font-size:13px;"
+            onclick="logout()">로그아웃</button>
+        </div>
       </div>
 
       <div id="problemArea"></div>
+    </div>
+  </div>
+
+  <!-- 설명영상 목록 -->
+  <div class="video-modal-backdrop hidden" id="videoListModal" onclick="if(event.target===this) closeVideoListModal()">
+    <div class="video-modal-box">
+      <div class="video-modal-head">
+        <h2>🎥 설명 영상</h2>
+        <button class="video-modal-close" onclick="closeVideoListModal()">닫기</button>
+      </div>
+      <div class="video-modal-list" id="videoModalList">
+        <div class="video-empty">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설명영상 재생 -->
+  <div class="video-player-overlay hidden" id="videoPlayerOverlay">
+    <div class="video-player-top">
+      <button onclick="closeVideoPlayer()">← 목록으로</button>
+      <div class="vp-title" id="videoPlayerTitle"></div>
+    </div>
+    <div class="video-player-body">
+      <video id="videoPlayerEl" controls playsinline></video>
     </div>
   </div>
 
@@ -529,6 +729,84 @@
     let verifiedNickname = '';
     let myScopeTokens = [];      // 예: ["1-03", "1-ALL"] — 내 학년-반을 나타내는 토큰들
     let manualRoomCode = null;   // 학생이 직접 입력한 입장코드 (있으면 학년/반 매칭 대신 이 코드로만 접속)
+
+    // ---------------- [선생님이 올린 설명영상 보기] ----------------
+    function openVideoListModal() {
+      document.getElementById('videoListModal').classList.remove('hidden');
+      loadStudentVideos();
+    }
+
+    function closeVideoListModal() {
+      document.getElementById('videoListModal').classList.add('hidden');
+    }
+
+    function closeVideoPlayer() {
+      const el = document.getElementById('videoPlayerEl');
+      el.pause();
+      el.src = '';
+      document.getElementById('videoPlayerOverlay').classList.add('hidden');
+    }
+
+    function fmtVideoDuration(sec) {
+      if (!sec && sec !== 0) return '';
+      const m = Math.floor(sec / 60);
+      const s = Math.round(sec % 60);
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function fmtVideoDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+
+    let studentVideoList = [];
+
+    async function loadStudentVideos() {
+      const listEl = document.getElementById('videoModalList');
+      listEl.innerHTML = '<div class="video-empty">불러오는 중...</div>';
+
+      if (!myScopeTokens.length) {
+        listEl.innerHTML = '<div class="video-empty">학생 정보를 확인할 수 없습니다.</div>';
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('lecture_videos')
+        .select('*')
+        .overlaps('target_scope', myScopeTokens)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<div class="video-empty">불러오지 못했습니다: ${error.message}</div>`;
+        return;
+      }
+
+      studentVideoList = data || [];
+
+      if (studentVideoList.length === 0) {
+        listEl.innerHTML = '<div class="video-empty">아직 올라온 설명 영상이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = studentVideoList.map((v, i) => `
+        <div class="video-item" data-index="${i}" onclick="playStudentVideo(this.dataset.index)">
+          <div class="vtag">${v.problem_bank_id ? '📘 문제 풀이' : '🎥 가정학습'} · ${escapeHtml(v.teacher_name || '선생님')} · ${fmtVideoDate(v.created_at)}${v.duration_seconds ? ' · ' + fmtVideoDuration(v.duration_seconds) : ''}</div>
+          <div class="vtitle">${escapeHtml(v.title || '제목 없는 설명 영상')}</div>
+          ${v.description ? `<div class="vdesc">${escapeHtml(v.description)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function playStudentVideo(index) {
+      const v = studentVideoList[Number(index)];
+      if (!v) return;
+      document.getElementById('videoPlayerTitle').textContent = v.title || '설명 영상';
+      const el = document.getElementById('videoPlayerEl');
+      el.src = v.video_url;
+      document.getElementById('videoPlayerOverlay').classList.remove('hidden');
+      el.play().catch(() => { /* 자동재생 실패 시 학생이 직접 재생 버튼을 누르면 됨 */ });
+    }
 
     function toggleLoginCodeRow() {
       const row = document.getElementById('loginCodeRow');
