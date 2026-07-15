@@ -739,6 +739,163 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* ---------- 설명영상 스튜디오 (문제별 전체화면 보드판 녹화) ---------- */
+    .studio-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 26px 26px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .studio-overlay.hidden {
+      display: none;
+    }
+
+    .studio-topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1.5px solid var(--line);
+      box-shadow: 0 6px 18px -14px rgba(30, 36, 51, 0.4);
+      flex-wrap: wrap;
+    }
+
+    .studio-topbar .studio-title-block {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .studio-topbar .studio-cat {
+      margin-bottom: 2px;
+    }
+
+    .studio-topbar .studio-problem-title {
+      font-weight: 700;
+      font-size: 14.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .studio-rec-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .studio-rec-status .lecture-timer {
+      font-size: 16px;
+      min-width: 52px;
+    }
+
+    .studio-board {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 22px 120px;
+    }
+
+    .studio-problem-box {
+      max-width: 900px;
+      margin: 0 auto 16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 22px;
+      box-shadow: 0 10px 26px -18px rgba(30, 36, 51, 0.25);
+      font-size: 17px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .studio-answer-toggle {
+      max-width: 900px;
+      margin: 0 auto 16px;
+    }
+
+    .studio-answer-box {
+      max-width: 900px;
+      margin: 0 auto 16px;
+      background: var(--gold-soft, #FBF3DC);
+      border: 1px dashed var(--gold);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .studio-canvas-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 26px -18px rgba(30, 36, 51, 0.25);
+    }
+
+    .studio-canvas {
+      display: block;
+      width: 100%;
+      touch-action: none;
+      cursor: crosshair;
+      background: #fff;
+    }
+
+    .studio-pen-toolbar {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      box-shadow: 0 14px 34px -14px rgba(30, 36, 51, 0.4);
+      z-index: 910;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .studio-color-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .studio-color-btn.active {
+      border-color: var(--ink);
+    }
+
+    .studio-pen-toolbar .btn {
+      padding: 7px 12px;
+      font-size: 12.5px;
+    }
+
+    .studio-pen-toolbar select {
+      font-size: 12.5px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+    }
+
     /* ---------- 기록 상세보기 (밝은 배경용 명단 스타일) ---------- */
     .archive-detail-body {
       display: flex;
@@ -1019,6 +1176,68 @@
 
       <div class="modal-actions">
         <button class="btn" onclick="closeArchiveDetailModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="studio-overlay hidden" id="studioOverlay">
+    <div class="studio-topbar">
+      <button class="btn" onclick="closeLectureStudio()">← 닫기</button>
+      <div class="studio-title-block">
+        <div class="studio-cat"><span class="cat-badge cat-other" id="studioCatBadge"></span></div>
+        <div class="studio-problem-title" id="studioProblemTitle"></div>
+      </div>
+      <div class="studio-rec-status">
+        <div class="rec-dot hidden" id="studioRecDot"></div>
+        <div class="lecture-timer" id="studioRecTimer">00:00</div>
+        <button class="btn" style="background:var(--red); color:#fff;" id="studioStartBtn"
+          onclick="startStudioRecording()">🔴 녹화 시작</button>
+        <button class="btn danger hidden" id="studioStopBtn" onclick="stopStudioRecording()">⏹ 녹화 종료</button>
+      </div>
+    </div>
+    <div class="studio-board" id="studioBoard">
+      <div class="studio-problem-box" id="studioProblemBox"></div>
+      <div class="studio-answer-toggle hidden" id="studioAnswerToggleWrap">
+        <button class="btn" id="studioAnswerToggleBtn" onclick="toggleStudioAnswer()">🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)</button>
+      </div>
+      <div class="studio-answer-box hidden" id="studioAnswerBox"></div>
+      <div class="studio-canvas-wrap">
+        <canvas id="studioCanvas" class="studio-canvas"></canvas>
+      </div>
+    </div>
+    <div class="studio-pen-toolbar" id="studioPenToolbar">
+      <button class="studio-color-btn active" style="background:#1E2433;" data-color="#1E2433"
+        onclick="setStudioColor('#1E2433', this)"></button>
+      <button class="studio-color-btn" style="background:#E14434;" data-color="#E14434"
+        onclick="setStudioColor('#E14434', this)"></button>
+      <button class="studio-color-btn" style="background:#3452C6;" data-color="#3452C6"
+        onclick="setStudioColor('#3452C6', this)"></button>
+      <button class="studio-color-btn" style="background:#1E9E6B;" data-color="#1E9E6B"
+        onclick="setStudioColor('#1E9E6B', this)"></button>
+      <select id="studioPenSize" onchange="setStudioPenSize(this.value)">
+        <option value="2">가는 펜</option>
+        <option value="4" selected>보통 펜</option>
+        <option value="8">굵은 펜</option>
+      </select>
+      <button class="btn" id="studioEraserBtn" onclick="toggleStudioEraser()">🧹 지우개</button>
+      <button class="btn" onclick="undoStudioStroke()">↩️ 되돌리기</button>
+      <button class="btn" onclick="clearStudioCanvas()">🗑 전체지우기</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="studioPreviewModal" style="z-index:950;">
+    <div class="modal-box" style="width:min(640px, 92vw);">
+      <h2>🎬 녹화 완료</h2>
+      <video id="studioPreviewVideo" controls
+        style="width:100%; border-radius:12px; margin-bottom:14px; background:#000;"></video>
+      <label>제목</label>
+      <input id="studioTitleInput" type="text">
+      <label>설명 (선택)</label>
+      <textarea id="studioDescInput" rows="2" placeholder="학생들에게 보여줄 짧은 설명"></textarea>
+      <div class="modal-actions">
+        <button class="btn" onclick="discardStudioRecording()">🗑 다시 찍기</button>
+        <button class="btn" style="background:var(--brand); color:#fff;" id="studioUploadBtn"
+          onclick="uploadStudioVideo()">☁️ 업로드</button>
       </div>
     </div>
   </div>
@@ -1520,6 +1739,7 @@
         </div>
         <div class="bank-item-actions">
           <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
+          <button class="btn" onclick="openLectureStudio(${row.id})">🎥 설명영상</button>
         </div>
       </div>
     `;
@@ -1975,8 +2195,8 @@
         return `
       <div class="bank-item">
         <div class="bank-item-main">
-          <div class="bank-title">${escapeHtml(v.title)}</div>
-          <div class="bank-meta">${dateStr}${dur ? ' · ' + dur : ''} · ${escapeHtml(scopeLabel)}</div>
+          <div class="bank-title">${v.problem_bank_id ? '🔗 ' : ''}${escapeHtml(v.title)}</div>
+          <div class="bank-meta">${dateStr}${dur ? ' · ' + dur : ''} · ${escapeHtml(scopeLabel)}${v.problem_bank_id ? ' · 특정 문제에 연결됨' : ''}</div>
         </div>
         <div class="bank-item-actions">
           <button class="btn" onclick="window.open('${v.video_url}', '_blank')">▶ 보기</button>
@@ -1993,6 +2213,382 @@
       const { error } = await supabaseClient.from('lecture_videos').delete().eq('id', id);
       if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
       loadMyLectureVideos();
+    }
+
+    // ---------------- [문제별 설명영상 스튜디오] ----------------
+    // 문제 은행의 특정 문제를 골라, 문제 본문이 적힌 전체화면 보드판에서
+    // 펜으로 풀이를 설명하며 화면+음성을 녹화하고, 그 문제에 연결해서 업로드합니다.
+    let studioProblem = null;
+    let studioStream = null;
+    let studioRecorder = null;
+    let studioChunks = [];
+    let studioRecordedBlob = null;
+    let studioRecSeconds = 0;
+    let studioRecTimerInterval = null;
+
+    let studioCtx = null;
+    let studioStrokes = [];
+    let studioCurrentStroke = null;
+    let studioIsDrawing = false;
+    let studioColor = '#1E2433';
+    let studioPenSize = 4;
+    let studioEraser = false;
+    let studioCanvasCssWidth = 0;
+    let studioCanvasCssHeight = 480;
+    let studioResizeHandler = null;
+
+    function openLectureStudio(problemId) {
+      if (!requireTeacherProfile()) return;
+      const row = bankRows.find(r => r.id === problemId);
+      if (!row) { alert('문제를 찾을 수 없습니다. 목록을 새로고침해주세요.'); return; }
+
+      studioProblem = row;
+      closeBankModal();
+
+      const category = row.category || '기타문제';
+      document.getElementById('studioCatBadge').className = `cat-badge ${categoryBadgeClass(category)}`;
+      document.getElementById('studioCatBadge').textContent = category;
+      document.getElementById('studioProblemTitle').textContent = row.title || '(제목 없음) 설명영상 녹화';
+      document.getElementById('studioProblemBox').textContent = row.problem_text || '';
+
+      const hasAnswer = !!(row.answer_text || row.solution_html);
+      document.getElementById('studioAnswerToggleWrap').classList.toggle('hidden', !hasAnswer);
+      const answerParts = [];
+      if (row.answer_text) answerParts.push(`✎ 정답: ${row.answer_text}`);
+      if (row.solution_html) answerParts.push(`✎ 풀이 참고\n${row.solution_html}`);
+      document.getElementById('studioAnswerBox').textContent = answerParts.join('\n\n');
+      document.getElementById('studioAnswerBox').classList.add('hidden');
+      document.getElementById('studioAnswerToggleBtn').textContent = '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+
+      resetStudioRecordUI();
+      document.getElementById('studioOverlay').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(initStudioCanvas, 30); // 오버레이가 그려진 뒤 실제 폭을 측정하기 위해 살짝 지연
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('studioProblemBox'), document.getElementById('studioAnswerBox')]);
+
+      studioResizeHandler = () => resizeStudioCanvas();
+      window.addEventListener('resize', studioResizeHandler);
+    }
+
+    function closeLectureStudio() {
+      if (studioRecorder && studioRecorder.state === 'recording') {
+        if (!confirm('녹화 중입니다. 녹화를 중단하고 닫을까요?')) return;
+        studioRecorder.stop();
+      }
+      if (studioRecordedBlob) {
+        if (!confirm('업로드하지 않은 녹화본이 있습니다. 그대로 닫을까요?')) return;
+      }
+      document.getElementById('studioOverlay').classList.add('hidden');
+      document.getElementById('studioPreviewModal').classList.add('hidden');
+      document.body.style.overflow = '';
+      stopAllStudioTracks();
+      studioRecordedBlob = null;
+      studioChunks = [];
+      studioProblem = null;
+      if (studioResizeHandler) { window.removeEventListener('resize', studioResizeHandler); studioResizeHandler = null; }
+    }
+
+    function toggleStudioAnswer() {
+      const box = document.getElementById('studioAnswerBox');
+      const willShow = box.classList.contains('hidden');
+      box.classList.toggle('hidden', !willShow);
+      document.getElementById('studioAnswerToggleBtn').textContent = willShow
+        ? '🙈 정답/풀이 숨기기'
+        : '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+    }
+
+    function resetStudioRecordUI() {
+      document.getElementById('studioRecDot').classList.add('hidden');
+      document.getElementById('studioRecTimer').textContent = '00:00';
+      document.getElementById('studioStartBtn').classList.remove('hidden');
+      document.getElementById('studioStopBtn').classList.add('hidden');
+    }
+
+    // ---- 캔버스(펜 보드) ----
+    function setupStudioCanvasBackingStore(canvas, cssWidth, cssHeight) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = cssWidth * dpr;
+      canvas.height = cssHeight * dpr;
+      canvas.style.height = cssHeight + 'px';
+      studioCtx = canvas.getContext('2d');
+      studioCtx.setTransform(1, 0, 0, 1, 0, 0);
+      studioCtx.scale(dpr, dpr);
+      studioCtx.lineCap = 'round';
+      studioCtx.lineJoin = 'round';
+    }
+
+    function initStudioCanvas() {
+      const canvas = document.getElementById('studioCanvas');
+      if (!canvas) return;
+
+      studioCanvasCssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 900;
+      studioCanvasCssHeight = Math.max(360, Math.round(window.innerHeight * 0.5));
+      setupStudioCanvasBackingStore(canvas, studioCanvasCssWidth, studioCanvasCssHeight);
+
+      studioStrokes = [];
+      redrawStudioCanvas();
+
+      canvas.onpointerdown = onStudioPointerDown;
+      canvas.onpointermove = onStudioPointerMove;
+      canvas.onpointerup = onStudioPointerUp;
+      canvas.onpointerleave = onStudioPointerUp;
+      canvas.onpointercancel = onStudioPointerUp;
+    }
+
+    function resizeStudioCanvas() {
+      const canvas = document.getElementById('studioCanvas');
+      if (!canvas || !document.getElementById('studioOverlay') || document.getElementById('studioOverlay').classList.contains('hidden')) return;
+      const newWidth = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+      if (!newWidth || Math.abs(newWidth - studioCanvasCssWidth) < 2) return;
+
+      const scaleX = newWidth / studioCanvasCssWidth;
+      studioStrokes.forEach(stroke => {
+        stroke.points.forEach(p => { p.x *= scaleX; });
+        stroke.size *= scaleX;
+      });
+      studioCanvasCssWidth = newWidth;
+      setupStudioCanvasBackingStore(canvas, studioCanvasCssWidth, studioCanvasCssHeight);
+      redrawStudioCanvas();
+    }
+
+    function getStudioCanvasPos(canvas, e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function onStudioPointerDown(e) {
+      e.preventDefault();
+      studioIsDrawing = true;
+      const canvas = e.target;
+      canvas.setPointerCapture(e.pointerId);
+      const pos = getStudioCanvasPos(canvas, e);
+      studioCurrentStroke = {
+        color: studioEraser ? '#FFFFFF' : studioColor,
+        size: studioEraser ? 24 : studioPenSize,
+        points: [pos]
+      };
+      studioStrokes.push(studioCurrentStroke);
+    }
+
+    function onStudioPointerMove(e) {
+      if (!studioIsDrawing || !studioCurrentStroke) return;
+      e.preventDefault();
+      const pos = getStudioCanvasPos(e.target, e);
+      studioCurrentStroke.points.push(pos);
+      redrawStudioCanvas();
+    }
+
+    function onStudioPointerUp() {
+      studioIsDrawing = false;
+      studioCurrentStroke = null;
+    }
+
+    function redrawStudioCanvas() {
+      const canvas = document.getElementById('studioCanvas');
+      if (!canvas || !studioCtx) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssWidth = canvas.width / dpr;
+      const cssHeight = canvas.height / dpr;
+
+      studioCtx.fillStyle = '#fff';
+      studioCtx.fillRect(0, 0, cssWidth, cssHeight);
+
+      studioStrokes.forEach(stroke => {
+        studioCtx.strokeStyle = stroke.color;
+        studioCtx.lineWidth = stroke.size;
+        studioCtx.beginPath();
+        stroke.points.forEach((p, i) => { if (i === 0) studioCtx.moveTo(p.x, p.y); else studioCtx.lineTo(p.x, p.y); });
+        studioCtx.stroke();
+      });
+    }
+
+    function setStudioColor(color, btnEl) {
+      studioColor = color;
+      studioEraser = false;
+      document.getElementById('studioEraserBtn').classList.remove('active');
+      document.querySelectorAll('.studio-color-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+    }
+
+    function setStudioPenSize(v) {
+      studioPenSize = parseInt(v, 10) || 4;
+    }
+
+    function toggleStudioEraser() {
+      studioEraser = !studioEraser;
+      document.getElementById('studioEraserBtn').classList.toggle('active', studioEraser);
+    }
+
+    function undoStudioStroke() {
+      studioStrokes.pop();
+      redrawStudioCanvas();
+    }
+
+    function clearStudioCanvas() {
+      if (studioStrokes.length === 0) return;
+      if (!confirm('보드판 내용을 모두 지울까요?')) return;
+      studioStrokes = [];
+      redrawStudioCanvas();
+    }
+
+    // ---- 녹화 ----
+    function stopAllStudioTracks() {
+      if (studioStream) {
+        (studioStream._sourceStreams || []).forEach(s => s && s.getTracks().forEach(t => t.stop()));
+        studioStream.getTracks().forEach(t => t.stop());
+      }
+      studioStream = null;
+    }
+
+    async function startStudioRecording() {
+      if (!requireTeacherProfile()) return;
+
+      let screenStream;
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: 'always', displaySurface: 'browser' },
+          audio: true,
+          preferCurrentTab: true,
+          selfBrowserSurface: 'include'
+        });
+      } catch (e) {
+        alert('화면 공유 권한이 필요합니다. 화면 공유 창에서 "이 탭"을 선택해주세요.');
+        return;
+      }
+
+      let micStream = null;
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        alert('마이크 권한을 허용하지 않으면 목소리 없이 화면만 녹화됩니다.');
+      }
+
+      const tracks = [...screenStream.getVideoTracks()];
+      if (micStream) tracks.push(...micStream.getAudioTracks());
+      else tracks.push(...screenStream.getAudioTracks());
+
+      const trackSettings = tracks[0].getSettings ? tracks[0].getSettings() : {};
+      if (trackSettings.displaySurface && trackSettings.displaySurface !== 'browser') {
+        alert('지금 화면 전체(또는 다른 창)가 공유되고 있어요. 보드판 화면만 녹화하려면 녹화를 종료한 뒤 다시 시작해서 "이 탭"을 선택해주세요.');
+      }
+
+      studioStream = new MediaStream(tracks);
+      studioStream._sourceStreams = [screenStream, micStream].filter(Boolean);
+
+      studioChunks = [];
+      const mimeType = pickVideoMimeType();
+      try {
+        studioRecorder = mimeType ? new MediaRecorder(studioStream, { mimeType }) : new MediaRecorder(studioStream);
+      } catch (e) {
+        alert('이 브라우저에서는 화면 녹화를 지원하지 않습니다. 크롬 또는 엣지를 사용해주세요.');
+        stopAllStudioTracks();
+        return;
+      }
+
+      studioRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) studioChunks.push(e.data); };
+      studioRecorder.onstop = onStudioRecordingStop;
+      studioRecorder.start(1000);
+
+      screenStream.getVideoTracks()[0].onended = () => {
+        if (studioRecorder && studioRecorder.state === 'recording') studioRecorder.stop();
+      };
+
+      studioRecSeconds = 0;
+      document.getElementById('studioRecDot').classList.remove('hidden');
+      document.getElementById('studioStartBtn').classList.add('hidden');
+      document.getElementById('studioStopBtn').classList.remove('hidden');
+      document.getElementById('studioRecTimer').textContent = '00:00';
+
+      clearInterval(studioRecTimerInterval);
+      studioRecTimerInterval = setInterval(() => {
+        studioRecSeconds++;
+        const m = String(Math.floor(studioRecSeconds / 60)).padStart(2, '0');
+        const s = String(studioRecSeconds % 60).padStart(2, '0');
+        document.getElementById('studioRecTimer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function stopStudioRecording() {
+      if (studioRecorder && studioRecorder.state === 'recording') studioRecorder.stop();
+    }
+
+    function onStudioRecordingStop() {
+      clearInterval(studioRecTimerInterval);
+      stopAllStudioTracks();
+      resetStudioRecordUI();
+
+      studioRecordedBlob = new Blob(studioChunks, { type: (studioRecorder && studioRecorder.mimeType) || 'video/webm' });
+      const videoEl = document.getElementById('studioPreviewVideo');
+      videoEl.src = URL.createObjectURL(studioRecordedBlob);
+
+      const defaultTitle = (studioProblem && (studioProblem.title || (studioProblem.problem_text || '').slice(0, 20)))
+        ? `${studioProblem.title || studioProblem.problem_text.slice(0, 20)} 설명영상`
+        : '문제 설명영상';
+      document.getElementById('studioTitleInput').value = defaultTitle;
+      document.getElementById('studioDescInput').value = '';
+
+      document.getElementById('studioPreviewModal').classList.remove('hidden');
+    }
+
+    function discardStudioRecording() {
+      studioRecordedBlob = null;
+      studioChunks = [];
+      document.getElementById('studioPreviewModal').classList.add('hidden');
+      resetStudioRecordUI();
+    }
+
+    async function uploadStudioVideo() {
+      if (!requireTeacherProfile()) return;
+      if (!studioRecordedBlob || !studioProblem) return;
+
+      const title = document.getElementById('studioTitleInput').value.trim() || '문제 설명영상';
+      const desc = document.getElementById('studioDescInput').value.trim();
+      const btn = document.getElementById('studioUploadBtn');
+      btn.disabled = true;
+      btn.textContent = '☁️ 업로드 중...';
+
+      const ext = studioRecordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const path = `${teacherProfile.teacherId}/problems/${studioProblem.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from('lecture-videos')
+        .upload(path, studioRecordedBlob, { contentType: studioRecordedBlob.type || 'video/webm', upsert: true });
+
+      if (uploadError) {
+        alert('업로드 중 오류가 발생했습니다: ' + uploadError.message);
+        btn.disabled = false;
+        btn.textContent = '☁️ 업로드';
+        return;
+      }
+
+      const { data: publicUrlData } = supabaseClient.storage.from('lecture-videos').getPublicUrl(path);
+
+      const { error: insertError } = await supabaseClient.from('lecture_videos').insert([{
+        teacher_id: teacherProfile.teacherId,
+        teacher_name: teacherProfile.teacherName,
+        title: title,
+        description: desc || null,
+        target_scope: teacherProfile.scope,
+        video_url: publicUrlData.publicUrl,
+        storage_path: path,
+        duration_seconds: studioRecSeconds,
+        problem_bank_id: studioProblem.id
+      }]);
+
+      btn.disabled = false;
+      btn.textContent = '☁️ 업로드';
+
+      if (insertError) {
+        alert('저장 중 오류가 발생했습니다: ' + insertError.message);
+        return;
+      }
+
+      alert('🎉 설명영상이 업로드되어 이 문제에 연결되었습니다! 해당 학급 학생들이 볼 수 있어요.');
+      studioRecordedBlob = null;
+      studioChunks = [];
+      document.getElementById('studioPreviewModal').classList.add('hidden');
+      closeLectureStudio();
     }
 
     init();
