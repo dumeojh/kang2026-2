@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>극한 문제 그래프 시각화</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+
+        canvas {
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="mathCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('mathCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 좌표계 스케일 및 원점 설정
+        const offsetX = 50;
+        const offsetY = 320;
+        const scale = 50;
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "14px Arial";
+
+            // 1. x축, y축 그리기
+            ctx.beginPath();
+            ctx.moveTo(10, offsetY); ctx.lineTo(canvas.width - 20, offsetY); // x축
+            ctx.moveTo(offsetX, 20); ctx.lineTo(offsetX, canvas.height - 20); // y축
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 원점 O
+            ctx.fillText("O", offsetX - 15, offsetY + 15);
+            ctx.fillText("x", canvas.width - 15, offsetY + 5);
+            ctx.fillText("y", offsetX + 5, 15);
+
+            // 2. 곡선 y = sqrt(2x + 1)
+            ctx.beginPath();
+            for (let px = offsetX; px < canvas.width - 20; px++) {
+                let x = (px - offsetX) / scale;
+                let y = Math.sqrt(2 * x + 1);
+                let py = offsetY - (y * scale);
+                if (px === offsetX) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 3. 점 Q (0, 1) 및 수평선
+            let py_Q = offsetY - scale;
+            ctx.beginPath();
+            ctx.arc(offsetX, py_Q, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+            ctx.fillText("Q", offsetX - 20, py_Q - 5);
+            ctx.fillText("1", offsetX - 15, py_Q + 15);
+
+            // 수평선 y = 1
+            ctx.beginPath();
+            ctx.moveTo(10, py_Q);
+            ctx.lineTo(canvas.width - 20, py_Q);
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 4. 임의의 t값 설정 (t=3) 및 직사각형 요소
+            let t = 3;
+            let px_t = offsetX + (t * scale);
+            let y_P = Math.sqrt(2 * t + 1);
+            let py_P = offsetY - (y_P * scale);
+
+            // 세로선 x = t
+            ctx.beginPath();
+            ctx.moveTo(px_t, 20);
+            ctx.lineTo(px_t, canvas.height - 20);
+            ctx.strokeStyle = '#9ca3af';
+            ctx.stroke();
+            ctx.fillText("x=t", px_t - 10, offsetY + 20);
+
+            // 점 R
+            let py_R = py_Q;
+            ctx.beginPath();
+            ctx.arc(px_t, py_R, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText("R", px_t + 8, py_R + 15);
+
+            // 점 P
+            ctx.beginPath();
+            ctx.arc(px_t, py_P, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText("P", px_t + 8, py_P - 5);
+            ctx.fillStyle = '#2563eb';
+            ctx.fillText("y=√(2x+1)", px_t + 10, py_P - 25);
+
+            // 5. 직각 표시 (R)
+            ctx.beginPath();
+            ctx.moveTo(px_t - 10, py_R);
+            ctx.lineTo(px_t - 10, py_R - 10);
+            ctx.lineTo(px_t, py_R - 10);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        drawGraph();
+    </script>
+</body>
+
+</html>
