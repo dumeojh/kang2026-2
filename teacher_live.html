@@ -805,31 +805,41 @@
 
     .studio-board {
       flex: 1;
-      overflow-y: auto;
-      padding: 22px 22px 120px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 문제(+정답) 영역: 화면 상단에 고정되어 스크롤되지 않음 */
+    .studio-fixed-top {
+      flex-shrink: 0;
+      padding: 16px 22px 10px;
     }
 
     .studio-problem-box {
       max-width: 900px;
-      margin: 0 auto 16px;
+      margin: 0 auto 12px;
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 18px 22px;
+      padding: 16px 22px;
       box-shadow: 0 10px 26px -18px rgba(30, 36, 51, 0.25);
       font-size: 17px;
-      line-height: 1.7;
+      line-height: 1.6;
       white-space: pre-wrap;
+      max-height: 26vh;
+      overflow-y: auto;
     }
 
     .studio-answer-toggle {
       max-width: 900px;
-      margin: 0 auto 16px;
+      margin: 0 auto 12px;
     }
 
     .studio-answer-box {
       max-width: 900px;
-      margin: 0 auto 16px;
+      margin: 0 auto 12px;
       background: var(--gold-soft, #FBF3DC);
       border: 1px dashed var(--gold);
       border-radius: 12px;
@@ -837,6 +847,16 @@
       font-size: 14.5px;
       line-height: 1.7;
       white-space: pre-wrap;
+      max-height: 22vh;
+      overflow-y: auto;
+    }
+
+    /* 풀이(필기) 영역: 이 영역만 세로로 스크롤되며, 필요하면 아래로 계속 늘어남 */
+    .studio-scroll-area {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 22px 130px;
     }
 
     .studio-canvas-wrap {
@@ -1201,13 +1221,18 @@
       </div>
     </div>
     <div class="studio-board" id="studioBoard">
-      <div class="studio-problem-box" id="studioProblemBox"></div>
-      <div class="studio-answer-toggle hidden" id="studioAnswerToggleWrap">
-        <button class="btn" id="studioAnswerToggleBtn" onclick="toggleStudioAnswer()">🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)</button>
+      <div class="studio-fixed-top">
+        <div class="studio-problem-box" id="studioProblemBox"></div>
+        <div class="studio-answer-toggle hidden" id="studioAnswerToggleWrap">
+          <button class="btn" id="studioAnswerToggleBtn" onclick="toggleStudioAnswer()">🔑 정답/풀이 보기 (녹화 화면에도
+            표시됩니다)</button>
+        </div>
+        <div class="studio-answer-box hidden" id="studioAnswerBox"></div>
       </div>
-      <div class="studio-answer-box hidden" id="studioAnswerBox"></div>
-      <div class="studio-canvas-wrap">
-        <canvas id="studioCanvas" class="studio-canvas"></canvas>
+      <div class="studio-scroll-area" id="studioScrollArea">
+        <div class="studio-canvas-wrap">
+          <canvas id="studioCanvas" class="studio-canvas"></canvas>
+        </div>
       </div>
     </div>
     <div class="studio-pen-toolbar" id="studioPenToolbar">
@@ -1227,6 +1252,7 @@
       <button class="btn" id="studioEraserBtn" onclick="toggleStudioEraser()">🧹 지우개</button>
       <button class="btn" onclick="undoStudioStroke()">↩️ 되돌리기</button>
       <button class="btn" onclick="clearStudioCanvas()">🗑 전체지우기</button>
+      <button class="btn" onclick="extendStudioCanvas()">⬇️ 아래로 필기 공간 추가</button>
     </div>
   </div>
 
@@ -2416,10 +2442,13 @@
 
     function initStudioCanvas() {
       const canvas = document.getElementById('studioCanvas');
+      const scrollArea = document.getElementById('studioScrollArea');
       if (!canvas) return;
 
       studioCanvasCssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 900;
-      studioCanvasCssHeight = Math.max(360, Math.round(window.innerHeight * 0.5));
+      // 풀이 영역(스크롤 박스)에 지금 실제로 보이는 높이만큼 최대한 채워서 시작 (여백/패딩 감안)
+      const availableH = scrollArea ? scrollArea.clientHeight : Math.round(window.innerHeight * 0.6);
+      studioCanvasCssHeight = Math.max(360, availableH - 24);
       setupStudioCanvasBackingStore(canvas, studioCanvasCssWidth, studioCanvasCssHeight);
 
       studioStrokes = [];
@@ -2430,6 +2459,24 @@
       canvas.onpointerup = onStudioPointerUp;
       canvas.onpointerleave = onStudioPointerUp;
       canvas.onpointercancel = onStudioPointerUp;
+    }
+
+    // 필기 공간이 부족할 때: 캔버스를 아래로 늘리고, 늘어난 부분으로 자동 스크롤
+    // (strokes는 좌표 배열로 저장되어 있으므로 백업스토어를 다시 만들고 redraw만 하면 필기 내용이 그대로 유지됨)
+    function extendStudioCanvas() {
+      const canvas = document.getElementById('studioCanvas');
+      const scrollArea = document.getElementById('studioScrollArea');
+      if (!canvas || !scrollArea) return;
+
+      const addAmount = Math.max(360, Math.round(window.innerHeight * 0.6));
+      studioCanvasCssHeight += addAmount;
+      setupStudioCanvasBackingStore(canvas, studioCanvasCssWidth, studioCanvasCssHeight);
+      redrawStudioCanvas();
+
+      // 새로 생긴 공간이 화면에 보이도록 풀이 영역만 아래로 스크롤 (문제 영역은 그대로 고정)
+      setTimeout(() => {
+        scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: 'smooth' });
+      }, 60);
     }
 
     function resizeStudioCanvas() {
