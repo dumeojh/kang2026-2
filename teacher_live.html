@@ -2358,6 +2358,7 @@
     let studioCanvasCssWidth = 0;
     let studioCanvasCssHeight = 480;
     let studioResizeHandler = null;
+    let studioHasAnswer = false; // 지금 문제에 정답/풀이가 있는지 (녹화 종료 후 버튼을 되돌릴 때 사용)
 
     function openLectureStudio(problemId) {
       if (!requireTeacherProfile()) return;
@@ -2374,13 +2375,14 @@
       document.getElementById('studioProblemBox').textContent = row.problem_text || '';
 
       const hasAnswer = !!(row.answer_text || row.solution_html);
+      studioHasAnswer = hasAnswer;
       document.getElementById('studioAnswerToggleWrap').classList.toggle('hidden', !hasAnswer);
       const answerParts = [];
       if (row.answer_text) answerParts.push(`✎ 정답: ${row.answer_text}`);
       if (row.solution_html) answerParts.push(`✎ 풀이 참고\n${row.solution_html}`);
       document.getElementById('studioAnswerBox').textContent = answerParts.join('\n\n');
       document.getElementById('studioAnswerBox').classList.add('hidden');
-      document.getElementById('studioAnswerToggleBtn').textContent = '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+      document.getElementById('studioAnswerToggleBtn').textContent = '🔑 정답/풀이 보기 (선생님만 확인, 녹화에는 안 나와요)';
 
       resetStudioRecordUI();
       document.getElementById('studioOverlay').classList.remove('hidden');
@@ -2417,7 +2419,7 @@
       box.classList.toggle('hidden', !willShow);
       document.getElementById('studioAnswerToggleBtn').textContent = willShow
         ? '🙈 정답/풀이 숨기기'
-        : '🔑 정답/풀이 보기 (녹화 화면에도 표시됩니다)';
+        : '🔑 정답/풀이 보기 (선생님만 확인, 녹화에는 안 나와요)';
     }
 
     function resetStudioRecordUI() {
@@ -2584,8 +2586,19 @@
       studioStream = null;
     }
 
+    // 녹화가 시작되지 못했거나 끝났을 때, 정답이 있는 문제라면 정답/풀이 보기 버튼을 다시 보이게 합니다.
+    // (펼쳐져 있던 정답 내용 자체는 다시 열어주지 않고 숨김 상태로 둡니다.)
+    function restoreStudioAnswerToggle() {
+      document.getElementById('studioAnswerToggleWrap').classList.toggle('hidden', !studioHasAnswer);
+    }
+
     async function startStudioRecording() {
       if (!requireTeacherProfile()) return;
+
+      // 녹화가 시작되기 전에 미리 정답/풀이 보기 버튼과 펼쳐진 정답을 화면에서 숨겨서,
+      // 녹화 화면에는 문제와 선생님이 풀이하는 필기만 나오도록 합니다.
+      document.getElementById('studioAnswerToggleWrap').classList.add('hidden');
+      document.getElementById('studioAnswerBox').classList.add('hidden');
 
       let screenStream;
       try {
@@ -2597,6 +2610,7 @@
         });
       } catch (e) {
         alert('화면 공유 권한이 필요합니다. 화면 공유 창에서 "이 탭"을 선택해주세요.');
+        restoreStudioAnswerToggle();
         return;
       }
 
@@ -2626,6 +2640,7 @@
       } catch (e) {
         alert('이 브라우저에서는 화면 녹화를 지원하지 않습니다. 크롬 또는 엣지를 사용해주세요.');
         stopAllStudioTracks();
+        restoreStudioAnswerToggle();
         return;
       }
 
@@ -2660,6 +2675,7 @@
       clearInterval(studioRecTimerInterval);
       stopAllStudioTracks();
       resetStudioRecordUI();
+      restoreStudioAnswerToggle();
 
       studioRecordedBlob = new Blob(studioChunks, { type: (studioRecorder && studioRecorder.mimeType) || 'video/webm' });
       const videoEl = document.getElementById('studioPreviewVideo');
