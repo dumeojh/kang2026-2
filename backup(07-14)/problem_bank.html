@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문제 은행 관리 (교사용)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" async></script>
+
+  <style>
+    :root {
+      --paper: #FBF8F1;
+      --ink: #1B3A5C;
+      --ink-soft: #3F5D7D;
+      --red: #B5342A;
+      --red-soft: #E7D3CF;
+      --slate: #63707D;
+      --line: rgba(27, 58, 92, 0.09);
+      --card-shadow: 0 1px 0 rgba(27, 58, 92, 0.05), 0 8px 24px -12px rgba(27, 58, 92, 0.18);
+      --cat-suneung: #2C4CBB;
+      --cat-suneung-bg: #E5EDFF;
+      --cat-textbook: #227A46;
+      --cat-textbook-bg: #E4F6E9;
+      --cat-other: #5B5F6B;
+      --cat-other-bg: #EFEFF2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px 80px;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    header.page-head {
+      margin-bottom: 32px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      color: var(--red);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 700;
+      font-size: 34px;
+      margin: 6px 0 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .page-head p {
+      margin: 0;
+      color: var(--slate);
+      font-size: 14.5px;
+    }
+
+    .page-head p b {
+      color: var(--ink);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 180px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      padding: 9px 16px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(27, 58, 92, 0.2);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--ink-soft);
+      box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.08);
+    }
+
+    button.util-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--slate);
+      background: #fff;
+      color: var(--slate);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button.util-btn:hover {
+      background: var(--slate);
+      color: #fff;
+    }
+
+    button.util-btn.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    button.util-btn.primary:hover {
+      opacity: 0.88;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      font-family: 'Noto Sans KR', sans-serif;
+      border: 1.5px solid rgba(27, 58, 92, 0.2);
+      background: #fff;
+      color: var(--ink-soft);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .filter-tab.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid rgba(27, 58, 92, 0.12);
+      border-radius: 4px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: var(--ink);
+    }
+
+    .card-inner {
+      padding: 24px 26px 22px 28px;
+    }
+
+    .card-tags {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .tag-num {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+      background: var(--ink);
+      padding: 3px 10px;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+    }
+
+    .cat-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+
+    .cat-badge.cat-suneung {
+      background: var(--cat-suneung-bg);
+      color: var(--cat-suneung);
+    }
+
+    .cat-badge.cat-textbook {
+      background: var(--cat-textbook-bg);
+      color: var(--cat-textbook);
+    }
+
+    .cat-badge.cat-other {
+      background: var(--cat-other-bg);
+      color: var(--cat-other);
+    }
+
+    .tag-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .tag-meta {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--slate);
+      white-space: nowrap;
+    }
+
+    .statement {
+      font-size: 16px;
+      color: var(--ink);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button.reveal-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 9px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--ink);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+
+    button.reveal-btn:hover {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    button.reveal-btn:active {
+      transform: scale(0.97);
+    }
+
+    button.reveal-btn.answer-btn {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    button.reveal-btn.answer-btn:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    button.reveal-btn.concept-btn {
+      border-color: var(--ink-soft);
+      color: var(--ink-soft);
+    }
+
+    button.reveal-btn.concept-btn:hover {
+      background: var(--ink-soft);
+      color: #fff;
+    }
+
+    .panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+
+    .panel.open {
+      max-height: 2600px;
+    }
+
+    .panel-body {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px dashed rgba(27, 58, 92, 0.25);
+    }
+
+    .solution-label,
+    .concept-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .solution-label {
+      color: var(--red);
+    }
+
+    .concept-label {
+      color: var(--ink-soft);
+    }
+
+    .solution-steps {
+      font-size: 15px;
+      color: var(--ink);
+      white-space: pre-wrap;
+    }
+
+    .solution-steps p {
+      margin: 0 0 10px;
+    }
+
+    .concept-body {
+      font-size: 15px;
+      color: var(--ink);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .concept-body p {
+      margin: 0 0 10px;
+    }
+
+    .practice-box {
+      background: #F6F3EA;
+      border: 1px dashed rgba(27, 58, 92, 0.3);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-top: 14px;
+    }
+
+    .practice-box .ptitle {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--slate);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .practice-statement {
+      font-size: 15px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .answer-stamp {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 6px 14px;
+      border: 2px solid var(--red);
+      border-radius: 6px;
+      color: var(--red);
+      font-weight: 900;
+      font-size: 14.5px;
+      transform: rotate(-2deg);
+      background: #FDF6F5;
+      white-space: pre-wrap;
+    }
+
+    .bank-empty {
+      text-align: center;
+      color: var(--slate);
+      padding: 60px 20px;
+      font-size: 14.5px;
+      line-height: 1.8;
+    }
+
+    footer.note {
+      margin-top: 40px;
+      font-size: 12.5px;
+      color: var(--slate);
+      text-align: center;
+    }
+
+    /* ---------------- 전체화면 편집기 ---------------- */
+    .edit-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 28px 28px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .edit-overlay.hidden {
+      display: none;
+    }
+
+    .editor-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 26px;
+      background: #fff;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .editor-title {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 700;
+      font-size: 17px;
+      margin-right: auto;
+    }
+
+    .hint-kbd {
+      font-size: 12px;
+      color: var(--slate);
+      margin-right: 8px;
+    }
+
+    .editor-body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    .editor-pane {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 28px 40px;
+    }
+
+    .editor-pane.form-pane {
+      border-right: 1.5px dashed rgba(27, 58, 92, 0.25);
+    }
+
+    .editor-pane.preview-pane {
+      background: #fff;
+    }
+
+    .preview-heading {
+      font-size: 11.5px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: var(--slate);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .edit-field {
+      margin-bottom: 16px;
+    }
+
+    .edit-field label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--slate);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .edit-field input[type="text"],
+    .edit-field input[type="number"],
+    .edit-field select,
+    .edit-field textarea {
+      width: 100%;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: #FBFAF6;
+      border: 1px solid rgba(27, 58, 92, 0.2);
+      border-radius: 6px;
+      padding: 9px 11px;
+      resize: vertical;
+    }
+
+    .edit-field select {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .edit-field input:focus,
+    .edit-field select:focus,
+    .edit-field textarea:focus {
+      outline: none;
+      border-color: var(--ink-soft);
+      box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.08);
+    }
+
+    .edit-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .edit-hint {
+      font-size: 11.5px;
+      color: var(--slate);
+      margin: -10px 0 16px;
+    }
+
+    .save-btn {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .save-btn:hover {
+      opacity: 0.88;
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .danger-btn {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .danger-btn:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    @media (max-width: 900px) {
+      .editor-body {
+        flex-direction: column;
+      }
+
+      .editor-pane {
+        overflow-y: visible;
+        padding: 22px 20px;
+      }
+
+      .editor-pane.form-pane {
+        border-right: none;
+        border-bottom: 1.5px dashed rgba(27, 58, 92, 0.25);
+      }
+
+      .editor-header {
+        flex-wrap: wrap;
+        padding: 12px 16px;
+      }
+
+      .hint-kbd {
+        display: none;
+      }
+
+      .edit-two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel {
+        transition: none;
+      }
+
+      button.reveal-btn {
+        transition: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 24px 14px 60px;
+      }
+
+      .card-inner {
+        padding: 20px 18px 18px 22px;
+      }
+
+      h1 {
+        font-size: 27px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="editOverlay" class="edit-overlay hidden"></div>
+
+  <div class="wrap">
+    <header class="page-head">
+      <div class="eyebrow">LIVE QUIZ PROBLEM BANK</div>
+      <h1>📚 문제 은행 관리</h1>
+      <p>여기서 만들고 정리한 문제는 <b>교사 화면(teacher_live.html)</b>의 "문제 은행 · 출제하기"에서 골라 바로 출제할 수 있어요.</p>
+    </header>
+
+    <div class="toolbar">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="renderList()">
+      <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
+    </div>
+
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-cat="전체" onclick="setFilter('전체')">전체</button>
+      <button class="filter-tab" data-cat="수능특강" onclick="setFilter('수능특강')">수능특강</button>
+      <button class="filter-tab" data-cat="교과서" onclick="setFilter('교과서')">교과서</button>
+      <button class="filter-tab" data-cat="기타문제" onclick="setFilter('기타문제')">기타문제</button>
+    </div>
+
+    <div id="problemList">
+      <div class="bank-empty">불러오는 중...</div>
+    </div>
+
+    <footer class="note">
+      각 문제 카드의 "✏️ 편집" 버튼을 누르면 전체화면 편집기가 열립니다. 오른쪽에서 실시간 미리보기를 확인하며 고칠 수 있어요.
+    </footer>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let bankRows = [];              // Supabase에서 불러온 문제 목록
+    let filterCategory = '전체';
+    let currentEditId = null;       // 지금 편집기에서 열려있는 문제의 id (새로 만드는 중이면 null)
+    let editIsNew = false;          // "새 문제 만들기"로 연 것인지
+    let editDirty = false;          // 편집기에서 뭔가 한 글자라도 고쳤는지
+
+    function esc(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function categoryBadgeClass(category) {
+      if (category === '수능특강') return 'cat-suneung';
+      if (category === '교과서') return 'cat-textbook';
+      return 'cat-other';
+    }
+
+    function setFilter(cat) {
+      filterCategory = cat;
+      document.querySelectorAll('#filterTabs .filter-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+      });
+      renderList();
+    }
+
+    async function loadBank() {
+      const list = document.getElementById('problemList');
+      list.innerHTML = '<div class="bank-empty">불러오는 중...</div>';
+
+      const { data, error } = await supabaseClient
+        .from('live_problem_bank')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        list.innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${esc(error.message)}</div>`;
+        return;
+      }
+      bankRows = data || [];
+      renderList();
+    }
+
+    function toggle(id) {
+      const panel = document.getElementById(id);
+      panel.classList.toggle('open');
+      if (window.MathJax && panel.classList.contains('open')) {
+        MathJax.typesetPromise([panel]);
+      }
+    }
+
+    function renderList() {
+      const list = document.getElementById('problemList');
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      let rows = filterCategory === '전체'
+        ? bankRows
+        : bankRows.filter(r => (r.category || '기타문제') === filterCategory);
+
+      if (keyword) {
+        rows = rows.filter(r =>
+          (r.title || '').toLowerCase().includes(keyword) ||
+          (r.problem_text || '').toLowerCase().includes(keyword)
+        );
+      }
+
+      if (rows.length === 0) {
+        list.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "＋ 새 문제 만들기"로 첫 문제를 추가해보세요.' : '조건에 맞는 문제가 없습니다.'}</div>`;
+        return;
+      }
+
+      list.innerHTML = rows.map((row, idx) => {
+        const n = String(idx + 1).padStart(2, '0');
+        const category = row.category || '기타문제';
+        const label = row.title || '(제목 없음)';
+        const ansId = `ans-${row.id}`;
+        const solId = `sol-${row.id}`;
+        const conceptId = `concept-${row.id}`;
+        const practiceSolId = `psol-${row.id}`;
+        const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
+        const metaStr = `제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}`;
+
+        const answerHtml = row.answer_text ? `
+        <div class="panel" id="${ansId}">
+          <div class="panel-body">
+            <div class="solution-label">✎ 정답</div>
+            <span class="answer-stamp">${esc(row.answer_text)}</span>
+          </div>
+        </div>` : '';
+
+        const solutionHtml = row.solution_html ? `
+        <div class="panel" id="${solId}">
+          <div class="panel-body">
+            <div class="solution-label">✎ 풀이</div>
+            <div class="solution-steps">${esc(row.solution_html)}</div>
+          </div>
+        </div>` : '';
+
+        const hasPractice = row.practice_statement || row.practice_solution;
+        const practiceHtml = hasPractice ? `
+          <div class="practice-box">
+            <div class="ptitle">기초개념 연습문제</div>
+            <div class="practice-statement">${esc(row.practice_statement)}</div>
+            <button class="reveal-btn" onclick="toggle('${practiceSolId}')">🖊 연습문제 풀이 보기</button>
+            <div class="panel" id="${practiceSolId}">
+              <div class="panel-body">
+                <div class="solution-label">✎ 풀이</div>
+                <div class="solution-steps">${esc(row.practice_solution)}</div>
+                ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
+              </div>
+            </div>
+          </div>` : '';
+
+        const conceptHtml = row.concept_title || row.concept_body ? `
+        <div class="panel" id="${conceptId}">
+          <div class="panel-body">
+            <div class="concept-label">📘 ${esc(row.concept_title)}</div>
+            <div class="concept-body">${esc(row.concept_body)}</div>
+            ${practiceHtml}
+          </div>
+        </div>` : '';
+
+        return `
+      <div class="card">
+        <div class="card-inner">
+          <div class="card-tags">
+            <span class="tag-num">문제 ${n}</span>
+            <span class="cat-badge ${categoryBadgeClass(category)}">${esc(category)}</span>
+            <span class="tag-title">${esc(label)}</span>
+            <span class="tag-meta">${metaStr}</span>
+          </div>
+          <div class="statement">${esc(row.problem_text)}</div>
+          <div class="btn-row">
+            ${row.answer_text ? `<button class="reveal-btn answer-btn" onclick="toggle('${ansId}')">🖊 정답 보기</button>` : ''}
+            ${row.solution_html ? `<button class="reveal-btn" onclick="toggle('${solId}')">🖊 풀이 보기</button>` : ''}
+            ${(row.concept_title || row.concept_body) ? `<button class="reveal-btn concept-btn" onclick="toggle('${conceptId}')">📘 기초개념</button>` : ''}
+            <button class="reveal-btn" onclick="openEditor(${row.id})">✏️ 편집</button>
+          </div>
+          ${answerHtml}
+          ${solutionHtml}
+          ${conceptHtml}
+        </div>
+      </div>
+    `;
+      }).join('');
+
+      if (window.MathJax) MathJax.typesetPromise();
+    }
+
+    function blankProblem() {
+      return {
+        title: '',
+        category: '수능특강',
+        problem_text: '',
+        time_limit_seconds: 300,
+        voice_limit_seconds: 60,
+        answer_text: '',
+        solution_html: '',
+        concept_title: '',
+        concept_body: '',
+        practice_statement: '',
+        practice_answer: '',
+        practice_solution: ''
+      };
+    }
+
+    function addNewProblem() {
+      openEditor(null, true);
+    }
+
+    // ---------------- [전체화면 편집기] ----------------
+    // 화면 전체를 편집기로 씁니다: 왼쪽은 입력창, 오른쪽은 실시간 미리보기.
+    // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
+
+    function openEditor(id, isNew = false) {
+      currentEditId = id;
+      editIsNew = isNew;
+      editDirty = false;
+
+      const row = isNew ? blankProblem() : bankRows.find(r => r.id === id);
+      if (!row) return;
+
+      const overlay = document.getElementById('editOverlay');
+      overlay.innerHTML = `
+    <div class="editor-header">
+      <div class="editor-title">${isNew ? '📝 새 문제 만들기' : '✏️ 문제 편집'}</div>
+      <div class="hint-kbd">⌘ / Ctrl + Enter 저장 · Esc 취소</div>
+      <button class="reveal-btn save-btn" onclick="saveEdit()">💾 저장</button>
+      <button class="reveal-btn" onclick="requestCloseEditor()">취소</button>
+      ${isNew ? '' : '<button class="reveal-btn danger-btn" onclick="deleteFromEditor()">🗑 삭제</button>'}
+    </div>
+    <div class="editor-body">
+      <div class="editor-pane form-pane">${renderEditorFields(row)}</div>
+      <div class="editor-pane preview-pane">
+        <div class="preview-heading">👀 미리보기 (입력하면 바로 반영됩니다)</div>
+        <div id="previewSurface">${buildPreviewHtml(row)}</div>
+      </div>
+    </div>
+  `;
+
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      const firstField = overlay.querySelector('[data-field="title"]');
+      if (firstField) firstField.focus();
+
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('previewSurface')]);
+    }
+
+    function closeEditor() {
+      document.getElementById('editOverlay').classList.add('hidden');
+      document.getElementById('editOverlay').innerHTML = '';
+      document.body.style.overflow = '';
+      currentEditId = null;
+      editIsNew = false;
+      editDirty = false;
+    }
+
+    function requestCloseEditor() {
+      if (!editDirty) { closeEditor(); return; }
+      const msg = editIsNew
+        ? '작성 중인 새 문제를 취소할까요? 입력한 내용은 저장되지 않습니다.'
+        : '저장하지 않은 변경 내용이 있습니다. 그대로 닫을까요?';
+      if (confirm(msg)) closeEditor();
+    }
+
+    async function deleteFromEditor() {
+      if (!currentEditId) return;
+      if (!confirm('이 문제를 삭제할까요? (이미 출제된 문제 기록에는 영향 없습니다)')) return;
+      const { error } = await supabaseClient.from('live_problem_bank').delete().eq('id', currentEditId);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+      closeEditor();
+      loadBank();
+    }
+
+    async function saveEdit() {
+      const payload = readEditForm();
+      if (!payload.problem_text) { alert('문제 본문을 입력해주세요.'); return; }
+
+      let error;
+      if (editIsNew) {
+        ({ error } = await supabaseClient.from('live_problem_bank').insert([payload]));
+      } else {
+        ({ error } = await supabaseClient.from('live_problem_bank').update(payload).eq('id', currentEditId));
+      }
+
+      if (error) { alert('저장 중 오류가 발생했습니다: ' + error.message); return; }
+
+      closeEditor();
+      loadBank();
+    }
+
+    function readEditForm() {
+      const root = document.getElementById('editOverlay');
+      const val = (name) => root.querySelector(`[data-field="${name}"]`).value;
+
+      const minutes = parseFloat(val('minutes')) || 5;
+      const voiceSeconds = parseInt(val('voiceSeconds'), 10) || 60;
+
+      return {
+        title: val('title').trim() || null,
+        category: val('category'),
+        problem_text: val('problem_text').trim(),
+        time_limit_seconds: Math.round(minutes * 60),
+        voice_limit_seconds: voiceSeconds,
+        answer_text: val('answer_text').trim() || null,
+        solution_html: val('solution_html').trim() || null,
+        concept_title: val('concept_title').trim() || null,
+        concept_body: val('concept_body').trim() || null,
+        practice_statement: val('practice_statement').trim() || null,
+        practice_answer: val('practice_answer').trim() || null,
+        practice_solution: val('practice_solution').trim() || null
+      };
+    }
+
+    let previewTimer = null;
+    function schedulePreview() {
+      editDirty = true;
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 250);
+    }
+
+    function updatePreview() {
+      const previewEl = document.getElementById('previewSurface');
+      if (!previewEl) return;
+      previewEl.innerHTML = buildPreviewHtml(readEditForm());
+      if (window.MathJax) MathJax.typesetPromise([previewEl]);
+    }
+
+    function renderEditorFields(row) {
+      return `
+    <div class="edit-field">
+      <label>제목 (선택 — 목록에서 알아보기 쉽게)</label>
+      <input type="text" data-field="title" value="${esc(row.title)}" placeholder="예: 접선과 정적분 활용" oninput="schedulePreview()">
+    </div>
+
+    <div class="edit-field">
+      <label>분류</label>
+      <select data-field="category" onchange="schedulePreview()">
+        <option value="수능특강" ${row.category === '수능특강' ? 'selected' : ''}>수능특강</option>
+        <option value="교과서" ${row.category === '교과서' ? 'selected' : ''}>교과서</option>
+        <option value="기타문제" ${(!row.category || row.category === '기타문제') ? 'selected' : ''}>기타문제</option>
+      </select>
+    </div>
+
+    <div class="edit-field">
+      <label>문제 본문</label>
+      <textarea data-field="problem_text" rows="6" oninput="schedulePreview()">${esc(row.problem_text)}</textarea>
+    </div>
+    <div class="edit-hint">수식은 $x^2+1$ 처럼 $ 로 감싸 쓰세요. 백슬래시는 두 번 입력 (예: \\\\dfrac, \\\\int)</div>
+
+    <div class="edit-two-col">
+      <div class="edit-field">
+        <label>제한시간 (분)</label>
+        <input type="number" data-field="minutes" value="${Math.round((row.time_limit_seconds || 300) / 60)}" min="1" max="60" oninput="schedulePreview()">
+      </div>
+      <div class="edit-field">
+        <label>🎙 음성 설명 제한시간 (초)</label>
+        <input type="number" data-field="voiceSeconds" value="${row.voice_limit_seconds || 60}" min="10" max="300" step="10" oninput="schedulePreview()">
+      </div>
+    </div>
+
+    <div class="edit-field">
+      <label>정답 (선택 — 학생 화면 "정답 보기" 버튼으로 원할 때만 공개)</label>
+      <textarea data-field="answer_text" rows="3" placeholder="예: 27/4" oninput="schedulePreview()">${esc(row.answer_text)}</textarea>
+    </div>
+
+    <div class="edit-field">
+      <label>풀이 (학생 수준에 맞게 자유롭게 수정하세요)</label>
+      <textarea data-field="solution_html" rows="7" placeholder="풀이 과정을 단계별로 입력하세요." oninput="schedulePreview()">${esc(row.solution_html)}</textarea>
+    </div>
+
+    <div class="edit-field">
+      <label>기초개념 제목</label>
+      <input type="text" data-field="concept_title" value="${esc(row.concept_title)}" placeholder="예: 정적분과 넓이" oninput="schedulePreview()">
+    </div>
+    <div class="edit-field">
+      <label>기초개념 설명</label>
+      <textarea data-field="concept_body" rows="5" placeholder="개념 설명을 입력하세요." oninput="schedulePreview()">${esc(row.concept_body)}</textarea>
+    </div>
+
+    <div class="edit-field">
+      <label>기초개념 연습문제 본문</label>
+      <textarea data-field="practice_statement" rows="3" placeholder="쉬운 연습문제 본문을 입력하세요." oninput="schedulePreview()">${esc(row.practice_statement)}</textarea>
+    </div>
+    <div class="edit-field">
+      <label>연습문제 정답 표시</label>
+      <input type="text" data-field="practice_answer" value="${esc(row.practice_answer)}" oninput="schedulePreview()">
+    </div>
+    <div class="edit-field">
+      <label>연습문제 풀이</label>
+      <textarea data-field="practice_solution" rows="4" placeholder="연습문제 풀이를 입력하세요." oninput="schedulePreview()">${esc(row.practice_solution)}</textarea>
+    </div>
+  `;
+    }
+
+    function buildPreviewHtml(row) {
+      const category = row.category || '기타문제';
+      const label = row.title || '(제목 없음)';
+      const minutes = Math.round((row.time_limit_seconds || 300) / 60);
+      const voiceSeconds = row.voice_limit_seconds || 60;
+
+      const answerHtml = row.answer_text ? `
+      <div class="solution-label" style="margin-top:18px;">✎ 정답</div>
+      <span class="answer-stamp">${esc(row.answer_text)}</span>
+    ` : '';
+
+      const solutionHtml = row.solution_html ? `
+      <div class="solution-label" style="margin-top:18px;">✎ 풀이</div>
+      <div class="solution-steps">${esc(row.solution_html)}</div>
+    ` : '';
+
+      const practiceHtml = (row.practice_statement || row.practice_solution) ? `
+      <div class="practice-box">
+        <div class="ptitle">기초개념 연습문제</div>
+        <div class="practice-statement">${esc(row.practice_statement)}</div>
+        <div class="solution-label" style="margin-top:10px;">✎ 연습문제 풀이</div>
+        <div class="solution-steps">${esc(row.practice_solution)}</div>
+        ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
+      </div>
+    ` : '';
+
+      const conceptHtml = (row.concept_title || row.concept_body) ? `
+      <div class="concept-label" style="margin-top:20px;">📘 ${esc(row.concept_title)}</div>
+      <div class="concept-body">${esc(row.concept_body)}</div>
+      ${practiceHtml}
+    ` : '';
+
+      return `
+    <div class="card-tags">
+      <span class="cat-badge ${categoryBadgeClass(category)}">${esc(category)}</span>
+      <span class="tag-title">${esc(label)}</span>
+      <span class="tag-meta">제한시간 ${minutes}분 · 🎙${voiceSeconds}초</span>
+    </div>
+    <div class="statement">${esc(row.problem_text) || '<span style="color:var(--slate)">문제 본문을 입력하면 여기에 표시됩니다.</span>'}</div>
+    ${answerHtml}
+    ${solutionHtml}
+    ${conceptHtml}
+  `;
+    }
+
+    loadBank();
+
+    document.addEventListener('keydown', (e) => {
+      const overlay = document.getElementById('editOverlay');
+      if (!overlay || overlay.classList.contains('hidden')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        requestCloseEditor();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        saveEdit();
+      }
+    });
+  </script>
+
+</body>
+
+</html>
