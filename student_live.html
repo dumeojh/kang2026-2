@@ -126,6 +126,37 @@
       padding: 26px 24px;
       box-shadow: 0 10px 28px -18px rgba(30, 36, 51, 0.22);
       margin-bottom: 18px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ---------- 문제 + 풀이 영역 레이아웃 ---------- */
+    .problem-layout {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .problem-layout .card {
+      max-width: none;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    @media (min-width: 900px) {
+      .wrap {
+        max-width: 1180px;
+      }
+
+      /* 노트북처럼 화면이 넓을 때는 문제와 풀이 공간을 좌우로 나눠서
+         남는 좌우 여백을 풀이 공간 확장에 사용합니다. */
+      .problem-layout {
+        max-width: none;
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) 1fr;
+        gap: 22px;
+        align-items: start;
+      }
     }
 
     .field {
@@ -223,7 +254,7 @@
       position: sticky;
       top: max(8px, env(safe-area-inset-top));
       z-index: 500;
-      padding-top: 46px;
+      padding: 42px 20px 16px;
       /* fs-btn(전체화면 버튼)이 우측 상단에 고정으로 떠 있으므로 그 아래 여백을 확보 */
       box-shadow: 0 16px 26px -16px rgba(30, 36, 51, 0.4);
     }
@@ -235,13 +266,13 @@
       color: var(--brand);
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .problem-box .ptext {
-      font-size: 18px;
-      line-height: 1.7;
-      margin-bottom: 4px;
+      font-size: 16.5px;
+      line-height: 1.55;
+      margin-bottom: 2px;
     }
 
     /* ---------- 풀이 공간 (여러 캔버스 페이지) ---------- */
@@ -275,8 +306,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 16px;
-      padding-top: 16px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1.5px dashed var(--line);
     }
 
@@ -1095,6 +1126,7 @@
         : '';
 
       area.innerHTML = `
+    <div class="problem-layout">
     <div class="card problem-box">
       ${teacherTagHtml}
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(activeProblem.time_limit_seconds / 60)}분</div>
@@ -1137,6 +1169,7 @@
         <input type="text" id="solutionNote" placeholder="예: 정답 27/4" value="${mySubmission ? escapeHtml(mySubmission.solution_text || '') : ''}">
       </div>
       <button class="btn" id="submitBtn" onclick="submitSolution()">${mySubmission ? '🔁 다시 제출하기' : '🚀 풀이 올리기'}</button>
+    </div>
     </div>
   `;
 
@@ -1247,11 +1280,17 @@
     }
 
     // ---------------- [손글씨 캔버스 - 여러 페이지] ----------------
+    // 화면이 넓고 높은 노트북/데스크탑에서는 풀이 캔버스를 더 크게, 작은 태블릿에서는 기존 크기를 유지합니다.
+    function computeDefaultCanvasHeight() {
+      const vh = window.innerHeight || 800;
+      return Math.max(320, Math.min(600, Math.round(vh * 0.5)));
+    }
+
     function createPageState() {
       return {
         canvas: null, ctx: null,
         strokes: [], bgImage: null,
-        cssWidth: 0, cssHeight: 320,
+        cssWidth: 0, cssHeight: computeDefaultCanvasHeight(),
         currentStroke: null, isDrawing: false,
         activePointerIds: new Set(), gestureMode: false
       };
