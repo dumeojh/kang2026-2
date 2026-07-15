@@ -463,6 +463,11 @@
       color: #5B5F6B;
     }
 
+    .cat-badge.video-yes {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
     .bank-list {
       margin-top: 16px;
       max-height: 46vh;
@@ -1242,6 +1247,17 @@
     </div>
   </div>
 
+  <div class="modal-backdrop hidden" id="bankVideoReviewModal" style="z-index:960;">
+    <div class="modal-box" style="width:min(640px, 92vw);">
+      <h2>🎬 이 문제의 설명영상</h2>
+      <div id="bankVideoReviewList"></div>
+      <div class="modal-actions">
+        <button class="btn" id="bankVideoReviewRecordBtn">🎥 다시 촬영</button>
+        <button class="btn" onclick="closeBankVideoReview()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="present-overlay hidden" id="presentOverlay"></div>
 
   <script>
@@ -1703,6 +1719,25 @@
       renderBankList();
     }
 
+    let bankVideoMap = {}; // problem_bank_id -> [video rows], for "이미 설명영상 있음" 표시
+
+    async function loadBankVideos() {
+      if (!teacherProfile) { bankVideoMap = {}; return; }
+      const { data, error } = await supabaseClient
+        .from('lecture_videos')
+        .select('id, problem_bank_id, video_url, title, created_at, duration_seconds')
+        .eq('teacher_id', teacherProfile.teacherId)
+        .not('problem_bank_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) { bankVideoMap = {}; return; }
+      bankVideoMap = {};
+      (data || []).forEach(v => {
+        if (!bankVideoMap[v.problem_bank_id]) bankVideoMap[v.problem_bank_id] = [];
+        bankVideoMap[v.problem_bank_id].push(v);
+      });
+    }
+
     async function loadBank() {
       const { data, error } = await supabaseClient
         .from('live_problem_bank')
@@ -1714,6 +1749,7 @@
         return;
       }
       bankRows = data || [];
+      await loadBankVideos();
       renderBankList();
     }
 
@@ -1731,19 +1767,79 @@
         const label = row.title || row.problem_text.slice(0, 40) + (row.problem_text.length > 40 ? '…' : '');
         const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
         const category = row.category || '기타문제';
+        const videos = bankVideoMap[row.id] || [];
+        const hasVideo = videos.length > 0;
+        const videoBadge = hasVideo
+          ? `<span class="cat-badge video-yes">🎬 영상 있음${videos.length > 1 ? ` ${videos.length}개` : ''}</span>`
+          : '';
         return `
       <div class="bank-item">
         <div class="bank-item-main">
-          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${escapeHtml(label)}</div>
+          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${videoBadge}${escapeHtml(label)}</div>
           <div class="bank-meta">제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
         </div>
         <div class="bank-item-actions">
           <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
-          <button class="btn" onclick="openLectureStudio(${row.id})">🎥 설명영상</button>
+          ${hasVideo ? `<button class="btn" onclick="previewBankVideos(${row.id})">▶ 영상 확인</button>` : ''}
+          <button class="btn" onclick="openLectureStudio(${row.id})">🎥 ${hasVideo ? '재촬영' : '설명영상'}</button>
         </div>
       </div>
     `;
       }).join('');
+    }
+
+    function previewBankVideos(problemId) {
+      const videos = bankVideoMap[problemId] || [];
+      if (videos.length === 0) return;
+
+      const listEl = document.getElementById('bankVideoReviewList');
+      listEl.innerHTML = videos.map(v => {
+        const dateStr = new Date(v.created_at).toLocaleString('ko-KR');
+        const dur = v.duration_seconds ? ` · ${Math.round(v.duration_seconds / 60)}분` : '';
+        return `
+      <div style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);">
+        <div class="bank-title" style="margin-bottom:6px;">${escapeHtml(v.title || '제목 없음')}</div>
+        <div class="bank-meta" style="margin-bottom:8px;">${dateStr}${dur}</div>
+        <video controls style="width:100%; border-radius:12px; background:#000;" src="${v.video_url}"></video>
+        <div style="margin-top:8px;">
+          <button class="btn danger" onclick="deleteBankVideo(${v.id}, ${problemId})">🗑 이 영상 삭제</button>
+        </div>
+      </div>
+    `;
+      }).join('');
+
+      document.getElementById('bankVideoReviewRecordBtn').onclick = () => {
+        closeBankVideoReview();
+        openLectureStudio(problemId);
+      };
+
+      document.getElementById('bankVideoReviewModal').classList.remove('hidden');
+    }
+
+    function closeBankVideoReview() {
+      document.getElementById('bankVideoReviewModal').classList.add('hidden');
+      document.getElementById('bankVideoReviewList').innerHTML = '';
+    }
+
+    async function deleteBankVideo(videoId, problemId) {
+      if (!confirm('이 설명 영상을 삭제할까요? 학생들도 더 이상 볼 수 없게 됩니다.')) return;
+      const video = (bankVideoMap[problemId] || []).find(v => v.id === videoId);
+      if (video) {
+        // storage_path는 select에 포함하지 않았으므로 다시 조회해서 삭제
+        const { data } = await supabaseClient.from('lecture_videos').select('storage_path').eq('id', videoId).single();
+        if (data && data.storage_path) {
+          await supabaseClient.storage.from('lecture-videos').remove([data.storage_path]);
+        }
+      }
+      const { error } = await supabaseClient.from('lecture_videos').delete().eq('id', videoId);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+      await loadBankVideos();
+      renderBankList();
+      if ((bankVideoMap[problemId] || []).length) {
+        previewBankVideos(problemId);
+      } else {
+        closeBankVideoReview();
+      }
     }
 
     function openBankModal() {
