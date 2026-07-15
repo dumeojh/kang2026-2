@@ -602,6 +602,26 @@
       margin-bottom: 6px;
     }
 
+    .sv-answer-box {
+      background: #FBF3DF;
+      border: 1.5px dashed var(--gold);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .sv-answer-box .a-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #92660F;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
     /* ---------- 학생 풀이 전체화면으로 보여주기 ---------- */
     .sv-head-row {
       display: flex;
@@ -1339,6 +1359,7 @@
     let selectedStudentId = null;
     let timerInterval = null;
     let realtimeChannel = null;
+    let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
 
     // ---------------- [제출 명단 숨기기] ----------------
     // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
@@ -1515,6 +1536,7 @@
     function setActiveProblem(problem) {
       activeProblem = problem;
       selectedStudentId = null;
+      answerRevealed = false;
       document.getElementById('problemLabel').textContent = `문제 #${problem.id}`;
 
       const badge = document.getElementById('roomCodeBadge');
@@ -1557,8 +1579,12 @@
       const btn = document.getElementById('answerToggleBtn');
       if (!panel) return;
       const nowHidden = panel.classList.toggle('hidden');
+      answerRevealed = !nowHidden;
       btn.textContent = nowHidden ? '🔑 정답 보기' : '🙈 정답 숨기기';
       if (!nowHidden && window.MathJax) MathJax.typesetPromise([panel]);
+
+      // 오른쪽 풀이 화면에서 학생 답을 보고 있었다면, 정답 표시 여부를 그쪽에도 바로 반영합니다.
+      if (selectedStudentId) selectStudent(selectedStudentId);
     }
 
     function updateTimer() {
@@ -1627,6 +1653,12 @@
       <div class="sv-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
       <button class="btn" style="margin-left:auto;" onclick="openPresentOverlay('${studentId}')">🖥 학생들에게 크게 보여주기</button>
     </div>
+    ${(answerRevealed && activeProblem && activeProblem.answer_text) ? `
+    <div class="sv-answer-box">
+      <div class="a-label">🔑 정답</div>
+      <div id="svAnswerBody">${activeProblem.answer_text}</div>
+    </div>
+    ` : ''}
     ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; margin-bottom:14px; display:block;">` : ''}
     ${s.solution_audio_url ? `<div style="margin-bottom:14px;"><div class="ptag" style="margin-bottom:6px;">🎙 음성 설명</div><audio controls src="${s.solution_audio_url}" style="width:100%;"></audio></div>` : ''}
     ${s.solution_text ? `<div class="sv-body">${escapeHtml(s.solution_text)}</div>` : ''}
