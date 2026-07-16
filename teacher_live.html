@@ -463,6 +463,22 @@
       flex-wrap: wrap;
     }
 
+    .bank-search-input {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 13.5px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--line);
+      margin-top: 10px;
+      color: var(--ink);
+    }
+
+    .bank-search-input:focus {
+      outline: none;
+      border-color: var(--ink-soft);
+    }
+
     .filter-tab {
       border: 1.5px solid var(--line);
       background: #fff;
@@ -1121,6 +1137,8 @@
         <b>문제 은행 관리 페이지</b>를 이용해주세요.
       </div>
       <button class="btn" onclick="window.open('problem_bank.html', '_blank')">📝 문제 은행 관리 페이지 열기 (새 탭)</button>
+      <input type="text" id="bankSearchInput" class="bank-search-input" placeholder="🔍 제목 / 문제 내용 / 단원으로 검색"
+        oninput="onBankSearchInput()">
       <div class="bank-filter-tabs" id="bankFilterTabs">
         <button class="filter-tab active" data-cat="전체" onclick="setBankFilter('전체')">전체</button>
         <button class="filter-tab" data-cat="수능특강" onclick="setBankFilter('수능특강')">수능특강</button>
@@ -1855,6 +1873,7 @@
     // ---------------- [문제 은행 목록] ----------------
     let bankRows = [];
     let bankFilterCategory = '전체';
+    let bankSearchKeyword = '';
     const BANK_RENDER_STEP = 40;
     let bankRenderLimit = BANK_RENDER_STEP;
     let bankLastLoadedAt = null; // 문제 은행을 마지막으로 서버에서 불러온 시각 (캐시 재사용 판단용)
@@ -1877,6 +1896,12 @@
       document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === cat);
       });
+      renderBankList();
+    }
+
+    function onBankSearchInput() {
+      bankSearchKeyword = document.getElementById('bankSearchInput').value.trim().toLowerCase();
+      bankRenderLimit = BANK_RENDER_STEP;
       renderBankList();
     }
 
@@ -1918,7 +1943,9 @@
 
       const { data, error } = await supabaseClient
         .from('live_problem_bank')
-        .select('*')
+        // 이 화면에서는 concept_*, practice_* 필드를 전혀 쓰지 않으므로(편집/개념 카드는 problem_bank.html 전용)
+        // 목록 로딩 페이로드를 줄이기 위해 실제로 쓰는 컬럼만 지정해서 가져옵니다.
+        .select('id, title, category, unit_tag, difficulty, problem_text, problem_image_url, time_limit_seconds, voice_limit_seconds, answer_text, solution_html, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -1942,12 +1969,20 @@
 
     function renderBankList() {
       const el = document.getElementById('bankList');
-      const rows = bankFilterCategory === '전체'
+      let rows = bankFilterCategory === '전체'
         ? bankRows
         : bankRows.filter(r => (r.category || '기타문제') === bankFilterCategory);
 
+      if (bankSearchKeyword) {
+        rows = rows.filter(r =>
+          (r.title || '').toLowerCase().includes(bankSearchKeyword) ||
+          (r.problem_text || '').toLowerCase().includes(bankSearchKeyword) ||
+          (r.unit_tag || '').toLowerCase().includes(bankSearchKeyword)
+        );
+      }
+
       if (rows.length === 0) {
-        el.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "문제 은행 관리 페이지"에서 문제를 추가해보세요.' : '이 분류에는 저장된 문제가 없습니다.'}</div>`;
+        el.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "문제 은행 관리 페이지"에서 문제를 추가해보세요.' : '조건에 맞는 문제가 없습니다.'}</div>`;
         return;
       }
 
@@ -2040,7 +2075,10 @@
 
     function openBankModal() {
       bankFilterCategory = '전체';
+      bankSearchKeyword = '';
       bankRenderLimit = BANK_RENDER_STEP;
+      const searchInput = document.getElementById('bankSearchInput');
+      if (searchInput) searchInput.value = '';
       document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === '전체');
       });
