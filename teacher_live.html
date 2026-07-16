@@ -638,6 +638,43 @@
       margin-bottom: 6px;
     }
 
+    /* ---------- 풀이 보기 ---------- */
+    .btn.solution-btn {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+    }
+
+    .btn.solution-btn:hover {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .solution-panel {
+      margin-top: 12px;
+      background: var(--brand-soft);
+      border: 1.5px dashed var(--brand);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .solution-panel.hidden {
+      display: none;
+    }
+
+    .solution-panel .s-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
     /* ---------- 학생 풀이 전체화면으로 보여주기 ---------- */
     .sv-head-row {
       display: flex;
@@ -1383,6 +1420,7 @@
     let timerInterval = null;
     let realtimeChannel = null;
     let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
+    let solutionRevealed = false; // "풀이 보기"를 눌렀는지
 
     // ---------------- [제출 명단 숨기기] ----------------
     // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
@@ -1560,6 +1598,7 @@
       activeProblem = problem;
       selectedStudentId = null;
       answerRevealed = false;
+      solutionRevealed = false;
       document.getElementById('problemLabel').textContent = `문제 #${problem.id}`;
 
       const badge = document.getElementById('roomCodeBadge');
@@ -1576,14 +1615,23 @@
       <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
       <div class="ptext">${problem.problem_text}</div>
       ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
-      ${problem.answer_text ? `
-      <div class="answer-toggle-row">
-        <button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">🔑 정답 보기</button>
+      ${(problem.answer_text || problem.solution_html) ? `
+      <div class="answer-toggle-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${problem.answer_text ? `<button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">🔑 정답 보기</button>` : ''}
+        ${problem.solution_html ? `<button class="btn solution-btn" id="solutionToggleBtn" onclick="toggleSolution()">✎ 풀이 보기</button>` : ''}
       </div>
+      ${problem.answer_text ? `
       <div class="answer-panel hidden" id="answerPanel">
         <div class="a-label">정답</div>
         <div id="answerBody">${problem.answer_text}</div>
       </div>
+      ` : ''}
+      ${problem.solution_html ? `
+      <div class="solution-panel hidden" id="solutionPanel">
+        <div class="s-label">풀이</div>
+        <div id="solutionBody">${problem.solution_html}</div>
+      </div>
+      ` : ''}
       ` : ''}
     </div>
   `;
@@ -1608,6 +1656,16 @@
 
       // 오른쪽 풀이 화면에서 학생 답을 보고 있었다면, 정답 표시 여부를 그쪽에도 바로 반영합니다.
       if (selectedStudentId) selectStudent(selectedStudentId);
+    }
+
+    function toggleSolution() {
+      const panel = document.getElementById('solutionPanel');
+      const btn = document.getElementById('solutionToggleBtn');
+      if (!panel) return;
+      const nowHidden = panel.classList.toggle('hidden');
+      solutionRevealed = !nowHidden;
+      btn.textContent = nowHidden ? '✎ 풀이 보기' : '🙈 풀이 숨기기';
+      if (!nowHidden && window.MathJax) MathJax.typesetPromise([panel]);
     }
 
     function updateTimer() {
@@ -1856,6 +1914,7 @@
         time_limit_seconds: row.time_limit_seconds,
         voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
+        solution_html: row.solution_html || null,
         is_active: true,
         started_at: new Date().toISOString(),
         teacher_id: teacherProfile.teacherId,
