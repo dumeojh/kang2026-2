@@ -1127,6 +1127,11 @@
         <button class="filter-tab" data-cat="교과서" onclick="setBankFilter('교과서')">교과서</button>
         <button class="filter-tab" data-cat="기타문제" onclick="setBankFilter('기타문제')">기타문제</button>
       </div>
+      <div class="bank-refresh-row"
+        style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px;">
+        <span id="bankLastLoadedLabel" style="font-size:12px; color:var(--muted, #888);"></span>
+        <button class="btn" onclick="loadBank(true)">🔄 새로고침</button>
+      </div>
       <div class="bank-list" id="bankList"></div>
       <div class="modal-actions">
         <button class="btn" onclick="closeBankModal()">닫기</button>
@@ -1766,12 +1771,27 @@
           .select()
           .single();
         if (error) { alert('수정 중 오류가 발생했습니다: ' + error.message); return null; }
+        upsertBankRowCache(data);
         return data;
       }
 
       const { data, error } = await supabaseClient.from('live_problem_bank').insert([payload]).select().single();
       if (error) { alert('저장 중 오류가 발생했습니다: ' + error.message); return null; }
+      upsertBankRowCache(data);
       return data;
+    }
+
+    // 새로 만들거나 수정한 문제를 로컬 캐시(bankRows)에도 바로 반영해서,
+    // 캐시를 쓰는 동안에도 방금 저장한 문제가 목록에 즉시 보이도록 합니다.
+    function upsertBankRowCache(row) {
+      if (!row) return;
+      const idx = bankRows.findIndex(r => r.id === row.id);
+      if (idx >= 0) {
+        bankRows[idx] = row;
+      } else {
+        bankRows.unshift(row);
+      }
+      if (!bankLastLoadedAt) bankLastLoadedAt = Date.now(); // 아직 한 번도 불러온 적 없으면 캐시를 "존재하는 것"으로 취급
     }
 
     async function saveToBankOnly() {
@@ -1830,6 +1850,7 @@
     let bankFilterCategory = '전체';
     const BANK_RENDER_STEP = 40;
     let bankRenderLimit = BANK_RENDER_STEP;
+    let bankLastLoadedAt = null; // 문제 은행을 마지막으로 서버에서 불러온 시각 (캐시 재사용 판단용)
 
     function categoryBadgeClass(category) {
       if (category === '수능특강') return 'cat-suneung';
@@ -1876,19 +1897,40 @@
       });
     }
 
-    async function loadBank() {
+    // force가 false이고 이미 한 번 불러온 캐시가 있으면 서버에 다시 요청하지 않고 캐시를 그대로 씁니다.
+    // (수업 중 출제 모달을 열 때마다 문제 1000개를 통째로 재다운로드하지 않도록)
+    async function loadBank(force = false) {
+      if (!force && bankLastLoadedAt) {
+        renderBankList();
+        updateBankLastLoadedLabel();
+        return;
+      }
+
+      const listEl = document.getElementById('bankList');
+      if (listEl) listEl.innerHTML = '<div class="bank-empty">불러오는 중...</div>';
+
       const { data, error } = await supabaseClient
         .from('live_problem_bank')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        document.getElementById('bankList').innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${error.message}</div>`;
+        if (listEl) listEl.innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${error.message}</div>`;
         return;
       }
       bankRows = data || [];
+      bankLastLoadedAt = Date.now();
       await loadBankVideos();
       renderBankList();
+      updateBankLastLoadedLabel();
+    }
+
+    function updateBankLastLoadedLabel() {
+      const label = document.getElementById('bankLastLoadedLabel');
+      if (!label) return;
+      if (!bankLastLoadedAt) { label.textContent = ''; return; }
+      const timeStr = new Date(bankLastLoadedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      label.textContent = `마지막 갱신 ${timeStr} · 총 ${bankRows.length}개`;
     }
 
     function renderBankList() {
@@ -1929,10 +1971,10 @@
       </div>
     `;
       }).join('') + (
-        total > visibleRows.length
-          ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreBankItems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(BANK_RENDER_STEP, total - visibleRows.length)})</div>`
-          : (total > BANK_RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
-      );
+          total > visibleRows.length
+            ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreBankItems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(BANK_RENDER_STEP, total - visibleRows.length)})</div>`
+            : (total > BANK_RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+        );
     }
 
     function previewBankVideos(problemId) {
