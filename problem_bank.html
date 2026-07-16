@@ -673,7 +673,7 @@
     </header>
 
     <div class="toolbar">
-      <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="renderList()">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="onSearchInput()">
       <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
     </div>
 
@@ -705,6 +705,8 @@
     let bankRows = [];              // Supabase에서 불러온 문제 목록
     let filterCategory = '전체';
     let filterUnit = '전체';        // 단원 필터 (실제 존재하는 단원들로 자동 생성됨)
+    const RENDER_STEP = 40;         // 한 번에 화면에 그리는 카드 수 (문항이 많아져도 버벅이지 않도록)
+    let renderLimit = RENDER_STEP;  // 지금까지 "더 보기"로 펼친 개수
     let currentEditId = null;       // 지금 편집기에서 열려있는 문제의 id (새로 만드는 중이면 null)
     let editIsNew = false;          // "새 문제 만들기"로 연 것인지
     let editDirty = false;          // 편집기에서 뭔가 한 글자라도 고쳤는지
@@ -744,6 +746,7 @@
 
     function setFilter(cat) {
       filterCategory = cat;
+      renderLimit = RENDER_STEP;
       document.querySelectorAll('#filterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === cat);
       });
@@ -752,7 +755,18 @@
 
     function setUnitFilter(unit) {
       filterUnit = unit;
+      renderLimit = RENDER_STEP;
       renderUnitFilterTabs();
+      renderList();
+    }
+
+    function onSearchInput() {
+      renderLimit = RENDER_STEP;
+      renderList();
+    }
+
+    function showMoreProblems() {
+      renderLimit += RENDER_STEP;
       renderList();
     }
 
@@ -797,6 +811,7 @@
         return;
       }
       bankRows = data || [];
+      renderLimit = RENDER_STEP;
       renderUnitFilterTabs();
       refreshUnitTagOptions();
       renderList();
@@ -804,10 +819,59 @@
 
     function toggle(id) {
       const panel = document.getElementById(id);
+      if (!panel) return;
+      if (panel.dataset.kind && panel.dataset.loaded !== 'true') {
+        fillPanelContent(panel);
+      }
       panel.classList.toggle('open');
       if (window.MathJax && panel.classList.contains('open')) {
         MathJax.typesetPromise([panel]);
       }
+    }
+
+    // 정답/풀이/기초개념 패널은 카드를 그릴 때는 빈 껍데기만 만들어두고,
+    // 실제로 펼쳐볼 때 이 함수에서 내용을 채웁니다(데이터는 이미 bankRows에 있으므로 추가 서버 요청은 없습니다).
+    function fillPanelContent(panel) {
+      const row = bankRows.find(r => r.id === Number(panel.dataset.rowId));
+      if (!row) return;
+      const kind = panel.dataset.kind;
+
+      if (kind === 'answer') {
+        panel.innerHTML = `
+          <div class="panel-body">
+            <div class="solution-label">✎ 정답</div>
+            <span class="answer-stamp">${esc(row.answer_text)}</span>
+          </div>`;
+      } else if (kind === 'solution') {
+        panel.innerHTML = `
+          <div class="panel-body">
+            <div class="solution-label">✎ 풀이</div>
+            <div class="solution-steps">${esc(row.solution_html)}</div>
+          </div>`;
+      } else if (kind === 'concept') {
+        const practiceSolId = `psol-${row.id}`;
+        const hasPractice = row.practice_statement || row.practice_solution;
+        const practiceHtml = hasPractice ? `
+          <div class="practice-box">
+            <div class="ptitle">기초개념 연습문제</div>
+            <div class="practice-statement">${esc(row.practice_statement)}</div>
+            <button class="reveal-btn" onclick="toggle('${practiceSolId}')">🖊 연습문제 풀이 보기</button>
+            <div class="panel" id="${practiceSolId}">
+              <div class="panel-body">
+                <div class="solution-label">✎ 풀이</div>
+                <div class="solution-steps">${esc(row.practice_solution)}</div>
+                ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
+              </div>
+            </div>
+          </div>` : '';
+        panel.innerHTML = `
+          <div class="panel-body">
+            <div class="concept-label">📘 ${esc(row.concept_title)}</div>
+            <div class="concept-body">${esc(row.concept_body)}</div>
+            ${practiceHtml}
+          </div>`;
+      }
+      panel.dataset.loaded = 'true';
     }
 
     function renderList() {
@@ -835,56 +899,29 @@
         return;
       }
 
-      list.innerHTML = rows.map((row, idx) => {
+      // 문항이 많을 때 한 번에 수백~수천 개를 다 그리면 느려지므로,
+      // renderLimit 만큼만 먼저 그리고 나머지는 "더 보기"로 펼칩니다.
+      const total = rows.length;
+      const visibleRows = rows.slice(0, renderLimit);
+
+      list.innerHTML = visibleRows.map((row, idx) => {
         const n = String(idx + 1).padStart(2, '0');
         const category = row.category || '기타문제';
         const label = row.title || '(제목 없음)';
         const ansId = `ans-${row.id}`;
         const solId = `sol-${row.id}`;
         const conceptId = `concept-${row.id}`;
-        const practiceSolId = `psol-${row.id}`;
         const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
         const metaStr = `제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}`;
 
-        const answerHtml = row.answer_text ? `
-        <div class="panel" id="${ansId}">
-          <div class="panel-body">
-            <div class="solution-label">✎ 정답</div>
-            <span class="answer-stamp">${esc(row.answer_text)}</span>
-          </div>
-        </div>` : '';
-
-        const solutionHtml = row.solution_html ? `
-        <div class="panel" id="${solId}">
-          <div class="panel-body">
-            <div class="solution-label">✎ 풀이</div>
-            <div class="solution-steps">${esc(row.solution_html)}</div>
-          </div>
-        </div>` : '';
-
-        const hasPractice = row.practice_statement || row.practice_solution;
-        const practiceHtml = hasPractice ? `
-          <div class="practice-box">
-            <div class="ptitle">기초개념 연습문제</div>
-            <div class="practice-statement">${esc(row.practice_statement)}</div>
-            <button class="reveal-btn" onclick="toggle('${practiceSolId}')">🖊 연습문제 풀이 보기</button>
-            <div class="panel" id="${practiceSolId}">
-              <div class="panel-body">
-                <div class="solution-label">✎ 풀이</div>
-                <div class="solution-steps">${esc(row.practice_solution)}</div>
-                ${row.practice_answer ? `<span class="answer-stamp">정답 ${esc(row.practice_answer)}</span>` : ''}
-              </div>
-            </div>
-          </div>` : '';
-
-        const conceptHtml = row.concept_title || row.concept_body ? `
-        <div class="panel" id="${conceptId}">
-          <div class="panel-body">
-            <div class="concept-label">📘 ${esc(row.concept_title)}</div>
-            <div class="concept-body">${esc(row.concept_body)}</div>
-            ${practiceHtml}
-          </div>
-        </div>` : '';
+        // 정답/풀이/기초개념 내용은 무겁기 때문에(특히 풀이·개념 HTML) 카드를 그릴 때 바로 채우지 않고
+        // 빈 껍데기만 만들어둔 뒤, 사용자가 실제로 펼칠 때(toggle 클릭 시) 그 내용만 채웁니다.
+        const answerHtml = row.answer_text
+          ? `<div class="panel" id="${ansId}" data-row-id="${row.id}" data-kind="answer"></div>` : '';
+        const solutionHtml = row.solution_html
+          ? `<div class="panel" id="${solId}" data-row-id="${row.id}" data-kind="solution"></div>` : '';
+        const conceptHtml = (row.concept_title || row.concept_body)
+          ? `<div class="panel" id="${conceptId}" data-row-id="${row.id}" data-kind="concept"></div>` : '';
 
         return `
       <div class="card">
@@ -911,9 +948,13 @@
         </div>
       </div>
     `;
-      }).join('');
+      }).join('') + (
+        total > visibleRows.length
+          ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreProblems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(RENDER_STEP, total - visibleRows.length)})</div>`
+          : (total > RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+      );
 
-      if (window.MathJax) MathJax.typesetPromise();
+      if (window.MathJax) MathJax.typesetPromise([list]);
     }
 
     function blankProblem() {

@@ -1828,6 +1828,8 @@
     // ---------------- [문제 은행 목록] ----------------
     let bankRows = [];
     let bankFilterCategory = '전체';
+    const BANK_RENDER_STEP = 40;
+    let bankRenderLimit = BANK_RENDER_STEP;
 
     function categoryBadgeClass(category) {
       if (category === '수능특강') return 'cat-suneung';
@@ -1843,9 +1845,15 @@
 
     function setBankFilter(cat) {
       bankFilterCategory = cat;
+      bankRenderLimit = BANK_RENDER_STEP;
       document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === cat);
       });
+      renderBankList();
+    }
+
+    function showMoreBankItems() {
+      bankRenderLimit += BANK_RENDER_STEP;
       renderBankList();
     }
 
@@ -1893,7 +1901,11 @@
         el.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "문제 은행 관리 페이지"에서 문제를 추가해보세요.' : '이 분류에는 저장된 문제가 없습니다.'}</div>`;
         return;
       }
-      el.innerHTML = rows.map(row => {
+
+      const total = rows.length;
+      const visibleRows = rows.slice(0, bankRenderLimit);
+
+      el.innerHTML = visibleRows.map(row => {
         const label = row.title || row.problem_text.slice(0, 40) + (row.problem_text.length > 40 ? '…' : '');
         const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
         const category = row.category || '기타문제';
@@ -1916,7 +1928,11 @@
         </div>
       </div>
     `;
-      }).join('');
+      }).join('') + (
+        total > visibleRows.length
+          ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreBankItems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(BANK_RENDER_STEP, total - visibleRows.length)})</div>`
+          : (total > BANK_RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+      );
     }
 
     function previewBankVideos(problemId) {
@@ -1975,6 +1991,7 @@
 
     function openBankModal() {
       bankFilterCategory = '전체';
+      bankRenderLimit = BANK_RENDER_STEP;
       document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.cat === '전체');
       });
