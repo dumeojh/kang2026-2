@@ -677,6 +677,12 @@
       <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
     </div>
 
+    <div class="bank-refresh-row"
+      style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">
+      <span id="bankLastLoadedLabel" style="font-size:12.5px; color:var(--slate);"></span>
+      <button class="util-btn" onclick="loadBank()">🔄 새로고침</button>
+    </div>
+
     <div class="filter-tabs" id="filterTabs">
       <button class="filter-tab active" data-cat="전체" onclick="setFilter('전체')">전체</button>
       <button class="filter-tab" data-cat="수능특강" onclick="setFilter('수능특강')">수능특강</button>
@@ -703,6 +709,7 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let bankRows = [];              // Supabase에서 불러온 문제 목록
+    let bankLastLoadedAt = null;    // 마지막으로 서버에서 전체 목록을 불러온 시각
     let filterCategory = '전체';
     let filterUnit = '전체';        // 단원 필터 (실제 존재하는 단원들로 자동 생성됨)
     const RENDER_STEP = 40;         // 한 번에 화면에 그리는 카드 수 (문항이 많아져도 버벅이지 않도록)
@@ -811,10 +818,45 @@
         return;
       }
       bankRows = data || [];
+      bankLastLoadedAt = Date.now();
       renderLimit = RENDER_STEP;
       renderUnitFilterTabs();
       refreshUnitTagOptions();
       renderList();
+      updateBankLastLoadedLabel();
+    }
+
+    function updateBankLastLoadedLabel() {
+      const label = document.getElementById('bankLastLoadedLabel');
+      if (!label) return;
+      if (!bankLastLoadedAt) { label.textContent = ''; return; }
+      const timeStr = new Date(bankLastLoadedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      label.textContent = `마지막 새로고침 ${timeStr} · 총 ${bankRows.length}개`;
+    }
+
+    // 저장(추가/수정)한 문제 한 건만 로컬 목록에 반영합니다.
+    // 문제 하나 고칠 때마다 1000개 전체를 다시 받아오지 않기 위함입니다.
+    function upsertBankRowCache(row) {
+      if (!row) return;
+      const idx = bankRows.findIndex(r => r.id === row.id);
+      if (idx >= 0) {
+        bankRows[idx] = row;
+      } else {
+        bankRows.unshift(row);
+      }
+      renderUnitFilterTabs();
+      refreshUnitTagOptions();
+      renderList();
+      updateBankLastLoadedLabel();
+    }
+
+    // 삭제한 문제 한 건만 로컬 목록에서 제거합니다. (마찬가지로 전체 재요청 방지)
+    function removeBankRowCache(id) {
+      bankRows = bankRows.filter(r => r.id !== id);
+      renderUnitFilterTabs();
+      refreshUnitTagOptions();
+      renderList();
+      updateBankLastLoadedLabel();
     }
 
     function toggle(id) {
@@ -949,10 +991,10 @@
       </div>
     `;
       }).join('') + (
-        total > visibleRows.length
-          ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreProblems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(RENDER_STEP, total - visibleRows.length)})</div>`
-          : (total > RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
-      );
+          total > visibleRows.length
+            ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreProblems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(RENDER_STEP, total - visibleRows.length)})</div>`
+            : (total > RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+        );
 
       if (window.MathJax) MathJax.typesetPromise([list]);
     }
@@ -1043,25 +1085,25 @@
       if (!confirm('이 문제를 삭제할까요? (이미 출제된 문제 기록에는 영향 없습니다)')) return;
       const { error } = await supabaseClient.from('live_problem_bank').delete().eq('id', currentEditId);
       if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+      removeBankRowCache(currentEditId);
       closeEditor();
-      loadBank();
     }
 
     async function saveEdit() {
       const payload = readEditForm();
       if (!payload.problem_text) { alert('문제 본문을 입력해주세요.'); return; }
 
-      let error;
+      let error, data;
       if (editIsNew) {
-        ({ error } = await supabaseClient.from('live_problem_bank').insert([payload]));
+        ({ data, error } = await supabaseClient.from('live_problem_bank').insert([payload]).select().single());
       } else {
-        ({ error } = await supabaseClient.from('live_problem_bank').update(payload).eq('id', currentEditId));
+        ({ data, error } = await supabaseClient.from('live_problem_bank').update(payload).eq('id', currentEditId).select().single());
       }
 
       if (error) { alert('저장 중 오류가 발생했습니다: ' + error.message); return; }
 
+      upsertBankRowCache(data);
       closeEditor();
-      loadBank();
     }
 
     function renderImageField() {
