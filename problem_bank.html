@@ -1629,6 +1629,25 @@
     // 화면 전체를 편집기로 씁니다: 왼쪽은 입력창, 오른쪽은 실시간 미리보기.
     // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
 
+    // teacher_live.html의 "✏️ 편집" 버튼처럼 ?edit=123 형태로 들어오면, 해당 문제의 편집기를 자동으로 엽니다.
+    function handleEditDeepLink() {
+      const params = new URLSearchParams(window.location.search);
+      const editId = parseInt(params.get('edit'), 10);
+      if (!editId) return;
+
+      const row = bankRows.find(r => r.id === editId);
+      if (!row) {
+        alert(`편집하려는 문제(#${editId})를 찾을 수 없습니다. 이미 삭제되었을 수 있어요.`);
+      } else {
+        openEditor(editId);
+      }
+
+      // 새로고침해도 편집기가 다시 자동으로 열리지 않도록 주소의 ?edit= 부분은 지워둡니다.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('edit');
+      window.history.replaceState({}, '', url);
+    }
+
     async function openEditor(id, isNew = false) {
       currentEditId = id;
       editIsNew = isNew;
@@ -1971,7 +1990,7 @@
   `;
     }
 
-    loadBank();
+    loadBank().then(handleEditDeepLink);
 
     document.addEventListener('keydown', (e) => {
       const overlay = document.getElementById('editOverlay');

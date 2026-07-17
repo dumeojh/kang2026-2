@@ -1607,6 +1607,7 @@
         <button type="button" class="layout-switch-btn ${problemPanelLayout === 'right' ? 'active' : ''}" onclick="setPanelLayout('right')">➡️ 오른쪽</button>
       </div>` : '';
       const fsToggleHtml = `<button type="button" class="fs-toggle-btn" onclick="toggleProblemFullscreen()">${isProblemFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면'}</button>`;
+      const editLinkHtml = `<button type="button" class="fs-toggle-btn" onclick="openProblemInBankEditor()" title="문제 은행에서 이 문제를 편집합니다 (새 탭)">✏️ 편집</button>`;
       const fontScaleHtml = `
       <div class="font-scale-control" title="문제/정답/풀이 글씨 크기 조절">
         <button type="button" onclick="adjustFontScale(-0.1)">가⁻</button>
@@ -1635,6 +1636,7 @@
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           ${fontScaleHtml}
           ${layoutSwitchHtml}
+          ${editLinkHtml}
           ${fsToggleHtml}
         </div>
       </div>
@@ -1678,6 +1680,15 @@
     }
 
     // 정답/풀이를 문제 아래에 보여줄지, 오른쪽에 보여줄지 선택합니다. (둘 중 하나만 표시)
+    // 문제를 풀다가 오타/오류를 발견하면 바로 문제 은행 편집기로 이동해서 고칠 수 있게 합니다.
+    function openProblemInBankEditor() {
+      if (!activeProblem || !activeProblem.bank_id) {
+        alert('이 문제는 문제 은행과 연결된 정보가 없어서 편집 페이지로 바로 이동할 수 없어요. (예전에 출제된 문제일 수 있어요)\n문제 은행 관리 페이지에서 같은 문제를 찾아 직접 수정해주세요.');
+        return;
+      }
+      window.open('problem_bank.html?edit=' + activeProblem.bank_id, '_blank');
+    }
+
     function setPanelLayout(mode) {
       if (mode !== 'below' && mode !== 'right') return;
       problemPanelLayout = mode;
@@ -1960,8 +1971,10 @@
         .eq('teacher_id', teacherProfile.teacherId);
 
       const { data, error } = await supabaseClient.from('live_problems').insert([{
+        bank_id: row.id,
         problem_text: row.problem_text,
         problem_image_url: row.problem_image_url || null,
+        image_scale: row.image_scale || 1,
         time_limit_seconds: row.time_limit_seconds,
         voice_limit_seconds: row.voice_limit_seconds || 60,
         answer_text: row.answer_text || null,
