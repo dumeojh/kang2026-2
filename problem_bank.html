@@ -70,7 +70,7 @@
     }
 
     .wrap {
-      max-width: 980px;
+      max-width: min(1560px, 96vw);
       margin: 0 auto;
     }
 
@@ -209,6 +209,78 @@
       background: var(--ink);
     }
 
+    /* ---------- 보기 방식(목록형/격자형) 전환 ---------- */
+    .view-mode-switch {
+      display: flex;
+      gap: 4px;
+      background: #EFEBDF;
+      border-radius: 999px;
+      padding: 3px;
+    }
+
+    .view-mode-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 6px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .view-mode-btn.active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(27, 58, 92, 0.15);
+    }
+
+    #problemList.grid-mode {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    #problemList.grid-mode .card {
+      margin-bottom: 0;
+    }
+
+    #problemList.grid-mode .card-inner {
+      padding: 18px 20px 16px 22px;
+    }
+
+    #problemList.grid-mode .card-tags {
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    #problemList.grid-mode .tag-meta {
+      display: none;
+    }
+
+    #problemList.grid-mode .statement {
+      font-size: 14.5px;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    #problemList.grid-mode .statement.expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+    }
+
+    #problemList.grid-mode .bank-empty {
+      grid-column: 1 / -1;
+    }
+
     .card-inner {
       padding: 24px 26px 22px 28px;
     }
@@ -259,14 +331,45 @@
       color: var(--ink-soft);
     }
 
-    .cat-badge.cat-blue { background: var(--cat-blue-bg); color: var(--cat-blue); }
-    .cat-badge.cat-green { background: var(--cat-green-bg); color: var(--cat-green); }
-    .cat-badge.cat-red { background: var(--cat-red-bg); color: var(--cat-red); }
-    .cat-badge.cat-purple { background: var(--cat-purple-bg); color: var(--cat-purple); }
-    .cat-badge.cat-orange { background: var(--cat-orange-bg); color: var(--cat-orange); }
-    .cat-badge.cat-teal { background: var(--cat-teal-bg); color: var(--cat-teal); }
-    .cat-badge.cat-pink { background: var(--cat-pink-bg); color: var(--cat-pink); }
-    .cat-badge.cat-gray { background: var(--cat-gray-bg); color: var(--cat-gray); }
+    .cat-badge.cat-blue {
+      background: var(--cat-blue-bg);
+      color: var(--cat-blue);
+    }
+
+    .cat-badge.cat-green {
+      background: var(--cat-green-bg);
+      color: var(--cat-green);
+    }
+
+    .cat-badge.cat-red {
+      background: var(--cat-red-bg);
+      color: var(--cat-red);
+    }
+
+    .cat-badge.cat-purple {
+      background: var(--cat-purple-bg);
+      color: var(--cat-purple);
+    }
+
+    .cat-badge.cat-orange {
+      background: var(--cat-orange-bg);
+      color: var(--cat-orange);
+    }
+
+    .cat-badge.cat-teal {
+      background: var(--cat-teal-bg);
+      color: var(--cat-teal);
+    }
+
+    .cat-badge.cat-pink {
+      background: var(--cat-pink-bg);
+      color: var(--cat-pink);
+    }
+
+    .cat-badge.cat-gray {
+      background: var(--cat-gray-bg);
+      color: var(--cat-gray);
+    }
 
     /* ---------------- 분류 관리 모달 ---------------- */
     .cat-modal-overlay {
@@ -829,9 +932,18 @@
     </div>
 
     <div class="bank-refresh-row"
-      style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">
-      <span id="bankLastLoadedLabel" style="font-size:12.5px; color:var(--slate);"></span>
-      <button class="util-btn" onclick="loadBank()">🔄 새로고침</button>
+      style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span id="bankLastLoadedLabel" style="font-size:12.5px; color:var(--slate);"></span>
+        <span id="bankResultCount" style="font-size:12.5px; color:var(--slate);"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="view-mode-switch" title="문제 목록 보기 방식">
+          <button type="button" class="view-mode-btn" data-mode="list" onclick="setViewMode('list')">🗂 목록형</button>
+          <button type="button" class="view-mode-btn" data-mode="grid" onclick="setViewMode('grid')">🔳 격자형</button>
+        </div>
+        <button class="util-btn" onclick="loadBank()">🔄 새로고침</button>
+      </div>
     </div>
 
     <div class="filter-tabs" id="filterTabs">
@@ -851,13 +963,15 @@
     </footer>
   </div>
 
-  <div id="categoryModalOverlay" class="cat-modal-overlay hidden" onclick="if(event.target===this) closeCategoryModal()">
+  <div id="categoryModalOverlay" class="cat-modal-overlay hidden"
+    onclick="if(event.target===this) closeCategoryModal()">
     <div class="cat-modal">
       <h2>⚙️ 분류 관리</h2>
       <p class="cat-modal-sub">색상 동그라미를 누르면 색이 바뀌고, 이름은 바로 고쳐 쓸 수 있어요. 문제가 남아있는 분류를 삭제하면 다른 분류로 옮길지 물어봅니다.</p>
       <div id="categoryModalBody"></div>
       <div class="cat-add-row">
-        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등" onkeydown="if(event.key==='Enter') handleAddCategory()">
+        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등"
+          onkeydown="if(event.key==='Enter') handleAddCategory()">
         <button class="util-btn primary" onclick="handleAddCategory()">＋ 추가</button>
       </div>
       <div class="cat-modal-footer">
@@ -877,6 +991,7 @@
     const CAT_COLORS = ['blue', 'green', 'red', 'purple', 'orange', 'teal', 'pink', 'gray'];
     let filterCategory = '전체';
     let filterUnit = '전체';        // 단원 필터 (실제 존재하는 단원들로 자동 생성됨)
+    let viewMode = localStorage.getItem('bankViewMode') || 'grid'; // 목록형(list) / 격자형(grid) 문제 카드 보기 방식
     const RENDER_STEP = 40;         // 한 번에 화면에 그리는 카드 수 (문항이 많아져도 버벅이지 않도록)
     let renderLimit = RENDER_STEP;  // 지금까지 "더 보기"로 펼친 개수
     let currentEditId = null;       // 지금 편집기에서 열려있는 문제의 id (새로 만드는 중이면 null)
@@ -1188,6 +1303,7 @@
       renderCategoryFilterTabs();
       renderUnitFilterTabs();
       refreshUnitTagOptions();
+      renderViewModeButtons();
       renderList();
       updateBankLastLoadedLabel();
     }
@@ -1320,8 +1436,32 @@
       panel.dataset.loaded = 'true';
     }
 
+    // ---------------- [보기 방식: 목록형 / 격자형] ----------------
+    function setViewMode(mode) {
+      if (mode !== 'list' && mode !== 'grid') return;
+      viewMode = mode;
+      localStorage.setItem('bankViewMode', mode);
+      renderViewModeButtons();
+      renderList();
+    }
+
+    function renderViewModeButtons() {
+      document.querySelectorAll('.view-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === viewMode);
+      });
+    }
+
+    function updateBankResultCount(filteredCount) {
+      const el = document.getElementById('bankResultCount');
+      if (!el) return;
+      el.textContent = filteredCount === bankRows.length
+        ? `전체 ${bankRows.length}개`
+        : `전체 ${bankRows.length}개 중 ${filteredCount}개`;
+    }
+
     function renderList() {
       const list = document.getElementById('problemList');
+      list.classList.toggle('grid-mode', viewMode === 'grid');
       const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
 
       let rows = filterCategory === '전체'
@@ -1339,6 +1479,8 @@
           (r.unit_tag || '').toLowerCase().includes(keyword)
         );
       }
+
+      updateBankResultCount(rows.length);
 
       if (rows.length === 0) {
         list.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "＋ 새 문제 만들기"로 첫 문제를 추가해보세요.' : '조건에 맞는 문제가 없습니다.'}</div>`;
@@ -1380,7 +1522,7 @@
             <span class="tag-title">${esc(label)}</span>
             <span class="tag-meta">${metaStr}</span>
           </div>
-          <div class="statement">${esc(row.problem_text)}</div>
+          <div class="statement" onclick="this.classList.toggle('expanded')" title="격자형 보기에서는 눌러서 전체 내용을 볼 수 있어요">${esc(row.problem_text)}</div>
           ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; max-height:200px; border:1px solid var(--line); border-radius:8px; display:block; margin:8px 0;">` : ''}
           <div class="btn-row">
             ${row.answer_text ? `<button class="reveal-btn answer-btn" onclick="toggle('${ansId}')">🖊 정답 보기</button>` : ''}
