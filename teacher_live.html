@@ -323,6 +323,139 @@
       line-height: 1.7;
     }
 
+    .ptag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .ptag-row .ptag {
+      margin-bottom: 0;
+    }
+
+    .layout-switch {
+      display: flex;
+      gap: 4px;
+      background: var(--bg, #F3F1EA);
+      border-radius: 999px;
+      padding: 3px;
+    }
+
+    .layout-switch-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 5px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .layout-switch-btn.active {
+      background: var(--card);
+      color: var(--brand-dark, var(--brand));
+      box-shadow: 0 1px 4px rgba(30, 36, 51, 0.15);
+    }
+
+    .problem-card-body {
+      display: block;
+    }
+
+    .problem-card.layout-right .problem-card-body {
+      display: flex;
+      gap: 22px;
+      align-items: flex-start;
+    }
+
+    .problem-card.layout-right .p-main {
+      flex: 1 1 50%;
+      min-width: 0;
+    }
+
+    .problem-card.layout-right .p-panels {
+      flex: 1 1 50%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .problem-card.layout-right .p-panels .answer-panel,
+    .problem-card.layout-right .p-panels .solution-panel {
+      margin-top: 0;
+    }
+
+    @media (max-width: 900px) {
+      .problem-card.layout-right .problem-card-body {
+        flex-direction: column;
+      }
+    }
+
+    /* ---------- 문제 전체화면 모드 ---------- */
+    #problemArea:fullscreen,
+    #problemArea:-webkit-full-screen {
+      width: 100%;
+      height: 100%;
+      padding: 48px 64px;
+      overflow-y: auto;
+      background: var(--bg, #F3F1EA);
+      display: block;
+    }
+
+    #problemArea:fullscreen .problem-card,
+    #problemArea:-webkit-full-screen .problem-card {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    #problemArea:fullscreen .ptag,
+    #problemArea:-webkit-full-screen .ptag {
+      font-size: 14px;
+    }
+
+    #problemArea:fullscreen .ptext,
+    #problemArea:-webkit-full-screen .ptext {
+      font-size: 30px;
+    }
+
+    #problemArea:fullscreen .answer-panel,
+    #problemArea:fullscreen .solution-panel,
+    #problemArea:-webkit-full-screen .answer-panel,
+    #problemArea:-webkit-full-screen .solution-panel {
+      font-size: 22px;
+    }
+
+    #problemArea:fullscreen .btn,
+    #problemArea:-webkit-full-screen .btn {
+      font-size: 15px;
+      padding: 11px 20px;
+    }
+
+    .fs-toggle-btn {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .fs-toggle-btn:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
     .no-problem {
       text-align: center;
       color: var(--ink-soft);
@@ -520,14 +653,45 @@
       color: #5B5F6B;
     }
 
-    .cat-badge.cat-blue { background: #E5EDFF; color: #2C4CBB; }
-    .cat-badge.cat-green { background: #E4F6E9; color: #227A46; }
-    .cat-badge.cat-red { background: #FBE4E1; color: #B5342A; }
-    .cat-badge.cat-purple { background: #EFE6F7; color: #6B3FA0; }
-    .cat-badge.cat-orange { background: #FFF1DA; color: #B4700A; }
-    .cat-badge.cat-teal { background: #DFF4F4; color: #177A7A; }
-    .cat-badge.cat-pink { background: #FBE3F1; color: #B5347E; }
-    .cat-badge.cat-gray { background: #EFEFF2; color: #5B5F6B; }
+    .cat-badge.cat-blue {
+      background: #E5EDFF;
+      color: #2C4CBB;
+    }
+
+    .cat-badge.cat-green {
+      background: #E4F6E9;
+      color: #227A46;
+    }
+
+    .cat-badge.cat-red {
+      background: #FBE4E1;
+      color: #B5342A;
+    }
+
+    .cat-badge.cat-purple {
+      background: #EFE6F7;
+      color: #6B3FA0;
+    }
+
+    .cat-badge.cat-orange {
+      background: #FFF1DA;
+      color: #B4700A;
+    }
+
+    .cat-badge.cat-teal {
+      background: #DFF4F4;
+      color: #177A7A;
+    }
+
+    .cat-badge.cat-pink {
+      background: #FBE3F1;
+      color: #B5347E;
+    }
+
+    .cat-badge.cat-gray {
+      background: #EFEFF2;
+      color: #5B5F6B;
+    }
 
     .bank-list {
       margin-top: 16px;
@@ -939,6 +1103,8 @@
       <div class="topbar">
         <button class="btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="제출 명단을 숨기거나 다시 보여줍니다">👥 명단
           숨기기</button>
+        <button class="btn" id="problemFsBtn" onclick="toggleProblemFullscreen()" title="문제를 화면 가득 크게 보여줍니다">🖥 문제
+          전체화면</button>
         <h1 id="problemLabel">오늘의 문제</h1>
         <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
@@ -996,7 +1162,8 @@
       <div class="bank-filter-tabs" id="bankFilterTabs">
         <button class="filter-tab active" data-cat="전체" onclick="setBankFilter('전체')">전체</button>
       </div>
-      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.</div>
+      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.
+      </div>
       <div class="bank-refresh-row"
         style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px;">
         <span id="bankLastLoadedLabel" style="font-size:12px; color:var(--muted, #888);"></span>
@@ -1118,11 +1285,55 @@
     let realtimeChannel = null;
     let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
     let solutionRevealed = false; // "풀이 보기"를 눌렀는지
+    let problemPanelLayout = localStorage.getItem('problemPanelLayout') || 'below'; // 정답/풀이를 문제 '아래'에 보여줄지 '오른쪽'에 보여줄지
 
     // ---------------- [제출 명단 숨기기] ----------------
     // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
     // 그만큼의 공간을 문제 칸에 몰아줍니다. 마지막으로 고른 상태는 기억해둡니다.
     const SIDEBAR_COLLAPSED_KEY = 'liveSidebarCollapsed';
+
+    // ---------------- [문제 전체화면 모드] ----------------
+    function isProblemFullscreen() {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+      return !!fsEl && fsEl.id === 'problemArea';
+    }
+
+    function requestFS(el) {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if (el.webkitRequestFullScreen) return el.webkitRequestFullScreen();
+      if (el.msRequestFullscreen) return el.msRequestFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    function exitFS() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    async function toggleProblemFullscreen() {
+      try {
+        if (isProblemFullscreen()) {
+          await exitFS();
+        } else {
+          await requestFS(document.getElementById('problemArea'));
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
+      }
+    }
+
+    function updateProblemFsBtn() {
+      const btn = document.getElementById('problemFsBtn');
+      if (btn) btn.textContent = isProblemFullscreen() ? '↙️ 전체화면 종료' : '🖥 문제 전체화면';
+      // 전체화면 카드 안쪽의 ⛶ 버튼 라벨도 함께 맞춰줍니다 (내용은 그대로, 라벨만 갱신).
+      if (activeProblem) renderProblemCard();
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, updateProblemFsBtn);
+    });
 
     function toggleSidebar() {
       const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
@@ -1307,31 +1518,7 @@
         badge.classList.add('hidden');
       }
 
-      document.getElementById('problemArea').innerHTML = `
-    <div class="problem-card">
-      <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
-      <div class="ptext">${problem.problem_text}</div>
-      ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
-      ${(problem.answer_text || problem.solution_html) ? `
-      <div class="answer-toggle-row" style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${problem.answer_text ? `<button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">🔑 정답 보기</button>` : ''}
-        ${problem.solution_html ? `<button class="btn solution-btn" id="solutionToggleBtn" onclick="toggleSolution()">✎ 풀이 보기</button>` : ''}
-      </div>
-      ${problem.answer_text ? `
-      <div class="answer-panel hidden" id="answerPanel">
-        <div class="a-label">정답</div>
-        <div id="answerBody">${problem.answer_text}</div>
-      </div>
-      ` : ''}
-      ${problem.solution_html ? `
-      <div class="solution-panel hidden" id="solutionPanel">
-        <div class="s-label">풀이</div>
-        <div id="solutionBody">${problem.solution_html}</div>
-      </div>
-      ` : ''}
-      ` : ''}
-    </div>
-  `;
+      renderProblemCard();
       if (window.MathJax) MathJax.typesetPromise();
 
       clearInterval(timerInterval);
@@ -1340,6 +1527,75 @@
 
       loadSubmissions();
       subscribeRealtime();
+    }
+
+    // 문제 카드를 그립니다. answerRevealed/solutionRevealed/problemPanelLayout 값을 그대로 반영하므로,
+    // 레이아웃(아래/오른쪽)만 바꿀 때도 이미 펼쳐본 정답·풀이가 다시 접히지 않습니다.
+    function renderProblemCard() {
+      const problem = activeProblem;
+      if (!problem) return;
+
+      const hasExtras = !!(problem.answer_text || problem.solution_html);
+      const layoutSwitchHtml = hasExtras ? `
+      <div class="layout-switch" title="정답/풀이를 어디에 보여줄지 선택">
+        <button type="button" class="layout-switch-btn ${problemPanelLayout === 'below' ? 'active' : ''}" onclick="setPanelLayout('below')">⬇️ 아래로</button>
+        <button type="button" class="layout-switch-btn ${problemPanelLayout === 'right' ? 'active' : ''}" onclick="setPanelLayout('right')">➡️ 오른쪽</button>
+      </div>` : '';
+      const fsToggleHtml = `<button type="button" class="fs-toggle-btn" onclick="toggleProblemFullscreen()">${isProblemFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면'}</button>`;
+
+      const answerPanelHtml = problem.answer_text ? `
+      <div class="answer-panel ${answerRevealed ? '' : 'hidden'}" id="answerPanel">
+        <div class="a-label">정답</div>
+        <div id="answerBody">${problem.answer_text}</div>
+      </div>
+      ` : '';
+
+      const solutionPanelHtml = problem.solution_html ? `
+      <div class="solution-panel ${solutionRevealed ? '' : 'hidden'}" id="solutionPanel">
+        <div class="s-label">풀이</div>
+        <div id="solutionBody">${problem.solution_html}</div>
+      </div>
+      ` : '';
+
+      document.getElementById('problemArea').innerHTML = `
+    <div class="problem-card layout-${problemPanelLayout}">
+      <div class="ptag-row">
+        <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          ${layoutSwitchHtml}
+          ${fsToggleHtml}
+        </div>
+      </div>
+      <div class="problem-card-body">
+        <div class="p-main">
+          <div class="ptext">${problem.problem_text}</div>
+          ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
+          ${hasExtras ? `
+          <div class="answer-toggle-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${problem.answer_text ? `<button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">${answerRevealed ? '🙈 정답 숨기기' : '🔑 정답 보기'}</button>` : ''}
+            ${problem.solution_html ? `<button class="btn solution-btn" id="solutionToggleBtn" onclick="toggleSolution()">${solutionRevealed ? '🙈 풀이 숨기기' : '✎ 풀이 보기'}</button>` : ''}
+          </div>
+          ${problemPanelLayout === 'below' ? answerPanelHtml + solutionPanelHtml : ''}
+          ` : ''}
+        </div>
+        ${(hasExtras && problemPanelLayout === 'right') ? `
+        <div class="p-panels">
+          ${answerPanelHtml}
+          ${solutionPanelHtml}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+    }
+
+    // 정답/풀이를 문제 아래에 보여줄지, 오른쪽에 보여줄지 선택합니다. (둘 중 하나만 표시)
+    function setPanelLayout(mode) {
+      if (mode !== 'below' && mode !== 'right') return;
+      problemPanelLayout = mode;
+      localStorage.setItem('problemPanelLayout', mode);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
     }
 
     function toggleAnswer() {
