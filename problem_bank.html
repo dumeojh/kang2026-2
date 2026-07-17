@@ -808,9 +808,12 @@
       const list = document.getElementById('problemList');
       list.innerHTML = '<div class="bank-empty">불러오는 중...</div>';
 
+      // 목록 화면에서는 풀이/기초개념/연습문제 같은 무거운 필드를 쓰지 않으므로
+      // 실제로 쓰는 컬럼 + has_solution/has_concept(내용 유무 플래그)만 가져옵니다.
+      // 풀이·기초개념 실제 내용은 카드를 펼치거나 편집할 때 ensureFullRow()로 그때 받아옵니다.
       const { data, error } = await supabaseClient
         .from('live_problem_bank')
-        .select('*')
+        .select('id, title, category, unit_tag, difficulty, problem_text, problem_image_url, time_limit_seconds, voice_limit_seconds, answer_text, has_solution, has_concept, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -838,6 +841,9 @@
     // 문제 하나 고칠 때마다 1000개 전체를 다시 받아오지 않기 위함입니다.
     function upsertBankRowCache(row) {
       if (!row) return;
+      // 방금 insert/update로 받아온 row는 solution_html 등 전체 컬럼을 이미 다 갖고 있으므로
+      // 다시 편집/펼쳐볼 때 ensureFullRow()가 또 서버에 물어보지 않도록 표시해둡니다.
+      row._fullLoaded = true;
       const idx = bankRows.findIndex(r => r.id === row.id);
       if (idx >= 0) {
         bankRows[idx] = row;
@@ -859,12 +865,47 @@
       updateBankLastLoadedLabel();
     }
 
-    function toggle(id) {
+    // 목록 조회 때는 solution_html/concept_*/practice_* 를 안 받아오므로,
+    // 실제로 풀이·기초개념을 펼치거나 편집할 때만 이 함수로 해당 문제 하나의 무거운 필드를 받아옵니다.
+    // 한 번 받아온 뒤에는 row._fullLoaded = true 로 표시해서 같은 문제를 또 펼쳐도 재요청하지 않습니다.
+    async function ensureFullRow(id) {
+      const row = bankRows.find(r => r.id === id);
+      if (!row) return null;
+      if (row._fullLoaded) return row;
+
+      const { data, error } = await supabaseClient
+        .from('live_problem_bank')
+        .select('solution_html, concept_title, concept_body, practice_statement, practice_answer, practice_solution')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('문제 상세 내용을 불러오지 못했습니다:', error);
+        return row; // 실패해도 이미 있는 정보로는 계속 진행
+      }
+      Object.assign(row, data);
+      row._fullLoaded = true;
+      return row;
+    }
+
+    async function toggle(id) {
       const panel = document.getElementById(id);
       if (!panel) return;
-      if (panel.dataset.kind && panel.dataset.loaded !== 'true') {
+
+      if (!panel.classList.contains('open') && panel.dataset.kind && panel.dataset.loaded !== 'true') {
+        const kind = panel.dataset.kind;
+        // 풀이/기초개념은 무거운 필드라 펼치는 시점에만 서버에서 받아옵니다. (정답은 이미 목록에 있음)
+        if (kind === 'solution' || kind === 'concept') {
+          panel.classList.add('open');
+          panel.innerHTML = '<div class="panel-body">불러오는 중...</div>';
+          await ensureFullRow(Number(panel.dataset.rowId));
+        }
         fillPanelContent(panel);
+        panel.classList.add('open');
+        if (window.MathJax) MathJax.typesetPromise([panel]);
+        return;
       }
+
       panel.classList.toggle('open');
       if (window.MathJax && panel.classList.contains('open')) {
         MathJax.typesetPromise([panel]);
@@ -960,9 +1001,9 @@
         // 빈 껍데기만 만들어둔 뒤, 사용자가 실제로 펼칠 때(toggle 클릭 시) 그 내용만 채웁니다.
         const answerHtml = row.answer_text
           ? `<div class="panel" id="${ansId}" data-row-id="${row.id}" data-kind="answer"></div>` : '';
-        const solutionHtml = row.solution_html
+        const solutionHtml = row.has_solution
           ? `<div class="panel" id="${solId}" data-row-id="${row.id}" data-kind="solution"></div>` : '';
-        const conceptHtml = (row.concept_title || row.concept_body)
+        const conceptHtml = row.has_concept
           ? `<div class="panel" id="${conceptId}" data-row-id="${row.id}" data-kind="concept"></div>` : '';
 
         return `
@@ -980,8 +1021,8 @@
           ${row.problem_image_url ? `<img src="${row.problem_image_url}" alt="문제 그림" style="max-width:100%; max-height:200px; border:1px solid var(--line); border-radius:8px; display:block; margin:8px 0;">` : ''}
           <div class="btn-row">
             ${row.answer_text ? `<button class="reveal-btn answer-btn" onclick="toggle('${ansId}')">🖊 정답 보기</button>` : ''}
-            ${row.solution_html ? `<button class="reveal-btn" onclick="toggle('${solId}')">🖊 풀이 보기</button>` : ''}
-            ${(row.concept_title || row.concept_body) ? `<button class="reveal-btn concept-btn" onclick="toggle('${conceptId}')">📘 기초개념</button>` : ''}
+            ${row.has_solution ? `<button class="reveal-btn" onclick="toggle('${solId}')">🖊 풀이 보기</button>` : ''}
+            ${row.has_concept ? `<button class="reveal-btn concept-btn" onclick="toggle('${conceptId}')">📘 기초개념</button>` : ''}
             <button class="reveal-btn" onclick="openEditor(${row.id})">✏️ 편집</button>
           </div>
           ${answerHtml}
@@ -1027,16 +1068,28 @@
     // 화면 전체를 편집기로 씁니다: 왼쪽은 입력창, 오른쪽은 실시간 미리보기.
     // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
 
-    function openEditor(id, isNew = false) {
+    async function openEditor(id, isNew = false) {
       currentEditId = id;
       editIsNew = isNew;
       editDirty = false;
 
-      const row = isNew ? blankProblem() : bankRows.find(r => r.id === id);
+      let row = isNew ? blankProblem() : bankRows.find(r => r.id === id);
       if (!row) return;
-      editImageUrl = row.problem_image_url || null;
 
       const overlay = document.getElementById('editOverlay');
+
+      // 편집 화면은 풀이/기초개념/연습문제까지 다 채워야 하므로,
+      // 목록 조회에서 빠졌던 무거운 필드를 아직 안 받아왔다면 여기서 먼저 받아옵니다.
+      if (!isNew && !row._fullLoaded) {
+        overlay.innerHTML = '<div class="editor-header"><div class="editor-title">불러오는 중...</div></div>';
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        row = await ensureFullRow(id);
+        if (!row) { closeEditor(); return; }
+      }
+
+      editImageUrl = row.problem_image_url || null;
+
       overlay.innerHTML = `
     <div class="editor-header">
       <div class="editor-title">${isNew ? '📝 새 문제 만들기' : '✏️ 문제 편집'}</div>
