@@ -520,6 +520,15 @@
       color: #5B5F6B;
     }
 
+    .cat-badge.cat-blue { background: #E5EDFF; color: #2C4CBB; }
+    .cat-badge.cat-green { background: #E4F6E9; color: #227A46; }
+    .cat-badge.cat-red { background: #FBE4E1; color: #B5342A; }
+    .cat-badge.cat-purple { background: #EFE6F7; color: #6B3FA0; }
+    .cat-badge.cat-orange { background: #FFF1DA; color: #B4700A; }
+    .cat-badge.cat-teal { background: #DFF4F4; color: #177A7A; }
+    .cat-badge.cat-pink { background: #FBE3F1; color: #B5347E; }
+    .cat-badge.cat-gray { background: #EFEFF2; color: #5B5F6B; }
+
     .bank-list {
       margin-top: 16px;
       max-height: 46vh;
@@ -957,11 +966,7 @@
       <label>제목 (선택 — 은행 목록에서 알아보기 쉽게)</label>
       <input id="newProblemTitle" type="text" placeholder="예: 접선과 정적분 활용">
       <label>분류</label>
-      <select id="newProblemCategory">
-        <option value="수능특강">수능특강</option>
-        <option value="교과서">교과서</option>
-        <option value="기타문제">기타문제</option>
-      </select>
+      <select id="newProblemCategory"></select>
       <label>문제 본문 (LaTeX은 $...$ 로 감싸서 입력)</label>
       <textarea id="newProblemText" rows="4" placeholder="문제를 입력하세요"></textarea>
       <label>제한시간 (분)</label>
@@ -990,10 +995,8 @@
         oninput="onBankSearchInput()">
       <div class="bank-filter-tabs" id="bankFilterTabs">
         <button class="filter-tab active" data-cat="전체" onclick="setBankFilter('전체')">전체</button>
-        <button class="filter-tab" data-cat="수능특강" onclick="setBankFilter('수능특강')">수능특강</button>
-        <button class="filter-tab" data-cat="교과서" onclick="setBankFilter('교과서')">교과서</button>
-        <button class="filter-tab" data-cat="기타문제" onclick="setBankFilter('기타문제')">기타문제</button>
       </div>
+      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.</div>
       <div class="bank-refresh-row"
         style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px;">
         <span id="bankLastLoadedLabel" style="font-size:12px; color:var(--muted, #888);"></span>
@@ -1513,12 +1516,14 @@
 
     let editingBankId = null; // 지금 문제 은행에서 수정 중인 항목의 id (새로 만드는 중이면 null)
 
-    function openNewProblemModal() {
+    async function openNewProblemModal() {
       if (!requireTeacherProfile()) return;
       editingBankId = null;
+      await loadCategories();
       document.getElementById('newProblemModalTitle').textContent = '📝 새 문제 만들기';
       document.getElementById('newProblemTitle').value = '';
-      document.getElementById('newProblemCategory').value = '수능특강';
+      renderNewProblemCategoryOptions();
+      if (categories[0]) document.getElementById('newProblemCategory').value = categories[0].name;
       document.getElementById('newProblemText').value = '';
       document.getElementById('newProblemMinutes').value = 5;
       document.getElementById('newProblemVoiceSeconds').value = 60;
@@ -1638,11 +1643,43 @@
     const BANK_RENDER_STEP = 40;
     let bankRenderLimit = BANK_RENDER_STEP;
     let bankLastLoadedAt = null; // 문제 은행을 마지막으로 서버에서 불러온 시각 (캐시 재사용 판단용)
+    let categories = [];         // problem_categories 테이블 캐시 (분류 종류 자체는 problem_bank.html에서 관리)
+    let categoriesLoadedAt = null;
 
     function categoryBadgeClass(category) {
-      if (category === '수능특강') return 'cat-suneung';
-      if (category === '교과서') return 'cat-textbook';
-      return 'cat-other';
+      const found = categories.find(c => c.name === category);
+      return found ? `cat-${found.color}` : 'cat-gray';
+    }
+
+    // force가 false이고 이미 불러온 적 있으면 재요청하지 않습니다 (분류 종류는 자주 안 바뀌므로).
+    async function loadCategories(force = false) {
+      if (!force && categoriesLoadedAt) return;
+      const { data, error } = await supabaseClient
+        .from('problem_categories')
+        .select('id, name, color, sort_order')
+        .order('sort_order', { ascending: true });
+      if (error) { console.error('분류 목록을 불러오지 못했습니다:', error); return; }
+      categories = data || [];
+      categoriesLoadedAt = Date.now();
+      renderBankFilterTabs();
+      renderNewProblemCategoryOptions();
+    }
+
+    function renderBankFilterTabs() {
+      const wrap = document.getElementById('bankFilterTabs');
+      if (!wrap) return;
+      wrap.innerHTML = [`<button class="filter-tab ${bankFilterCategory === '전체' ? 'active' : ''}" data-cat="전체" onclick="setBankFilter('전체')">전체</button>`]
+        .concat(categories.map(c => `
+          <button class="filter-tab ${bankFilterCategory === c.name ? 'active' : ''}" data-cat="${c.name}" onclick="setBankFilter('${c.name.replace(/'/g, "\\'")}')">${escapeHtml(c.name)}</button>
+        `)).join('');
+    }
+
+    function renderNewProblemCategoryOptions() {
+      const select = document.getElementById('newProblemCategory');
+      if (!select) return;
+      const current = select.value;
+      select.innerHTML = categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+      if (categories.some(c => c.name === current)) select.value = current;
     }
 
     function difficultyLabel(d) {
@@ -1756,15 +1793,14 @@
     }
 
 
-    function openBankModal() {
+    async function openBankModal() {
       bankFilterCategory = '전체';
       bankSearchKeyword = '';
       bankRenderLimit = BANK_RENDER_STEP;
       const searchInput = document.getElementById('bankSearchInput');
       if (searchInput) searchInput.value = '';
-      document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.cat === '전체');
-      });
+      await loadCategories();
+      renderBankFilterTabs();
       loadBank();
       document.getElementById('bankModal').classList.remove('hidden');
     }
