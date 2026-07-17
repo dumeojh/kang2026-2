@@ -34,6 +34,22 @@
       --cat-textbook-bg: #E4F6E9;
       --cat-other: #5B5F6B;
       --cat-other-bg: #EFEFF2;
+      --cat-blue: #2C4CBB;
+      --cat-blue-bg: #E5EDFF;
+      --cat-green: #227A46;
+      --cat-green-bg: #E4F6E9;
+      --cat-red: #B5342A;
+      --cat-red-bg: #FBE4E1;
+      --cat-purple: #6B3FA0;
+      --cat-purple-bg: #EFE6F7;
+      --cat-orange: #B4700A;
+      --cat-orange-bg: #FFF1DA;
+      --cat-teal: #177A7A;
+      --cat-teal-bg: #DFF4F4;
+      --cat-pink: #B5347E;
+      --cat-pink-bg: #FBE3F1;
+      --cat-gray: #5B5F6B;
+      --cat-gray-bg: #EFEFF2;
     }
 
     * {
@@ -241,6 +257,140 @@
     .cat-badge.unit-badge {
       background: #EEF1F6;
       color: var(--ink-soft);
+    }
+
+    .cat-badge.cat-blue { background: var(--cat-blue-bg); color: var(--cat-blue); }
+    .cat-badge.cat-green { background: var(--cat-green-bg); color: var(--cat-green); }
+    .cat-badge.cat-red { background: var(--cat-red-bg); color: var(--cat-red); }
+    .cat-badge.cat-purple { background: var(--cat-purple-bg); color: var(--cat-purple); }
+    .cat-badge.cat-orange { background: var(--cat-orange-bg); color: var(--cat-orange); }
+    .cat-badge.cat-teal { background: var(--cat-teal-bg); color: var(--cat-teal); }
+    .cat-badge.cat-pink { background: var(--cat-pink-bg); color: var(--cat-pink); }
+    .cat-badge.cat-gray { background: var(--cat-gray-bg); color: var(--cat-gray); }
+
+    /* ---------------- 분류 관리 모달 ---------------- */
+    .cat-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      background: rgba(27, 58, 92, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .cat-modal-overlay.hidden {
+      display: none;
+    }
+
+    .cat-modal {
+      background: var(--paper);
+      border-radius: 10px;
+      max-width: 460px;
+      width: 100%;
+      max-height: 84vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px -12px rgba(27, 58, 92, 0.5);
+      padding: 24px 26px 26px;
+    }
+
+    .cat-modal h2 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 19px;
+      margin: 0 0 4px;
+    }
+
+    .cat-modal .cat-modal-sub {
+      font-size: 12.5px;
+      color: var(--slate);
+      margin: 0 0 18px;
+    }
+
+    .cat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .cat-row .swatch-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(27, 58, 92, 0.15);
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+    }
+
+    .cat-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13.5px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(27, 58, 92, 0.2);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .cat-row input[type="text"]:focus {
+      outline: none;
+      border-color: var(--ink-soft);
+    }
+
+    .cat-row .cat-count {
+      font-size: 11.5px;
+      color: var(--slate);
+      white-space: nowrap;
+      min-width: 44px;
+      text-align: right;
+    }
+
+    .cat-row .icon-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      color: var(--slate);
+      line-height: 1;
+    }
+
+    .cat-row .icon-btn:hover {
+      background: rgba(27, 58, 92, 0.08);
+    }
+
+    .cat-row .icon-btn.danger-icon:hover {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .cat-add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .cat-add-row input[type="text"] {
+      flex: 1;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13.5px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: 1.5px dashed rgba(27, 58, 92, 0.3);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .cat-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
     }
 
     .cat-badge.diff-하 {
@@ -674,6 +824,7 @@
 
     <div class="toolbar">
       <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="onSearchInput()">
+      <button class="util-btn" onclick="openCategoryModal()">⚙️ 분류 관리</button>
       <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
     </div>
 
@@ -685,9 +836,6 @@
 
     <div class="filter-tabs" id="filterTabs">
       <button class="filter-tab active" data-cat="전체" onclick="setFilter('전체')">전체</button>
-      <button class="filter-tab" data-cat="수능특강" onclick="setFilter('수능특강')">수능특강</button>
-      <button class="filter-tab" data-cat="교과서" onclick="setFilter('교과서')">교과서</button>
-      <button class="filter-tab" data-cat="기타문제" onclick="setFilter('기타문제')">기타문제</button>
     </div>
 
     <div class="unit-filter-tabs hidden" id="unitFilterTabs"></div>
@@ -703,6 +851,21 @@
     </footer>
   </div>
 
+  <div id="categoryModalOverlay" class="cat-modal-overlay hidden" onclick="if(event.target===this) closeCategoryModal()">
+    <div class="cat-modal">
+      <h2>⚙️ 분류 관리</h2>
+      <p class="cat-modal-sub">색상 동그라미를 누르면 색이 바뀌고, 이름은 바로 고쳐 쓸 수 있어요. 문제가 남아있는 분류를 삭제하면 다른 분류로 옮길지 물어봅니다.</p>
+      <div id="categoryModalBody"></div>
+      <div class="cat-add-row">
+        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등" onkeydown="if(event.key==='Enter') handleAddCategory()">
+        <button class="util-btn primary" onclick="handleAddCategory()">＋ 추가</button>
+      </div>
+      <div class="cat-modal-footer">
+        <button class="util-btn" onclick="closeCategoryModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
@@ -710,6 +873,8 @@
 
     let bankRows = [];              // Supabase에서 불러온 문제 목록
     let bankLastLoadedAt = null;    // 마지막으로 서버에서 전체 목록을 불러온 시각
+    let categories = [];            // problem_categories 테이블에서 불러온 분류 목록 ({id,name,color,sort_order})
+    const CAT_COLORS = ['blue', 'green', 'red', 'purple', 'orange', 'teal', 'pink', 'gray'];
     let filterCategory = '전체';
     let filterUnit = '전체';        // 단원 필터 (실제 존재하는 단원들로 자동 생성됨)
     const RENDER_STEP = 40;         // 한 번에 화면에 그리는 카드 수 (문항이 많아져도 버벅이지 않도록)
@@ -740,15 +905,209 @@
     }
 
     function categoryBadgeClass(category) {
-      if (category === '수능특강') return 'cat-suneung';
-      if (category === '교과서') return 'cat-textbook';
-      return 'cat-other';
+      const found = categories.find(c => c.name === category);
+      return found ? `cat-${found.color}` : 'cat-gray';
     }
 
     function difficultyLabel(d) {
       if (d === '하') return '🟢 하';
       if (d === '상') return '🔴 상';
       return '🟡 중';
+    }
+
+    // ---------------- [분류(카테고리) 관리] ----------------
+    // 분류 목록은 problem_categories 테이블에서 불러오며, 여기서 추가/이름변경/색상변경/삭제를 관리합니다.
+    // 문제(live_problem_bank)의 category 컬럼은 여전히 텍스트라서, 분류 이름을 바꾸거나 삭제할 때
+    // 그 분류를 쓰고 있던 문제들의 category 값도 함께 맞춰줍니다.
+
+    async function loadCategories() {
+      const { data, error } = await supabaseClient
+        .from('problem_categories')
+        .select('id, name, color, sort_order')
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('분류 목록을 불러오지 못했습니다:', error);
+        categories = [];
+        return;
+      }
+      categories = data || [];
+    }
+
+    function renderCategoryFilterTabs() {
+      const wrap = document.getElementById('filterTabs');
+      if (!wrap) return;
+      wrap.innerHTML = [`<button class="filter-tab ${filterCategory === '전체' ? 'active' : ''}" data-cat="전체" onclick="setFilter('전체')">전체</button>`]
+        .concat(categories.map(c => `
+          <button class="filter-tab ${filterCategory === c.name ? 'active' : ''}" data-cat="${esc(c.name)}" onclick="setFilter('${c.name.replace(/'/g, "\\'")}')">${esc(c.name)}</button>
+        `)).join('');
+    }
+
+    function categoryCount(name) {
+      return bankRows.filter(r => (r.category || '기타문제') === name).length;
+    }
+
+    function openCategoryModal() {
+      renderCategoryModalBody();
+      document.getElementById('categoryModalOverlay').classList.remove('hidden');
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('categoryModalOverlay').classList.add('hidden');
+    }
+
+    function renderCategoryModalBody() {
+      const body = document.getElementById('categoryModalBody');
+      if (!body) return;
+      if (categories.length === 0) {
+        body.innerHTML = '<p class="edit-hint" style="margin:0 0 4px;">아직 등록된 분류가 없습니다. 아래에서 추가해보세요.</p>';
+        return;
+      }
+      body.innerHTML = categories.map((c, idx) => `
+        <div class="cat-row">
+          <button type="button" class="swatch-btn cat-badge cat-${c.color}" style="background:var(--cat-${c.color});" title="색상 바꾸기" onclick="handleCycleColor(${c.id})"></button>
+          <input type="text" value="${esc(c.name)}" onchange="handleRenameCategory(${c.id}, this.value)">
+          <span class="cat-count">${categoryCount(c.name)}개</span>
+          <button type="button" class="icon-btn" title="위로" ${idx === 0 ? 'disabled style="opacity:.3;cursor:default;"' : `onclick="handleMoveCategory(${c.id}, -1)"`}>▲</button>
+          <button type="button" class="icon-btn" title="아래로" ${idx === categories.length - 1 ? 'disabled style="opacity:.3;cursor:default;"' : `onclick="handleMoveCategory(${c.id}, 1)"`}>▼</button>
+          <button type="button" class="icon-btn danger-icon" title="삭제" onclick="handleDeleteCategory(${c.id})">🗑</button>
+        </div>
+      `).join('');
+    }
+
+    async function handleAddCategory() {
+      const input = document.getElementById('newCategoryInput');
+      const name = input.value.trim();
+      if (!name) return;
+      if (categories.some(c => c.name === name)) { alert('이미 있는 분류 이름입니다.'); return; }
+
+      const color = CAT_COLORS[categories.length % CAT_COLORS.length];
+      const sortOrder = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order)) + 1 : 1;
+
+      const { data, error } = await supabaseClient
+        .from('problem_categories')
+        .insert([{ name, color, sort_order: sortOrder }])
+        .select().single();
+
+      if (error) { alert('분류 추가 중 오류가 발생했습니다: ' + error.message); return; }
+      categories.push(data);
+      input.value = '';
+      renderCategoryModalBody();
+      renderCategoryFilterTabs();
+      refreshCategorySelectOptions();
+    }
+
+    async function handleCycleColor(id) {
+      const cat = categories.find(c => c.id === id);
+      if (!cat) return;
+      const nextIdx = (CAT_COLORS.indexOf(cat.color) + 1) % CAT_COLORS.length;
+      const nextColor = CAT_COLORS[nextIdx];
+
+      const { error } = await supabaseClient.from('problem_categories').update({ color: nextColor }).eq('id', id);
+      if (error) { alert('색상 변경 중 오류가 발생했습니다: ' + error.message); return; }
+      cat.color = nextColor;
+      renderCategoryModalBody();
+      renderList();
+    }
+
+    async function handleRenameCategory(id, newNameRaw) {
+      const newName = newNameRaw.trim();
+      const cat = categories.find(c => c.id === id);
+      if (!cat) return;
+      if (!newName || newName === cat.name) { renderCategoryModalBody(); return; }
+      if (categories.some(c => c.id !== id && c.name === newName)) {
+        alert('이미 있는 분류 이름입니다.');
+        renderCategoryModalBody();
+        return;
+      }
+
+      const oldName = cat.name;
+      const { error } = await supabaseClient.from('problem_categories').update({ name: newName }).eq('id', id);
+      if (error) { alert('이름 변경 중 오류가 발생했습니다: ' + error.message); renderCategoryModalBody(); return; }
+
+      // 이 분류를 쓰고 있던 기존 문제들도 새 이름으로 함께 맞춰줍니다.
+      const affectedIds = bankRows.filter(r => (r.category || '기타문제') === oldName).map(r => r.id);
+      if (affectedIds.length > 0) {
+        const { error: bulkError } = await supabaseClient.from('live_problem_bank').update({ category: newName }).in('id', affectedIds);
+        if (bulkError) {
+          alert('분류 이름은 바뀌었지만, 기존 문제들에는 반영하지 못했습니다: ' + bulkError.message);
+        } else {
+          bankRows.forEach(r => { if ((r.category || '기타문제') === oldName) r.category = newName; });
+        }
+      }
+
+      cat.name = newName;
+      renderCategoryModalBody();
+      renderCategoryFilterTabs();
+      refreshCategorySelectOptions();
+      renderList();
+    }
+
+    async function handleMoveCategory(id, dir) {
+      const idx = categories.findIndex(c => c.id === id);
+      const swapIdx = idx + dir;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= categories.length) return;
+
+      const a = categories[idx], b = categories[swapIdx];
+      const [aOrder, bOrder] = [a.sort_order, b.sort_order];
+
+      const { error: errA } = await supabaseClient.from('problem_categories').update({ sort_order: bOrder }).eq('id', a.id);
+      const { error: errB } = await supabaseClient.from('problem_categories').update({ sort_order: aOrder }).eq('id', b.id);
+      if (errA || errB) { alert('순서 변경 중 오류가 발생했습니다: ' + ((errA || errB).message)); return; }
+
+      a.sort_order = bOrder;
+      b.sort_order = aOrder;
+      categories.sort((x, y) => x.sort_order - y.sort_order);
+      renderCategoryModalBody();
+      renderCategoryFilterTabs();
+    }
+
+    async function handleDeleteCategory(id) {
+      const cat = categories.find(c => c.id === id);
+      if (!cat) return;
+      const count = categoryCount(cat.name);
+
+      let targetName = null;
+      if (count > 0) {
+        const others = categories.filter(c => c.id !== id);
+        if (others.length === 0) {
+          alert(`"${cat.name}" 분류를 쓰는 문제가 ${count}개 있는데, 옮길 다른 분류가 없습니다. 먼저 새 분류를 하나 더 만들어주세요.`);
+          return;
+        }
+        const optionsText = others.map((c, i) => `${i + 1}. ${c.name}`).join('\n');
+        const answer = prompt(`"${cat.name}" 분류에 문제 ${count}개가 있습니다.\n삭제하면 아래 중 어디로 옮길지 번호를 입력해주세요. (취소하면 삭제하지 않습니다)\n\n${optionsText}`);
+        if (answer === null) return;
+        const pick = others[parseInt(answer, 10) - 1];
+        if (!pick) { alert('잘못된 번호입니다. 다시 시도해주세요.'); return; }
+        targetName = pick.name;
+      } else {
+        if (!confirm(`"${cat.name}" 분류를 삭제할까요?`)) return;
+      }
+
+      if (targetName) {
+        const affectedIds = bankRows.filter(r => (r.category || '기타문제') === cat.name).map(r => r.id);
+        const { error: bulkError } = await supabaseClient.from('live_problem_bank').update({ category: targetName }).in('id', affectedIds);
+        if (bulkError) { alert('문제들을 옮기는 중 오류가 발생했습니다: ' + bulkError.message); return; }
+        bankRows.forEach(r => { if ((r.category || '기타문제') === cat.name) r.category = targetName; });
+      }
+
+      const { error } = await supabaseClient.from('problem_categories').delete().eq('id', id);
+      if (error) { alert('분류 삭제 중 오류가 발생했습니다: ' + error.message); return; }
+
+      categories = categories.filter(c => c.id !== id);
+      if (filterCategory === cat.name) filterCategory = '전체';
+      renderCategoryModalBody();
+      renderCategoryFilterTabs();
+      refreshCategorySelectOptions();
+      renderList();
+    }
+
+    // 편집기가 열려있는 동안 분류를 추가/변경했을 수도 있으니, 열려있는 편집기의 분류 드롭다운도 갱신합니다.
+    function refreshCategorySelectOptions() {
+      const select = document.querySelector('#editOverlay [data-field="category"]');
+      if (!select) return;
+      const current = select.value;
+      select.innerHTML = categories.map(c => `<option value="${esc(c.name)}" ${c.name === current ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
     }
 
     function setFilter(cat) {
@@ -811,10 +1170,13 @@
       // 목록 화면에서는 풀이/기초개념/연습문제 같은 무거운 필드를 쓰지 않으므로
       // 실제로 쓰는 컬럼 + has_solution/has_concept(내용 유무 플래그)만 가져옵니다.
       // 풀이·기초개념 실제 내용은 카드를 펼치거나 편집할 때 ensureFullRow()로 그때 받아옵니다.
-      const { data, error } = await supabaseClient
-        .from('live_problem_bank')
-        .select('id, title, category, unit_tag, difficulty, problem_text, problem_image_url, time_limit_seconds, voice_limit_seconds, answer_text, has_solution, has_concept, created_at')
-        .order('created_at', { ascending: false });
+      const [{ data, error }] = await Promise.all([
+        supabaseClient
+          .from('live_problem_bank')
+          .select('id, title, category, unit_tag, difficulty, problem_text, problem_image_url, time_limit_seconds, voice_limit_seconds, answer_text, has_solution, has_concept, created_at')
+          .order('created_at', { ascending: false }),
+        loadCategories()
+      ]);
 
       if (error) {
         list.innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${esc(error.message)}</div>`;
@@ -823,6 +1185,7 @@
       bankRows = data || [];
       bankLastLoadedAt = Date.now();
       renderLimit = RENDER_STEP;
+      renderCategoryFilterTabs();
       renderUnitFilterTabs();
       refreshUnitTagOptions();
       renderList();
@@ -1043,7 +1406,7 @@
     function blankProblem() {
       return {
         title: '',
-        category: '수능특강',
+        category: (categories[0] && categories[0].name) || '기타문제',
         problem_text: '',
         problem_image_url: null,
         unit_tag: '',
@@ -1261,11 +1624,11 @@
     <div class="edit-field">
       <label>분류</label>
       <select data-field="category" onchange="schedulePreview()">
-        <option value="수능특강" ${row.category === '수능특강' ? 'selected' : ''}>수능특강</option>
-        <option value="교과서" ${row.category === '교과서' ? 'selected' : ''}>교과서</option>
-        <option value="기타문제" ${(!row.category || row.category === '기타문제') ? 'selected' : ''}>기타문제</option>
+        ${categories.map(c => `<option value="${esc(c.name)}" ${row.category === c.name ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+        ${(row.category && !categories.some(c => c.name === row.category)) ? `<option value="${esc(row.category)}" selected>${esc(row.category)} (삭제됨)</option>` : ''}
       </select>
     </div>
+    <div class="edit-hint">분류 종류 자체를 추가/삭제하려면 목록 화면의 "⚙️ 분류 관리" 버튼을 이용하세요.</div>
 
     <div class="edit-two-col">
       <div class="edit-field">
