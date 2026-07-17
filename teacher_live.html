@@ -319,7 +319,7 @@
     }
 
     .problem-card .ptext {
-      font-size: 19px;
+      font-size: calc(19px * var(--fscale, 1));
       line-height: 1.7;
     }
 
@@ -425,7 +425,7 @@
 
     #problemArea:fullscreen .ptext,
     #problemArea:-webkit-full-screen .ptext {
-      font-size: 46px;
+      font-size: calc(46px * var(--fscale, 1));
       line-height: 1.6;
     }
 
@@ -442,7 +442,7 @@
     #problemArea:fullscreen .solution-panel,
     #problemArea:-webkit-full-screen .answer-panel,
     #problemArea:-webkit-full-screen .solution-panel {
-      font-size: 34px;
+      font-size: calc(34px * var(--fscale, 1));
       line-height: 1.6;
     }
 
@@ -486,6 +486,44 @@
       background: var(--ink);
       border-color: var(--ink);
       color: #fff;
+    }
+
+    .font-scale-control {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--bg, #F3F1EA);
+      border-radius: 999px;
+      padding: 3px;
+    }
+
+    .font-scale-control button {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .font-scale-control button:hover {
+      background: var(--card);
+      color: var(--ink);
+    }
+
+    .font-scale-control .font-scale-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      min-width: 34px;
+      text-align: center;
+      cursor: pointer;
     }
 
     .no-problem {
@@ -800,7 +838,7 @@
       border: 1.5px dashed var(--gold);
       border-radius: 12px;
       padding: 14px 18px;
-      font-size: 16px;
+      font-size: calc(16px * var(--fscale, 1));
       line-height: 1.6;
     }
 
@@ -856,7 +894,7 @@
       border: 1.5px dashed var(--brand);
       border-radius: 12px;
       padding: 14px 18px;
-      font-size: 16px;
+      font-size: calc(16px * var(--fscale, 1));
       line-height: 1.6;
       white-space: pre-wrap;
     }
@@ -1320,6 +1358,7 @@
     let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
     let solutionRevealed = false; // "풀이 보기"를 눌렀는지
     let problemPanelLayout = localStorage.getItem('problemPanelLayout') || 'below'; // 정답/풀이를 문제 '아래'에 보여줄지 '오른쪽'에 보여줄지
+    let problemFontScale = parseFloat(localStorage.getItem('problemFontScale')) || 1; // 문제/정답/풀이 글씨 크기 배율 (1 = 100%)
 
     // ---------------- [제출 명단 숨기기] ----------------
     // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
@@ -1602,6 +1641,12 @@
         <button type="button" class="layout-switch-btn ${problemPanelLayout === 'right' ? 'active' : ''}" onclick="setPanelLayout('right')">➡️ 오른쪽</button>
       </div>` : '';
       const fsToggleHtml = `<button type="button" class="fs-toggle-btn" onclick="toggleProblemFullscreen()">${isProblemFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면'}</button>`;
+      const fontScaleHtml = `
+      <div class="font-scale-control" title="문제/정답/풀이 글씨 크기 조절">
+        <button type="button" onclick="adjustFontScale(-0.1)">가⁻</button>
+        <span class="font-scale-label" onclick="resetFontScale()" title="눌러서 100%로 초기화">${Math.round(problemFontScale * 100)}%</span>
+        <button type="button" onclick="adjustFontScale(0.1)">가⁺</button>
+      </div>`;
 
       const answerPanelHtml = problem.answer_text ? `
       <div class="answer-panel ${answerRevealed ? '' : 'hidden'}" id="answerPanel">
@@ -1622,6 +1667,7 @@
       <div class="ptag-row">
         <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          ${fontScaleHtml}
           ${layoutSwitchHtml}
           ${fsToggleHtml}
         </div>
@@ -1647,6 +1693,22 @@
       </div>
     </div>
   `;
+      document.getElementById('problemArea').style.setProperty('--fscale', problemFontScale);
+    }
+
+    // 문제/정답/풀이 글씨 크기를 조절합니다. (0.6배 ~ 1.8배, 화면에 넘칠 때 줄여서 다 보이게)
+    function adjustFontScale(delta) {
+      problemFontScale = Math.min(1.8, Math.max(0.6, Math.round((problemFontScale + delta) * 10) / 10));
+      localStorage.setItem('problemFontScale', problemFontScale);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
+    }
+
+    function resetFontScale() {
+      problemFontScale = 1;
+      localStorage.setItem('problemFontScale', problemFontScale);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
     }
 
     // 정답/풀이를 문제 아래에 보여줄지, 오른쪽에 보여줄지 선택합니다. (둘 중 하나만 표시)
