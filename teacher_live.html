@@ -1696,9 +1696,9 @@
       document.getElementById('problemArea').style.setProperty('--fscale', problemFontScale);
     }
 
-    // 문제/정답/풀이 글씨 크기를 조절합니다. (0.6배 ~ 1.8배, 화면에 넘칠 때 줄여서 다 보이게)
+    // 문제/정답/풀이 글씨 크기를 조절합니다. (0.4배 ~ 1.8배, 화면에 넘칠 때 줄여서 다 보이게)
     function adjustFontScale(delta) {
-      problemFontScale = Math.min(1.8, Math.max(0.6, Math.round((problemFontScale + delta) * 10) / 10));
+      problemFontScale = Math.min(1.8, Math.max(0.4, Math.round((problemFontScale + delta) * 10) / 10));
       localStorage.setItem('problemFontScale', problemFontScale);
       renderProblemCard();
       if (window.MathJax) MathJax.typesetPromise();
