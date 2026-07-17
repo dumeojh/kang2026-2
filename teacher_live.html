@@ -402,7 +402,7 @@
     #problemArea:-webkit-full-screen {
       width: 100%;
       height: 100%;
-      padding: 48px 64px;
+      padding: 28px 40px;
       overflow-y: auto;
       background: var(--bg, #F3F1EA);
       display: block;
@@ -410,31 +410,63 @@
 
     #problemArea:fullscreen .problem-card,
     #problemArea:-webkit-full-screen .problem-card {
-      max-width: 1100px;
-      margin: 0 auto;
+      max-width: none;
+      width: 100%;
+      margin: 0;
+      min-height: calc(100vh - 56px);
+      display: flex;
+      flex-direction: column;
     }
 
     #problemArea:fullscreen .ptag,
     #problemArea:-webkit-full-screen .ptag {
-      font-size: 14px;
+      font-size: 17px;
     }
 
     #problemArea:fullscreen .ptext,
     #problemArea:-webkit-full-screen .ptext {
-      font-size: 30px;
+      font-size: 46px;
+      line-height: 1.6;
+    }
+
+    #problemArea:fullscreen .ptext img,
+    #problemArea:-webkit-full-screen .ptext img,
+    #problemArea:fullscreen .p-main>img,
+    #problemArea:-webkit-full-screen .p-main>img {
+      max-width: 100%;
+      max-height: 60vh;
+      width: auto;
     }
 
     #problemArea:fullscreen .answer-panel,
     #problemArea:fullscreen .solution-panel,
     #problemArea:-webkit-full-screen .answer-panel,
     #problemArea:-webkit-full-screen .solution-panel {
-      font-size: 22px;
+      font-size: 34px;
+      line-height: 1.6;
     }
 
-    #problemArea:fullscreen .btn,
-    #problemArea:-webkit-full-screen .btn {
-      font-size: 15px;
-      padding: 11px 20px;
+    #problemArea:fullscreen .answer-panel .a-label,
+    #problemArea:fullscreen .solution-panel .s-label,
+    #problemArea:-webkit-full-screen .answer-panel .a-label,
+    #problemArea:-webkit-full-screen .solution-panel .s-label {
+      font-size: 18px;
+    }
+
+    #problemArea:fullscreen .answer-toggle-row .btn,
+    #problemArea:-webkit-full-screen .answer-toggle-row .btn {
+      font-size: 19px;
+      padding: 15px 26px;
+    }
+
+    #problemArea:fullscreen .problem-card-body,
+    #problemArea:-webkit-full-screen .problem-card-body {
+      flex: 1;
+    }
+
+    #problemArea:fullscreen .problem-card.layout-right .problem-card-body,
+    #problemArea:-webkit-full-screen .problem-card.layout-right .problem-card-body {
+      align-items: stretch;
     }
 
     .fs-toggle-btn {
@@ -1105,6 +1137,8 @@
           숨기기</button>
         <button class="btn" id="problemFsBtn" onclick="toggleProblemFullscreen()" title="문제를 화면 가득 크게 보여줍니다">🖥 문제
           전체화면</button>
+        <button class="btn" id="appFsBtn" onclick="toggleAppFullscreen()" title="화면 전체(주소창 포함)를 꽉 채워 사용합니다">⛶ 전체화면
+          사용하기</button>
         <h1 id="problemLabel">오늘의 문제</h1>
         <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
@@ -1293,9 +1327,18 @@
     const SIDEBAR_COLLAPSED_KEY = 'liveSidebarCollapsed';
 
     // ---------------- [문제 전체화면 모드] ----------------
+    function getFsElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
     function isProblemFullscreen() {
-      const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+      const fsEl = getFsElement();
       return !!fsEl && fsEl.id === 'problemArea';
+    }
+
+    function isAppFullscreen() {
+      const fsEl = getFsElement();
+      return !!fsEl && fsEl === document.documentElement;
     }
 
     function requestFS(el) {
@@ -1318,7 +1361,22 @@
         if (isProblemFullscreen()) {
           await exitFS();
         } else {
+          if (getFsElement()) await exitFS(); // 앱 전체화면 중이었다면 먼저 빠져나온 뒤 문제만 전체화면으로 전환
           await requestFS(document.getElementById('problemArea'));
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
+      }
+    }
+
+    // 주소창까지 가리고 화면 전체(앱 전체 화면)를 태블릿 앱처럼 사용하고 싶을 때 씁니다.
+    async function toggleAppFullscreen() {
+      try {
+        if (isAppFullscreen()) {
+          await exitFS();
+        } else {
+          if (getFsElement()) await exitFS(); // 문제 전체화면 중이었다면 먼저 빠져나온 뒤 앱 전체를 전체화면으로 전환
+          await requestFS(document.documentElement);
         }
       } catch (e) {
         alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
@@ -1328,6 +1386,8 @@
     function updateProblemFsBtn() {
       const btn = document.getElementById('problemFsBtn');
       if (btn) btn.textContent = isProblemFullscreen() ? '↙️ 전체화면 종료' : '🖥 문제 전체화면';
+      const appBtn = document.getElementById('appFsBtn');
+      if (appBtn) appBtn.textContent = isAppFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면 사용하기';
       // 전체화면 카드 안쪽의 ⛶ 버튼 라벨도 함께 맞춰줍니다 (내용은 그대로, 라벨만 갱신).
       if (activeProblem) renderProblemCard();
     }
