@@ -78,24 +78,36 @@
       position: sticky;
       top: 0;
       z-index: 400;
-      margin-bottom: 32px;
-      padding: 20px 0 22px;
+      margin-bottom: 18px;
+      padding: 14px 0;
       background-color: var(--paper);
       background-image:
         linear-gradient(var(--line) 1px, transparent 1px),
         linear-gradient(90deg, var(--line) 1px, transparent 1px);
       background-size: 28px 28px;
       border-bottom: 2px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .page-head-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .back-btn {
-      margin-bottom: 14px;
+      white-space: nowrap;
     }
 
     .eyebrow {
-      font-size: 12px;
+      font-size: 10.5px;
       font-weight: 900;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.14em;
       color: var(--red);
       text-transform: uppercase;
     }
@@ -103,19 +115,10 @@
     h1 {
       font-family: 'Noto Serif KR', serif;
       font-weight: 700;
-      font-size: 34px;
-      margin: 6px 0 8px;
-      letter-spacing: -0.01em;
-    }
-
-    .page-head p {
+      font-size: 20px;
       margin: 0;
-      color: var(--slate);
-      font-size: 14.5px;
-    }
-
-    .page-head p b {
-      color: var(--ink);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
     }
 
     .toolbar {
@@ -123,7 +126,9 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
+      flex: 1;
+      min-width: 280px;
+      justify-content: flex-end;
     }
 
     .search-input {
@@ -984,18 +989,20 @@
 
   <div class="wrap">
     <header class="page-head">
-      <button type="button" class="util-btn back-btn" onclick="goBackToTeacher()">🔙 교사 화면으로 돌아가기</button>
-      <div class="eyebrow">LIVE QUIZ PROBLEM BANK</div>
-      <h1>📚 문제 은행 관리</h1>
-      <p>여기서 만들고 정리한 문제는 <b>교사 화면(teacher_live.html)</b>의 "문제 은행 · 출제하기"에서 골라 바로 출제할 수 있어요.</p>
+      <div class="page-head-title">
+        <button type="button" class="util-btn back-btn" onclick="goBackToTeacher()">🔙 교사 화면으로</button>
+        <h1 title="여기서 만들고 정리한 문제는 교사 화면(teacher_live.html)의 &quot;문제 은행 · 출제하기&quot;에서 골라 바로 출제할 수 있어요.">📚 문제 은행 관리
+        </h1>
+        <span class="eyebrow">LIVE QUIZ PROBLEM BANK</span>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색"
+          oninput="onSearchInput()">
+        <button class="util-btn" onclick="toggleAppFullscreen()" id="pbFsBtn">⛶ 전체화면</button>
+        <button class="util-btn" onclick="openCategoryModal()">⚙️ 분류 관리</button>
+        <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
+      </div>
     </header>
-
-    <div class="toolbar">
-      <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="onSearchInput()">
-      <button class="util-btn" onclick="toggleAppFullscreen()" id="pbFsBtn">⛶ 전체화면</button>
-      <button class="util-btn" onclick="openCategoryModal()">⚙️ 분류 관리</button>
-      <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
-    </div>
 
     <div class="bank-refresh-row"
       style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
