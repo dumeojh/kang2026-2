@@ -4,6 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <title>사건 관계도 분석</title>
+
+    <!-- 🟢 다방향 네트워크 그래프를 그리기 위한 라이브러리 추가 -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -118,7 +123,6 @@
             color: white;
         }
 
-        /* 🟢 정렬 가능한 헤더 스타일 추가 */
         th.sortable {
             cursor: pointer;
             user-select: none;
@@ -195,89 +199,16 @@
             transform: scale(1.05);
         }
 
-        .tree-layout {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            padding: 30px;
+        /* 네트워크 그래프를 띄울 컨테이너 (기존 tree-layout 대체) */
+        #network-container {
+            width: 100%;
+            height: 600px;
             background-color: #f0f4f8;
             border-radius: 12px;
-            overflow-x: auto;
-        }
-
-        .tree-root {
-            background-color: #2196F3;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 18px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-            z-index: 2;
-            text-align: center;
-        }
-
-        .tree-root-desc {
-            font-size: 13px;
-            font-weight: normal;
-            color: #E3F2FD;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #64B5F6;
-            max-width: 300px;
-            line-height: 1.4;
-        }
-
-        .tree-down-arrow {
-            font-size: 28px;
-            color: #90A4AE;
-            margin: 10px 0;
-        }
-
-        .tree-branches {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-        }
-
-        .tree-path {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: white;
-            padding: 20px;
-            border: 2px dashed #B0BEC5;
-            border-radius: 12px;
-            min-width: 120px;
-        }
-
-        .tree-node {
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            background-color: white;
-            font-weight: bold;
-            text-align: center;
-            width: 100%;
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .tree-company {
-            border: 2px solid #FF9800;
-            background-color: #FFF3E0;
-            color: #E65100;
-            margin-bottom: 0;
-        }
-
-        .path-arrow {
-            font-size: 20px;
-            color: #B0BEC5;
-            margin-bottom: 10px;
+            border: 2px solid #CFD8DC;
+            margin-top: 20px;
         }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -331,18 +262,20 @@
     <!-- 2. 기초회사 탭 -->
     <div id="company-tab" class="tab-content">
         <h3>저장된 관련 회사 목록</h3>
-        <p>데이터베이스에 등록된 전체 회사 리스트입니다. (중복 제외)</p>
         <div id="company-display"></div>
     </div>
 
     <!-- 3. 발생사건 탭 -->
     <div id="occurred-tab" class="tab-content">
-        <h3>사건 관계도 분석 (2D 시각화 & 빈도별 강조)</h3>
+        <h3>사건 관계도 분석 (다방향 네트워크 그래프)</h3>
+        <p>마우스 휠로 확대/축소하거나 상자를 드래그해서 위치를 조정할 수 있습니다.</p>
         <div class="input-group">
             <label>기초사건 검색</label>
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
         </div>
-        <button class="search-btn" onclick="searchData()">2D 관계도 보기</button>
+        <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
+
+        <!-- 네트워크 그래프가 그려질 영역 -->
         <div id="result-display"></div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
@@ -366,8 +299,6 @@
 
         let currentEditId = null;
         let currentDataList = [];
-
-        // 🟢 정렬 상태를 관리하는 변수 (기본은 최신 등록 순서: id 내림차순)
         let sortConfig = { key: 'id', direction: 'desc' };
 
         function openTab(tabId, btnElement) {
@@ -387,10 +318,7 @@
             const link4 = document.getElementById('link-event-4').value.trim();
             const company = document.getElementById('related-company').value.trim();
 
-            if (!root) {
-                alert("기초사건은 반드시 입력해야 합니다.");
-                return;
-            }
+            if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
 
             const payload = {
                 root_event: root, root_desc: rootDesc, link_1: link1, link_2: link2,
@@ -399,25 +327,14 @@
 
             if (currentEditId) {
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
-                if (error) {
-                    console.error('수정 에러:', error);
-                    alert("데이터 수정 중 오류가 발생했습니다.");
-                    return;
-                }
-
+                if (error) { alert("데이터 수정 중 오류가 발생했습니다."); return; }
                 cancelEdit();
                 alert(`'${root}' 데이터가 성공적으로 수정되었습니다.`);
-
                 openTab('all-data-tab', document.querySelector('.load-data-tab'));
                 fetchAllData();
-
             } else {
                 const { error } = await db.from('events').insert([payload]);
-                if (error) {
-                    console.error('저장 에러:', error);
-                    alert("데이터 저장 중 오류가 발생했습니다.");
-                    return;
-                }
+                if (error) { alert("데이터 저장 중 오류가 발생했습니다."); return; }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
                 document.getElementById('link-event-1').value = '';
@@ -425,12 +342,10 @@
                 document.getElementById('link-event-3').value = '';
                 document.getElementById('link-event-4').value = '';
                 document.getElementById('related-company').value = '';
-
                 setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
             }
         }
 
-        // 🟢 데이터베이스에서 전체 데이터를 가져오는 함수
         async function fetchAllData() {
             const displayArea = document.getElementById('all-data-display');
             displayArea.innerHTML = '<p>데이터를 불러오는 중...</p>';
@@ -441,43 +356,33 @@
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
             currentDataList = data;
-            renderTable(); // 데이터를 가져온 후 테이블 렌더링 호출
+            renderTable();
         }
 
-        // 🟢 정렬 버튼 클릭 시 호출되는 함수
         function sortData(key) {
             if (sortConfig.key === key) {
-                // 같은 열을 다시 클릭하면 정렬 방향(오름/내림)만 반대로 전환
                 sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
             } else {
-                // 다른 열을 클릭하면 해당 열 기준 오름차순으로 초기화
                 sortConfig.key = key;
                 sortConfig.direction = 'asc';
             }
-            renderTable(); // 변경된 정렬 기준으로 테이블 다시 그리기
+            renderTable();
         }
 
-        // 🟢 정렬 아이콘(▲, ▼, ↕)을 반환하는 함수
         function getSortIcon(key) {
             if (sortConfig.key !== key) return '<span style="color:#A5D6A7; font-size:12px;">↕</span>';
             return sortConfig.direction === 'asc' ? '▲' : '▼';
         }
 
-        // 🟢 테이블 화면 생성 전용 함수 (정렬 처리 포함)
         function renderTable() {
             const displayArea = document.getElementById('all-data-display');
-
-            // 자바스크립트 내장 sort()로 데이터 정렬
             const sortedData = [...currentDataList].sort((a, b) => {
                 let valA = a[sortConfig.key] || '';
                 let valB = b[sortConfig.key] || '';
 
-                // 고유 ID는 숫자로 취급하여 정렬
                 if (sortConfig.key === 'id') {
                     return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
                 }
-
-                // 문자열은 알파벳/가나다 순으로 정렬
                 valA = valA.toString().toLowerCase();
                 valB = valB.toString().toLowerCase();
 
@@ -486,7 +391,6 @@
                 return 0;
             });
 
-            // 🟢 정렬 함수와 아이콘이 적용된 HTML 헤더 작성
             let htmlString = `<table>
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
@@ -531,11 +435,9 @@
             document.getElementById('related-company').value = targetData.company || '';
 
             currentEditId = id;
-
             const saveBtn = document.getElementById('main-save-btn');
             saveBtn.innerText = '수정된 내용 저장하기';
             saveBtn.style.backgroundColor = '#FF9800';
-
             document.getElementById('cancel-edit-btn').style.display = 'inline-block';
 
             openTab('event-tab', document.querySelectorAll('.tab-button')[0]);
@@ -560,15 +462,8 @@
 
         async function deleteData(id) {
             if (!confirm("정말로 이 데이터를 삭제하시겠습니까?")) return;
-
             const { error } = await db.from('events').delete().eq('id', id);
-
-            if (error) {
-                console.error('삭제 에러:', error);
-                alert("삭제 중 오류가 발생했습니다.");
-                return;
-            }
-
+            if (error) { alert("삭제 중 오류가 발생했습니다."); return; }
             fetchAllData();
             if (currentEditId === id) cancelEdit();
         }
@@ -576,9 +471,8 @@
         async function fetchCompanies() {
             const displayArea = document.getElementById('company-display');
             displayArea.innerHTML = '<p>회사 리스트를 불러오는 중...</p>';
-
             const { data, error } = await db.from('events').select('company');
-            if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
+            if (error) return;
 
             const uniqueCompanies = new Set();
             data.forEach(item => {
@@ -587,7 +481,6 @@
             });
 
             if (uniqueCompanies.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 회사 정보가 없습니다.</p>'; return; }
-
             let htmlString = '<div class="company-list">';
             uniqueCompanies.forEach(company => { htmlString += `<div class="company-tag">${company}</div>`; });
             htmlString += '</div>';
@@ -597,9 +490,8 @@
         async function fetchRootEvents() {
             const displayArea = document.getElementById('root-event-list-display');
             displayArea.innerHTML = '<p>기초사건 리스트를 불러오는 중...</p>';
-
             const { data, error } = await db.from('events').select('root_event');
-            if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
+            if (error) return;
 
             const uniqueRootEvents = new Set();
             data.forEach(item => {
@@ -608,13 +500,11 @@
             });
 
             if (uniqueRootEvents.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 기초사건 정보가 없습니다.</p>'; return; }
-
             let htmlString = '<div class="event-tag-list">';
             uniqueRootEvents.forEach(root => {
                 htmlString += `<div class="root-event-tag" onclick="selectRootEvent('${root}')">${root}</div>`;
             });
             htmlString += '</div>';
-
             displayArea.innerHTML = htmlString;
         }
 
@@ -623,94 +513,153 @@
             searchData();
         }
 
+        // 🟢 다방향 네트워크 그래프 및 화살표, 색상 농도 로직 적용 🟢
         async function searchData() {
             const query = document.getElementById('search-query').value.trim();
             const displayArea = document.getElementById('result-display');
+            displayArea.innerHTML = '<p>네트워크를 구성하는 중...</p>';
 
-            displayArea.innerHTML = '<p>데이터를 분석하는 중...</p>';
-
-            if (!query) {
-                alert("검색할 기초사건을 입력해주세요.");
-                displayArea.innerHTML = '';
-                return;
-            }
+            if (!query) { alert("검색할 기초사건을 입력해주세요."); return; }
 
             const { data, error } = await db.from('events').select('*').eq('root_event', query);
 
-            if (error) {
-                console.error('조회 에러:', error);
-                displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`;
-                return;
-            }
-
-            if (!data || data.length === 0) {
+            if (error || !data || data.length === 0) {
                 displayArea.innerHTML = `<p style="color: red; margin-top: 20px;">'${query}'에 해당하는 데이터가 없습니다.</p>`;
                 return;
             }
 
-            const frequencyMap = {};
-            data.forEach(path => {
-                const nodes = [path.link_1, path.link_2, path.link_3, path.link_4, path.company];
-                nodes.forEach(node => {
-                    if (node && node.trim() !== '없음') {
-                        const text = node.trim();
-                        frequencyMap[text] = (frequencyMap[text] || 0) + 1;
-                    }
-                });
-            });
+            // 노드 빈도수, 엣지(연결) 빈도수, 노드 타입(기초/사건/회사)을 저장할 객체
+            const nodeCounts = {};
+            const nodeTypes = {};
+            const edgeCounts = {};
 
-            function getNodeStyle(text) {
-                const count = frequencyMap[text.trim()] || 1;
-                const growth = Math.min(count - 1, 6);
-
-                const fontSize = 16 + (growth * 2.5);
-                const paddingV = 10 + (growth * 3);
-                const paddingH = 20 + (growth * 5);
-                const shadow = 2 + growth;
-
-                return `font-size: ${fontSize}px; padding: ${paddingV}px ${paddingH}px; box-shadow: ${shadow}px ${shadow}px ${shadow * 2}px rgba(0,0,0,0.15);`;
-            }
-
+            // 부연설명 찾기
             let rootDescription = '';
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
-            if (rootItem) {
-                rootDescription = rootItem.root_desc.trim();
-            }
+            if (rootItem) { rootDescription = rootItem.root_desc.trim(); }
 
-            let htmlString = '<div class="tree-layout">';
-            htmlString += `<div class="tree-root">
-                ${query}
-                ${rootDescription ? `<div class="tree-root-desc">${rootDescription}</div>` : ''}
-            </div>`;
-            htmlString += `<div class="tree-down-arrow">⬇</div>`;
-            htmlString += '<div class="tree-branches">';
-
+            // 전체 데이터를 순회하며 노드와 연결(엣지) 관계 추출
             data.forEach(path => {
-                htmlString += '<div class="tree-path">';
+                // 한 줄(Row)의 사건 흐름을 순서대로 배열화
+                const seq = [
+                    { name: query, type: 'root' },
+                    { name: path.link_1, type: 'event' },
+                    { name: path.link_2, type: 'event' },
+                    { name: path.link_3, type: 'event' },
+                    { name: path.link_4, type: 'event' },
+                    { name: path.company, type: 'company' }
+                ].filter(item => item.name && item.name.trim() !== '없음');
 
-                if (path.link_1) htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_1)}">${path.link_1}</div>`;
-                if (path.link_2) {
-                    htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_2)}">${path.link_2}</div>`;
-                }
-                if (path.link_3) {
-                    htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_3)}">${path.link_3}</div>`;
-                }
-                if (path.link_4) {
-                    htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_4)}">${path.link_4}</div>`;
-                }
-                if (path.company && path.company !== '없음') {
-                    htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node tree-company" style="${getNodeStyle(path.company)}">${path.company}</div>`;
-                }
+                // 각 노드의 등장 횟수와 타입 기록
+                seq.forEach(item => {
+                    const name = item.name.trim();
+                    nodeCounts[name] = (nodeCounts[name] || 0) + 1;
 
-                htmlString += '</div>';
+                    // 우선순위 부여 (기초사건 > 회사 > 일반사건)
+                    if (!nodeTypes[name] || item.type === 'root') {
+                        nodeTypes[name] = item.type;
+                    } else if (item.type === 'company' && nodeTypes[name] !== 'root') {
+                        nodeTypes[name] = 'company';
+                    }
+                });
+
+                // 앞 사건에서 뒷 사건으로 연결고리(Edge) 생성
+                for (let i = 0; i < seq.length - 1; i++) {
+                    const from = seq[i].name.trim();
+                    const to = seq[i + 1].name.trim();
+                    const edgeKey = `${from}|${to}`;
+                    edgeCounts[edgeKey] = (edgeCounts[edgeKey] || 0) + 1;
+                }
             });
 
-            htmlString += '</div></div>';
-            displayArea.innerHTML = htmlString;
+            // 🟢 Vis.js 노드 데이터 배열 생성 (중복 많을수록 색상 진하게)
+            const visNodes = Object.keys(nodeCounts).map(name => {
+                const count = nodeCounts[name];
+                let bg, border, fontColor;
+
+                if (nodeTypes[name] === 'root') {
+                    bg = count >= 3 ? '#0D47A1' : count === 2 ? '#1976D2' : '#2196F3'; // 파란색 점점 진하게
+                    border = '#0D47A1';
+                    fontColor = 'white';
+                } else if (nodeTypes[name] === 'company') {
+                    bg = count >= 3 ? '#E65100' : count === 2 ? '#F57C00' : '#FF9800'; // 주황색 점점 진하게
+                    border = '#E65100';
+                    fontColor = count > 1 ? 'white' : 'black';
+                } else {
+                    bg = count >= 4 ? '#1B5E20' : count === 3 ? '#388E3C' : count === 2 ? '#4CAF50' : '#C8E6C9'; // 초록색 점점 진하게
+                    border = '#2E7D32';
+                    fontColor = count > 1 ? 'white' : 'black';
+                }
+
+                let labelText = name;
+                if (nodeTypes[name] === 'root' && rootDescription) {
+                    labelText += `\n(${rootDescription})`; // 기초사건에 부연설명 포함
+                }
+
+                return {
+                    id: name,
+                    label: labelText,
+                    shape: 'box',
+                    font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
+                    color: { background: bg, border: border },
+                    borderWidth: 2,
+                    shadow: true
+                };
+            });
+
+            // 🟢 Vis.js 엣지 데이터 배열 생성 (반복 횟수만큼 화살표 여러 가닥 생성)
+            const visEdges = [];
+            Object.keys(edgeCounts).forEach(key => {
+                const [from, to] = key.split('|');
+                const count = edgeCounts[key];
+
+                // 반복된 횟수(count)만큼 화살표 선을 여러 개 밀어넣습니다.
+                // 라이브러리가 자동으로 이 선들을 곡선으로 휘어지게 만들어 분리해 보여줍니다.
+                for (let i = 0; i < count; i++) {
+                    visEdges.push({
+                        from: from,
+                        to: to,
+                        arrows: 'to',
+                        color: { color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5' }, // 많이 연결될수록 선도 어둡게
+                        width: count > 1 ? 2 : 1
+                    });
+                }
+            });
+
+            // 컨테이너 초기화 및 네트워크 그래프 주입
+            displayArea.innerHTML = '';
+            const container = document.createElement('div');
+            container.id = 'network-container';
+            displayArea.appendChild(container);
+
+            const networkData = {
+                nodes: new vis.DataSet(visNodes),
+                edges: new vis.DataSet(visEdges)
+            };
+
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD', // 위(Up)에서 아래(Down)로 흐름
+                        sortMethod: 'directed', // 화살표 방향을 기준으로 계층 정렬
+                        nodeSpacing: 180,
+                        levelSeparation: 120
+                    }
+                },
+                physics: {
+                    hierarchicalRepulsion: {
+                        nodeDistance: 150 // 노드 간 간격 조정
+                    }
+                },
+                edges: {
+                    smooth: {
+                        type: 'dynamic' // 🟢 동일한 노드 사이에 여러 개의 선이 있으면 자동으로 둥글게 갈라져서 표시됨
+                    }
+                }
+            };
+
+            // 네트워크 그래프 실행
+            new vis.Network(container, networkData, options);
         }
     </script>
 </body>
