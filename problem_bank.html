@@ -350,6 +350,31 @@
       color: #fff;
     }
 
+    /* ---------- 저장 확인 토스트 ---------- */
+    .bank-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      z-index: 2200;
+      background: var(--ink);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: 0 12px 30px -10px rgba(27, 58, 92, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .bank-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
     .card-inner {
       padding: 24px 26px 22px 28px;
     }
@@ -1851,8 +1876,44 @@
 
       if (error) { alert('저장 중 오류가 발생했습니다: ' + error.message); return; }
 
+      const wasNew = editIsNew;
       upsertBankRowCache(data);
+
+      // 새로 만든 문제인데 지금 걸려있는 필터(분류/단원/검색어/즐겨찾기만 보기) 때문에
+      // 목록에서 안 보이면 "저장이 안 된 것 같다"고 오해하기 쉬우므로, 새 문제를 만들었을 때는
+      // 방금 저장한 문제가 확실히 보이도록 필터를 초기화합니다.
+      if (wasNew) {
+        filterCategory = '전체';
+        filterUnit = '전체';
+        favoritesOnly = false;
+        const searchBox = document.getElementById('searchInput');
+        if (searchBox) searchBox.value = '';
+        renderCategoryFilterTabs();
+        renderUnitFilterTabs();
+        const favBtn = document.getElementById('favoritesOnlyBtn');
+        if (favBtn) favBtn.classList.remove('active');
+        renderList();
+      }
+
       closeEditor();
+      showToast(wasNew ? '✅ 새 문제를 저장했습니다.' : '✅ 수정한 내용을 저장했습니다.');
+    }
+
+    // 화면 아래쪽에 잠깐 뜨고 사라지는 저장 확인 메시지. "저장이 된 건지 안 된 건지 모르겠다"는
+    // 혼란을 막기 위해, 저장/수정이 실제로 성공했을 때 눈에 보이는 확인을 남겨줍니다.
+    let toastTimer = null;
+    function showToast(message) {
+      let el = document.getElementById('bankToast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'bankToast';
+        el.className = 'bank-toast';
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
     }
 
     function renderImageField() {
