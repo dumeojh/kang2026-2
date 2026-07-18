@@ -34,8 +34,8 @@
             border: 1px solid #ccc;
             padding: 20px;
             border-radius: 0 5px 5px 5px;
-            max-width: 800px;
-            /* 관계도가 넓어질 수 있으므로 너비 확장 */
+            max-width: 900px;
+            /* 표가 넓어지므로 전체 너비 확장 */
         }
 
         .tab-content.active {
@@ -75,12 +75,14 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            font-size: 14px;
+            /* 열이 많아져 폰트 크기 살짝 조정 */
         }
 
         th,
         td {
             border: 1px solid #ddd;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
         }
 
@@ -129,7 +131,7 @@
             transform: scale(1.05);
         }
 
-        /* 🟢 2차원(2D) 트리 관계도 스타일 */
+        /* 2차원(2D) 트리 관계도 스타일 */
         .tree-layout {
             display: flex;
             flex-direction: column;
@@ -139,7 +141,6 @@
             background-color: #f0f4f8;
             border-radius: 12px;
             overflow-x: auto;
-            /* 내용이 넘치면 가로 스크롤 생성 */
         }
 
         .tree-root {
@@ -193,7 +194,6 @@
             background-color: #FFF3E0;
             color: #E65100;
             margin-bottom: 0;
-            /* 마지막 요소이므로 여백 제거 */
         }
 
         .path-arrow {
@@ -230,6 +230,15 @@
             <label>연결사건 2</label>
             <input type="text" id="link-event-2" placeholder="예: 사건2">
         </div>
+        <!-- 🟢 연결사건 3, 4 입력칸 추가 -->
+        <div class="input-group">
+            <label>연결사건 3</label>
+            <input type="text" id="link-event-3" placeholder="예: 사건3">
+        </div>
+        <div class="input-group">
+            <label>연결사건 4</label>
+            <input type="text" id="link-event-4" placeholder="예: 사건4">
+        </div>
         <div class="input-group">
             <label>관련 회사</label>
             <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
@@ -259,7 +268,6 @@
         </div>
         <button class="search-btn" onclick="searchData()">2D 관계도 보기</button>
 
-        <!-- 🟢 2D 관계도가 그려질 영역 -->
         <div id="result-display"></div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
@@ -285,6 +293,8 @@
             const root = document.getElementById('root-event').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
+            const link3 = document.getElementById('link-event-3').value.trim(); // 🟢 연결사건 3 추가
+            const link4 = document.getElementById('link-event-4').value.trim(); // 🟢 연결사건 4 추가
             const company = document.getElementById('related-company').value.trim();
 
             if (!root) {
@@ -292,21 +302,30 @@
                 return;
             }
 
+            // 🟢 insert 데이터에 link_3, link_4 추가
             const { data, error } = await db
                 .from('events')
-                .insert([{ root_event: root, link_1: link1, link_2: link2, company: company }]);
+                .insert([{
+                    root_event: root,
+                    link_1: link1,
+                    link_2: link2,
+                    link_3: link3,
+                    link_4: link4,
+                    company: company
+                }]);
 
             if (error) {
                 console.error('저장 에러:', error);
-                alert("저장 중 오류가 발생했습니다.");
+                alert("저장 중 오류가 발생했습니다. 수파베이스 테이블에 link_3, link_4 컬럼이 있는지 확인해주세요.");
                 return;
             }
 
             document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-            // 입력창 비우기 (기초사건 이름은 남겨두면 여러 갈래를 추가할 때 편합니다)
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
+            document.getElementById('link-event-3').value = ''; // 초기화 추가
+            document.getElementById('link-event-4').value = ''; // 초기화 추가
             document.getElementById('related-company').value = '';
 
             setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
@@ -323,9 +342,18 @@
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
-            let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>관련 회사</th></tr>';
+            // 🟢 테이블 헤더에 연결사건 3, 4 추가
+            let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th></tr>';
             data.forEach(item => {
-                htmlString += `<tr><td>${item.root_event || ''}</td><td>${item.link_1 || ''}</td><td>${item.link_2 || ''}</td><td>${item.company || ''}</td></tr>`;
+                // 🟢 테이블 데이터에 link_3, link_4 추가
+                htmlString += `<tr>
+                    <td>${item.root_event || ''}</td>
+                    <td>${item.link_1 || ''}</td>
+                    <td>${item.link_2 || ''}</td>
+                    <td>${item.link_3 || ''}</td>
+                    <td>${item.link_4 || ''}</td>
+                    <td>${item.company || ''}</td>
+                </tr>`;
             });
             htmlString += '</table>';
             displayArea.innerHTML = htmlString;
@@ -383,7 +411,6 @@
             searchData();
         }
 
-        // 🟢 2D 구조로 데이터를 그려주는 함수로 완전 개편
         async function searchData() {
             const query = document.getElementById('search-query').value.trim();
             const displayArea = document.getElementById('result-display');
@@ -396,7 +423,6 @@
                 return;
             }
 
-            // 검색어와 일치하는 '모든' 데이터를 가져옵니다.
             const { data, error } = await db
                 .from('events')
                 .select('*')
@@ -413,18 +439,12 @@
                 return;
             }
 
-            // 2D 트리(Tree) 구조 HTML 생성 시작
             let htmlString = '<div class="tree-layout">';
-
-            // 최상단 (기초사건 1개)
             htmlString += `<div class="tree-root">${query}</div>`;
             htmlString += `<div class="tree-down-arrow">⬇</div>`;
-
-            // 가지들 (해당 기초사건에 연결된 여러 경로를 가로로 나열)
             htmlString += '<div class="tree-branches">';
 
             data.forEach(path => {
-                // 각 경로를 세로 박스로 생성
                 htmlString += '<div class="tree-path">';
 
                 if (path.link_1) {
@@ -434,6 +454,16 @@
                     htmlString += `<div class="path-arrow">⬇</div>`;
                     htmlString += `<div class="tree-node">${path.link_2}</div>`;
                 }
+                // 🟢 2D 트리에 연결사건 3 추가
+                if (path.link_3) {
+                    htmlString += `<div class="path-arrow">⬇</div>`;
+                    htmlString += `<div class="tree-node">${path.link_3}</div>`;
+                }
+                // 🟢 2D 트리에 연결사건 4 추가
+                if (path.link_4) {
+                    htmlString += `<div class="path-arrow">⬇</div>`;
+                    htmlString += `<div class="tree-node">${path.link_4}</div>`;
+                }
                 if (path.company && path.company !== '없음') {
                     htmlString += `<div class="path-arrow">⬇</div>`;
                     htmlString += `<div class="tree-node tree-company">${path.company}</div>`;
@@ -442,7 +472,7 @@
                 htmlString += '</div>';
             });
 
-            htmlString += '</div></div>'; // tree-branches와 tree-layout 닫기
+            htmlString += '</div></div>';
 
             displayArea.innerHTML = htmlString;
         }
