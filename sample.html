@@ -128,8 +128,9 @@
             color: #777;
         }
 
-        /* 관련 회사 리스트 태그 스타일 */
-        .company-list {
+        /* 관련 회사 및 기초사건 목록 태그 스타일 */
+        .company-list,
+        .event-tag-list {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -145,6 +146,22 @@
             font-weight: bold;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
+
+        /* 🟢 초록색 기초사건 태그 디자인 추가 */
+        .root-event-tag {
+            background-color: #E8F5E9;
+            border: 1px solid #4CAF50;
+            color: #2E7D32;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .root-event-tag:hover {
+            background-color: #C8E6C9;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -154,9 +171,9 @@
 
     <div class="tab-menu">
         <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
-        <!-- 기초회사 버튼 클릭 시 fetchCompanies() 실행 -->
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
-        <button class="tab-button" onclick="openTab('occurred-tab', this)">발생사건</button>
+        <!-- 🟢 발생사건 버튼 클릭 시 fetchRootEvents()가 실행되도록 수정 -->
+        <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
     </div>
 
     <div id="event-tab" class="tab-content active">
@@ -186,13 +203,13 @@
         <div id="all-data-display"></div>
     </div>
 
-    <!-- 기초회사 리스트가 출력되는 공간 -->
     <div id="company-tab" class="tab-content">
         <h3>저장된 관련 회사 목록</h3>
         <p>데이터베이스에 등록된 전체 회사 리스트입니다. (중복 제외)</p>
         <div id="company-display"></div>
     </div>
 
+    <!-- 3. 발생사건 탭 -->
     <div id="occurred-tab" class="tab-content">
         <h3>사건 관계도 분석</h3>
         <div class="input-group">
@@ -201,6 +218,12 @@
         </div>
         <button class="search-btn" onclick="searchData()">관계도 보기</button>
         <div id="result-display"></div>
+
+        <!-- 🟢 기초사건 리스트가 출력될 공간 추가 -->
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+        <h3>등록된 기초사건 목록</h3>
+        <p>아래 사건을 클릭하면 상단 검색창에 입력되어 관계도가 바로 조회됩니다.</p>
+        <div id="root-event-list-display"></div>
     </div>
 
     <script>
@@ -291,7 +314,6 @@
             displayArea.innerHTML = htmlString;
         }
 
-        // 관련회사 리스트를 불러오는 핵심 함수
         async function fetchCompanies() {
             const displayArea = document.getElementById('company-display');
             displayArea.innerHTML = '<p>회사 리스트를 불러오는 중...</p>';
@@ -306,7 +328,6 @@
                 return;
             }
 
-            // 중복 회사 이름 제거 및 '없음'/빈칸 필터링
             const uniqueCompanies = new Set();
             data.forEach(item => {
                 const comp = item.company ? item.company.trim() : '';
@@ -320,7 +341,6 @@
                 return;
             }
 
-            // 화면에 렌더링
             let htmlString = '<div class="company-list">';
             uniqueCompanies.forEach(company => {
                 htmlString += `<div class="company-tag">${company}</div>`;
@@ -328,6 +348,51 @@
             htmlString += '</div>';
 
             displayArea.innerHTML = htmlString;
+        }
+
+        // 🟢 기초사건 리스트를 불러와서 태그 형식으로 보여주는 함수 추가
+        async function fetchRootEvents() {
+            const displayArea = document.getElementById('root-event-list-display');
+            displayArea.innerHTML = '<p>기초사건 리스트를 불러오는 중...</p>';
+
+            const { data, error } = await db
+                .from('events')
+                .select('root_event');
+
+            if (error) {
+                console.error('기초사건 목록 조회 에러:', error);
+                displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`;
+                return;
+            }
+
+            // 중복 방지를 위한 Set 처리
+            const uniqueRootEvents = new Set();
+            data.forEach(item => {
+                const root = item.root_event ? item.root_event.trim() : '';
+                if (root) {
+                    uniqueRootEvents.add(root);
+                }
+            });
+
+            if (uniqueRootEvents.size === 0) {
+                displayArea.innerHTML = '<p style="color: gray;">저장된 기초사건 정보가 없습니다.</p>';
+                return;
+            }
+
+            // 초록색 태그 리스트 형태로 화면에 출력
+            let htmlString = '<div class="event-tag-list">';
+            uniqueRootEvents.forEach(root => {
+                htmlString += `<div class="root-event-tag" onclick="selectRootEvent('${root}')">${root}</div>`;
+            });
+            htmlString += '</div>';
+
+            displayArea.innerHTML = htmlString;
+        }
+
+        // 🟢 리스트에서 기초사건 태그를 클릭했을 때 검색창에 자동 반영 및 조회해 주는 함수
+        function selectRootEvent(eventName) {
+            document.getElementById('search-query').value = eventName;
+            searchData();
         }
 
         async function searchData() {
