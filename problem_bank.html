@@ -56,51 +56,6 @@
       box-sizing: border-box;
     }
 
-    /* ---------- 전체화면 복귀 배너 ---------- */
-    .fs-restore-banner {
-      position: fixed;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--ink);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 999px;
-      box-shadow: 0 10px 30px -10px rgba(27, 58, 92, 0.5);
-      font-size: 13px;
-    }
-
-    .fs-restore-banner.hidden {
-      display: none;
-    }
-
-    .fs-restore-banner button {
-      font-family: 'Noto Sans KR', sans-serif;
-      font-weight: 700;
-      font-size: 12.5px;
-      border: none;
-      border-radius: 999px;
-      padding: 6px 13px;
-      cursor: pointer;
-      background: #fff;
-      color: var(--ink);
-    }
-
-    .fs-restore-banner button:hover {
-      opacity: 0.85;
-    }
-
-    .fs-restore-banner button.dismiss-btn {
-      background: transparent;
-      color: #fff;
-      padding: 6px 8px;
-      font-size: 14px;
-    }
-
     body {
       margin: 0;
       padding: 40px 20px 80px;
@@ -120,8 +75,16 @@
     }
 
     header.page-head {
+      position: sticky;
+      top: 0;
+      z-index: 400;
       margin-bottom: 32px;
-      padding-bottom: 22px;
+      padding: 20px 0 22px;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 28px 28px;
       border-bottom: 2px solid var(--ink);
     }
 
@@ -1017,12 +980,6 @@
 
 <body>
 
-  <div class="fs-restore-banner hidden" id="fsRestoreBanner">
-    <span>전체화면으로 보시려면 눌러주세요.</span>
-    <button type="button" onclick="restoreFullscreen()">🔎 전체화면으로 보기</button>
-    <button type="button" class="dismiss-btn" onclick="dismissFullscreenRestoreBanner()" title="닫기">✕</button>
-  </div>
-
   <div id="editOverlay" class="edit-overlay hidden"></div>
 
   <div class="wrap">
@@ -1030,6 +987,7 @@
       <button type="button" class="util-btn back-btn" onclick="goBackToTeacher()">🔙 교사 화면으로 돌아가기</button>
       <div class="eyebrow">LIVE QUIZ PROBLEM BANK</div>
       <h1>📚 문제 은행 관리</h1>
+      <p>여기서 만들고 정리한 문제는 <b>교사 화면(teacher_live.html)</b>의 "문제 은행 · 출제하기"에서 골라 바로 출제할 수 있어요.</p>
     </header>
 
     <div class="toolbar">
@@ -1716,10 +1674,8 @@
     // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
 
     // ---------------- [전체화면] ----------------
-    // 이 페이지는 항상 전체화면으로 엽니다. 브라우저 정책상 사용자가 직접 클릭하지 않으면
-    // 전체화면을 코드로 켤 수 없는 경우가 많아서, 일단 시도해보고 안 되면 배너로 "한 번의 클릭"으로 켤 수 있게 해줍니다.
-    let wantsFullscreenType = null; // null | 'app'
-
+    // 이 페이지는 항상 전체화면으로 엽니다. (선택창 없이) 브라우저가 자동 전체화면을 막는 경우에만
+    // 상단 "⛶ 전체화면" 버튼으로 직접 켤 수 있습니다.
     function getFsElement() {
       return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
     }
@@ -1746,49 +1702,28 @@
     async function toggleAppFullscreen() {
       try {
         if (isAppFullscreen()) {
-          wantsFullscreenType = null; // 직접 눌러서 끈 것이므로 복귀 배너는 띄우지 않습니다.
           await exitFS();
         } else {
           await requestFS(document.documentElement);
-          wantsFullscreenType = 'app';
         }
       } catch (e) {
         alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
       }
     }
 
-    async function restoreFullscreen() {
-      if (!wantsFullscreenType) return;
-      try {
-        await requestFS(document.documentElement);
-      } catch (e) {
-        // 사용자 클릭으로 호출했으니 대부분 성공하지만, 실패해도 조용히 무시합니다 (배너는 계속 떠 있음).
-      }
-    }
-
-    function dismissFullscreenRestoreBanner() {
-      wantsFullscreenType = null;
-      updateFullscreenRestoreBanner();
-    }
-
-    function updateFullscreenRestoreBanner() {
-      const banner = document.getElementById('fsRestoreBanner');
-      if (!banner) return;
-      banner.classList.toggle('hidden', !(wantsFullscreenType && !getFsElement()));
+    function updateFsBtnLabel() {
       const btn = document.getElementById('pbFsBtn');
       if (btn) btn.textContent = getFsElement() ? '↙️ 전체화면 종료' : '⛶ 전체화면';
     }
 
     ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
-      document.addEventListener(evt, updateFullscreenRestoreBanner);
+      document.addEventListener(evt, updateFsBtnLabel);
     });
 
-    // 문제 은행 관리 페이지는 항상 전체화면으로 씁니다. 브라우저 정책상 사용자가 직접 클릭하지 않으면
-    // 코드로 전체화면을 켤 수 없는 경우가 많아서, 일단 시도해보고 안 되면 배너로 한 번의 클릭을 유도합니다.
+    // 문제 은행 관리 페이지는 항상 전체화면으로 씁니다. 브라우저가 자동 전체화면을 막으면
+    // (사용자가 직접 클릭하지 않고 여는 경우 흔한 정책) 조용히 넘어가고, 상단 버튼으로 직접 켤 수 있습니다.
     function enterFullscreenOnLoad() {
-      wantsFullscreenType = 'app';
-      requestFS(document.documentElement).catch(() => { }); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
-      updateFullscreenRestoreBanner();
+      requestFS(document.documentElement).catch(() => { });
 
       // ?fs=1처럼 다른 화면에서 신호를 주며 넘어온 경우, 그 흔적은 주소에서 지워둡니다.
       if (window.location.search.includes('fs=')) {
