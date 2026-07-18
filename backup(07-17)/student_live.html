@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-tap-highlight" content="no">
+  <title>오늘의 문제 풀이 올리기 (학생용)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" async></script>
+
+  <style>
+    :root {
+      --paper: #F5F7FA;
+      --line: #DFE5EC;
+      --card: #FFFFFF;
+      --ink: #1E2433;
+      --ink-soft: #707B8C;
+      --brand: #3452C6;
+      --brand-dark: #26399C;
+      --brand-soft: #E9EDFB;
+      --red: #E14434;
+      --red-soft: #FDE9E6;
+      --green: #1E9E6B;
+      --green-soft: #E3F6EE;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 26px 26px;
+      color: var(--ink);
+      min-height: 100vh;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input,
+    textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 34px 18px 60px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px var(--red-soft);
+    }
+
+    h1 {
+      font-family: 'Gowun Batang', serif;
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      color: var(--ink-soft);
+      font-size: 13.5px;
+      line-height: 1.6;
+      margin-bottom: 26px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 26px 24px;
+      box-shadow: 0 10px 28px -18px rgba(30, 36, 51, 0.22);
+      margin-bottom: 18px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ---------- 문제 + 풀이 영역 레이아웃 ---------- */
+    .problem-layout {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .problem-layout .card {
+      max-width: none;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    @media (min-width: 900px) {
+      .wrap {
+        max-width: 1180px;
+      }
+
+      /* 노트북처럼 화면이 넓을 때는 문제와 풀이 공간을 좌우로 나눠서
+         남는 좌우 여백을 풀이 공간 확장에 사용합니다. */
+      .problem-layout {
+        max-width: none;
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) 1fr;
+        gap: 22px;
+        align-items: start;
+      }
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      font-family: inherit;
+      color: var(--ink);
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 999px;
+      border: none;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .btn:hover {
+      background: var(--brand-dark);
+    }
+
+    .btn:active {
+      transform: scale(0.99);
+    }
+
+    .btn:disabled {
+      background: #C7CDD6;
+      cursor: not-allowed;
+    }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--brand);
+      border: 1.5px solid var(--line);
+    }
+
+    .btn.secondary:hover {
+      background: var(--brand-soft);
+      border-color: var(--brand);
+    }
+
+    .top-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .student-chip {
+      font-size: 13.5px;
+      color: var(--ink-soft);
+    }
+
+    .student-chip b {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .problem-box {
+      position: sticky;
+      top: max(8px, env(safe-area-inset-top));
+      z-index: 500;
+      padding: 42px 20px 16px;
+      /* fs-btn(전체화면 버튼)이 우측 상단에 고정으로 떠 있으므로 그 아래 여백을 확보 */
+      box-shadow: 0 16px 26px -16px rgba(30, 36, 51, 0.4);
+    }
+
+    .problem-box .ptag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .problem-box .ptext {
+      font-size: 16.5px;
+      line-height: 1.55;
+      margin-bottom: 2px;
+    }
+
+    /* ---------- 풀이 공간 (여러 캔버스 페이지) ---------- */
+    .canvas-pages {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .page-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .page-divider::before,
+    .page-divider::after {
+      content: '';
+      flex: 1;
+      border-top: 1.5px dashed var(--line);
+    }
+
+    .add-page-btn {
+      margin-top: 10px;
+    }
+
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1.5px dashed var(--line);
+    }
+
+    .timer-label {
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    .timer-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .timer-value.warning {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .submitted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 14px 8px 10px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    .submitted-badge::before {
+      content: '✓';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .waiting {
+      text-align: center;
+      color: var(--ink-soft);
+      padding: 50px 10px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .canvas-toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .tool-btn {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .tool-btn.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .draw-canvas {
+      display: block;
+      width: 100%;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .fs-btn {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      z-index: 999;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3);
+    }
+
+    .fs-btn.needs-attention {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      animation: fsPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes fsPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3), 0 0 0 0 var(--brand-soft);
+      }
+
+      50% {
+        box-shadow: 0 6px 16px -8px rgba(30, 36, 51, 0.3), 0 0 0 6px var(--brand-soft);
+      }
+    }
+
+    .voice-rec-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #voiceRecBtn.recording {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red);
+      animation: voiceRecPulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes voiceRecPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 var(--red-soft);
+      }
+
+      50% {
+        box-shadow: 0 0 0 7px var(--red-soft);
+      }
+    }
+
+    .voice-rec-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--red);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- 입장코드 / 담당 선생님 표시 ---------- */
+    .code-toggle-link {
+      background: none;
+      border: none;
+      color: var(--ink-soft);
+      font-size: 12.5px;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 4px 0;
+      width: auto;
+    }
+
+    .code-entry-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .code-entry-row input {
+      flex: 1;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--line);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.1em;
+    }
+
+    .code-entry-row button {
+      width: auto;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+    }
+
+    .teacher-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .manual-code-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+    }
+
+    .manual-code-badge button {
+      width: auto;
+      padding: 3px 9px;
+      font-size: 11.5px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+    }
+
+    /* ---------- 설명영상 보기 ---------- */
+    .video-btn {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .video-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      background: rgba(20, 24, 36, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .video-modal-backdrop.hidden {
+      display: none;
+    }
+
+    .video-modal-box {
+      width: 100%;
+      max-width: 640px;
+      max-height: 82vh;
+      background: var(--paper);
+      border-radius: 22px 22px 0 0;
+      padding: 20px 18px 26px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -10px 30px -10px rgba(20, 24, 36, 0.35);
+    }
+
+    .video-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+
+    .video-modal-head h2 {
+      font-family: 'Gowun Batang', serif;
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .video-modal-close {
+      width: auto;
+      padding: 7px 12px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--ink-soft);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .video-modal-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .video-empty {
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13.5px;
+      padding: 30px 10px;
+    }
+
+    .video-item {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .video-item:active {
+      background: var(--brand-soft);
+    }
+
+    .video-item .vtag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .video-item .vtitle {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .video-item .vmeta {
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .video-item .vdesc {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .video-player-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background: #0B0D14;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-player-overlay.hidden {
+      display: none;
+    }
+
+    .video-player-top {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+    }
+
+    .video-player-top .vp-title {
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .video-player-top button {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .video-player-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px 10px;
+      min-height: 0;
+    }
+
+    .video-player-body video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      /* 녹화된 영상의 원본 해상도가 화면보다 작아도 태블릿 화면 전체를 채우도록
+         width/height를 100%로 주고, 비율이 안 맞는 부분만 object-fit: contain으로 여백 처리합니다. */
+      border-radius: 10px;
+      background: #000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <button id="fsBtn" class="fs-btn" onclick="toggleFullscreen()" type="button">⛶ 전체화면</button>
+
+  <div class="wrap">
+    <div class="eyebrow">Live Quiz</div>
+    <h1>오늘의 문제 풀이 올리기</h1>
+    <div class="subtitle">태블릿으로 접속해서 문제를 풀고, 다 풀면 제일 먼저 올려보세요!!</div>
+
+    <!-- 1단계: 로그인 -->
+    <div class="card" id="loginCard">
+      <div class="field">
+        <label>학번</label>
+        <input type="text" id="studentIdInput" placeholder="학번 5자리 (예: 10101)" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>이름</label>
+        <input type="text" id="studentNameInput" placeholder="이름">
+      </div>
+      <div class="field">
+        <label>별명</label>
+        <input type="text" id="studentNicknameInput" placeholder="선택사항 · 비워두면 이름이 표시돼요" maxlength="12">
+        <div class="field-hint">선생님 화면(칠판)에 이름 대신 이 별명이 보여요.</div>
+      </div>
+      <button class="btn" onclick="verifyStudent()">✅ 확인하고 시작하기</button>
+
+      <button class="code-toggle-link" type="button" id="codeToggleLink" onclick="toggleLoginCodeRow()">🔑 선생님이 알려준
+        입장코드가 있나요?</button>
+      <div class="code-entry-row hidden" id="loginCodeRow">
+        <input type="text" id="loginCodeInput" placeholder="입장코드 4자리" inputmode="numeric" maxlength="6">
+      </div>
+      <div class="field-hint" id="loginCodeHint" class="hidden" style="display:none;">평소엔 비워두세요. 우리 반 담당 선생님 문제가 자동으로
+        나타납니다.</div>
+    </div>
+
+    <!-- 2단계: 문제 + 제출 -->
+    <div id="mainArea" class="hidden">
+      <div class="top-status">
+        <div class="student-chip">👤 <b id="studentChipName"></b> 학생</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary video-btn" onclick="openVideoListModal()">🎥 설명영상</button>
+          <button class="btn secondary" style="width:auto; padding:8px 14px; font-size:13px;"
+            onclick="logout()">로그아웃</button>
+        </div>
+      </div>
+
+      <div id="problemArea"></div>
+    </div>
+  </div>
+
+  <!-- 설명영상 목록 -->
+  <div class="video-modal-backdrop hidden" id="videoListModal" onclick="if(event.target===this) closeVideoListModal()">
+    <div class="video-modal-box">
+      <div class="video-modal-head">
+        <h2>🎥 설명 영상</h2>
+        <button class="video-modal-close" onclick="closeVideoListModal()">닫기</button>
+      </div>
+      <div class="video-modal-list" id="videoModalList">
+        <div class="video-empty">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설명영상 재생 -->
+  <div class="video-player-overlay hidden" id="videoPlayerOverlay">
+    <div class="video-player-top">
+      <button onclick="closeVideoPlayer()">← 목록으로</button>
+      <div class="vp-title" id="videoPlayerTitle"></div>
+    </div>
+    <div class="video-player-body">
+      <video id="videoPlayerEl" controls playsinline></video>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let verifiedStudentId = '';
+    let verifiedStudentName = '';
+    let verifiedNickname = '';
+    let myScopeTokens = [];      // 예: ["1-03", "1-ALL"] — 내 학년-반을 나타내는 토큰들
+    let manualRoomCode = null;   // 학생이 직접 입력한 입장코드 (있으면 학년/반 매칭 대신 이 코드로만 접속)
+
+    // ---------------- [선생님이 올린 설명영상 보기] ----------------
+    function openVideoListModal() {
+      document.getElementById('videoListModal').classList.remove('hidden');
+      loadStudentVideos();
+    }
+
+    function closeVideoListModal() {
+      document.getElementById('videoListModal').classList.add('hidden');
+    }
+
+    function closeVideoPlayer() {
+      const el = document.getElementById('videoPlayerEl');
+      el.pause();
+      el.src = '';
+      document.getElementById('videoPlayerOverlay').classList.add('hidden');
+    }
+
+    function fmtVideoDuration(sec) {
+      if (!sec && sec !== 0) return '';
+      const m = Math.floor(sec / 60);
+      const s = Math.round(sec % 60);
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function fmtVideoDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+
+    let studentVideoList = [];
+
+    async function loadStudentVideos() {
+      const listEl = document.getElementById('videoModalList');
+      listEl.innerHTML = '<div class="video-empty">불러오는 중...</div>';
+
+      if (!myScopeTokens.length) {
+        listEl.innerHTML = '<div class="video-empty">학생 정보를 확인할 수 없습니다.</div>';
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('lecture_videos')
+        .select('*')
+        .overlaps('target_scope', myScopeTokens)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<div class="video-empty">불러오지 못했습니다: ${error.message}</div>`;
+        return;
+      }
+
+      studentVideoList = data || [];
+
+      if (studentVideoList.length === 0) {
+        listEl.innerHTML = '<div class="video-empty">아직 올라온 설명 영상이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = studentVideoList.map((v, i) => `
+        <div class="video-item" data-index="${i}" onclick="playStudentVideo(this.dataset.index)">
+          <div class="vtag">${v.problem_bank_id ? '📘 문제 풀이' : '🎥 가정학습'} · ${escapeHtml(v.teacher_name || '선생님')} · ${fmtVideoDate(v.created_at)}${v.duration_seconds ? ' · ' + fmtVideoDuration(v.duration_seconds) : ''}</div>
+          <div class="vtitle">${escapeHtml(v.title || '제목 없는 설명 영상')}</div>
+          ${v.description ? `<div class="vdesc">${escapeHtml(v.description)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function playStudentVideo(index) {
+      const v = studentVideoList[Number(index)];
+      if (!v) return;
+      document.getElementById('videoPlayerTitle').textContent = v.title || '설명 영상';
+      const el = document.getElementById('videoPlayerEl');
+      el.src = v.video_url;
+      document.getElementById('videoPlayerOverlay').classList.remove('hidden');
+      el.play().catch(() => { /* 자동재생 실패 시 학생이 직접 재생 버튼을 누르면 됨 */ });
+    }
+
+    function toggleLoginCodeRow() {
+      const row = document.getElementById('loginCodeRow');
+      row.classList.toggle('hidden');
+      document.getElementById('codeToggleLink').textContent = row.classList.contains('hidden')
+        ? '🔑 선생님이 알려준 입장코드가 있나요?'
+        : '🔼 입장코드 입력창 닫기';
+    }
+
+    // ---------------- [음성 설명 녹음 상태] ----------------
+    let mediaRecorder = null;
+    let micStream = null;
+    let audioChunks = [];
+    let recordedAudioBlob = null;
+    let voiceRecTimerInterval = null;
+    let voiceRecSeconds = 0;
+    const VOICE_REC_DEFAULT_SECONDS = 60; // 선생님이 문제별로 설정하지 않은 경우의 기본값
+    let activeProblem = null;
+    let mySubmission = null;
+    let timerInterval = null;
+    let pollInterval = null;
+
+    // ---------------- [손글씨 캔버스 상태] ----------------
+    // 풀이 공간이 부족하면 캔버스를 지우는 대신 새 페이지를 이어붙일 수 있도록
+    // 여러 개의 캔버스(pages)를 배열로 관리합니다. 제출 시 모든 페이지를 세로로 이어 붙여 하나의 이미지로 만듭니다.
+    let pages = []; // { canvas, ctx, strokes, bgImage, cssWidth, cssHeight, currentStroke, isDrawing, activePointerIds, gestureMode }
+    let activePageIndex = 0; // 되돌리기(undo) 등 도구가 적용될, 마지막으로 손을 댄 페이지
+    let currentColor = '#1B2A3D';
+    let currentSize = 3;
+    let isEraser = false;
+
+    // ---------------- [전체화면 모드] ----------------
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+    }
+
+    function requestFS(el) {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if (el.webkitRequestFullScreen) return el.webkitRequestFullScreen();
+      if (el.msRequestFullscreen) return el.msRequestFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    function exitFS() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    // 전체화면 진입에 성공하면(윈도우 태블릿의 크롬/엣지 등) 가로모드로 고정을 시도합니다.
+    // 지원하지 않는 브라우저(예: 아이패드 사파리)에서는 조용히 무시합니다.
+    function tryLockLandscape() {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => { });
+        }
+      } catch (e) { /* 무시 */ }
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (isFullscreen()) {
+          await exitFS();
+        } else {
+          await requestFS(document.documentElement);
+          tryLockLandscape();
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.\n\n📱 아이패드(Safari)라면: 공유 버튼 → "홈 화면에 추가"로 등록하면 주소창 없이 앱처럼 꽉 찬 화면으로 사용할 수 있어요.\n\n💻 윈도우 태블릿(크롬/엣지)이라면 화면 아무 곳이나 한 번 터치한 뒤 다시 시도해주세요.');
+      }
+    }
+
+    function updateFsBtn() {
+      const btn = document.getElementById('fsBtn');
+      if (!btn) return;
+      const fs = isFullscreen();
+      btn.textContent = fs ? '↙️ 전체화면 종료' : '⛶ 전체화면';
+      btn.classList.toggle('needs-attention', !fs);
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, updateFsBtn);
+    });
+    updateFsBtn();
+
+    // 로그인 화면이 뜨기 전, 태블릿에서 첫 터치가 들어오는 즉시 전체화면을 한 번 시도합니다.
+    // (브라우저 정책상 사용자의 실제 터치/클릭이 있어야 전체화면 API가 동작합니다)
+    function firstTouchFullscreen() {
+      if (!isFullscreen()) {
+        requestFS(document.documentElement).then(tryLockLandscape).catch(() => { /* 무시하고 버튼으로 재시도 가능 */ });
+      }
+      document.removeEventListener('pointerdown', firstTouchFullscreen);
+    }
+    document.addEventListener('pointerdown', firstTouchFullscreen, { once: true });
+
+    async function verifyStudent() {
+      // 학생이 처음 버튼을 누르는 순간(사용자 클릭 직후)에 자동으로 전체화면을 시도합니다.
+      // 지원되지 않는 기기라면 조용히 무시하고 그대로 진행합니다(오른쪽 위 버튼으로 나중에 다시 시도 가능).
+      if (!isFullscreen()) {
+        try { await requestFS(document.documentElement); tryLockLandscape(); } catch (e) { /* 무시 */ }
+      }
+
+      const sId = document.getElementById('studentIdInput').value.trim();
+      const sName = document.getElementById('studentNameInput').value.trim();
+      const sNickname = document.getElementById('studentNicknameInput').value.trim();
+
+      if (sId.length !== 5 || !sName) {
+        alert('학번 5자리와 이름을 정확히 입력해주세요.');
+        return;
+      }
+
+      const { data: studentData, error } = await supabaseClient
+        .from('students')
+        .select('*')
+        .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
+
+      if (error) {
+        alert('학생 확인 중 오류가 발생했습니다: ' + error.message);
+        return;
+      }
+
+      const inputNameClean = sName.replace(/\s+/g, '');
+      const matched = (studentData || []).find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
+
+      if (!matched) {
+        alert('학번과 이름이 일치하는 학생을 찾을 수 없습니다. 다시 확인해주세요.');
+        return;
+      }
+
+      verifiedStudentId = sId;
+      verifiedStudentName = matched.name;
+      verifiedNickname = sNickname;
+
+      const grade = sId.charAt(0);
+      const classNo = sId.substring(1, 3);
+      myScopeTokens = [`${grade}-${classNo}`, `${grade}-ALL`];
+
+      const codeInput = document.getElementById('loginCodeInput').value.trim();
+      manualRoomCode = codeInput || null;
+
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('mainArea').classList.remove('hidden');
+      document.getElementById('studentChipName').textContent = verifiedNickname
+        ? `${verifiedNickname} (${verifiedStudentName})`
+        : `${verifiedStudentName} (${verifiedStudentId})`;
+
+      await checkActiveProblem();
+      pollInterval = setInterval(checkActiveProblem, 4000); // 새 문제가 올라오면 자동으로 감지
+    }
+
+    function logout() {
+      clearInterval(timerInterval);
+      clearInterval(pollInterval);
+      resetVoiceRecordingState();
+      verifiedStudentId = '';
+      verifiedStudentName = '';
+      verifiedNickname = '';
+      myScopeTokens = [];
+      manualRoomCode = null;
+      activeProblem = null;
+      mySubmission = null;
+      document.getElementById('studentIdInput').value = '';
+      document.getElementById('studentNameInput').value = '';
+      document.getElementById('studentNicknameInput').value = '';
+      document.getElementById('loginCodeInput').value = '';
+      document.getElementById('loginCodeRow').classList.add('hidden');
+      document.getElementById('codeToggleLink').textContent = '🔑 선생님이 알려준 입장코드가 있나요?';
+      document.getElementById('loginCard').classList.remove('hidden');
+      document.getElementById('mainArea').classList.add('hidden');
+    }
+
+    async function checkActiveProblem() {
+      let query = supabaseClient
+        .from('live_problems')
+        .select('*')
+        .eq('is_active', true);
+
+      if (manualRoomCode) {
+        // 입장코드를 입력한 경우: 학년/반과 무관하게 해당 코드의 방에만 연결합니다.
+        query = query.eq('room_code', manualRoomCode);
+      } else {
+        // 평소: 내 학년-반(또는 그 학년 전체 대상) 문제만 자동으로 연결합니다.
+        query = query.overlaps('target_scope', myScopeTokens);
+      }
+
+      const { data } = await query.order('started_at', { ascending: false }).limit(1);
+
+      const problem = (data && data.length > 0) ? data[0] : null;
+
+      // 새 문제가 시작됐거나(id 다름), 문제가 없어졌으면 화면을 다시 그림
+      if ((problem && (!activeProblem || activeProblem.id !== problem.id)) || (!problem && activeProblem)) {
+        activeProblem = problem;
+        mySubmission = null;
+        if (problem) await loadMySubmission();
+        renderProblemArea();
+      } else if (problem) {
+        activeProblem = problem; // 시간 등 갱신
+      }
+    }
+
+    async function promptManualCode() {
+      const code = prompt('선생님이 알려준 입장코드를 입력해주세요.');
+      if (!code) return;
+      manualRoomCode = code.trim();
+      await checkActiveProblem();
+    }
+
+    async function clearManualCode() {
+      manualRoomCode = null;
+      activeProblem = null;
+      mySubmission = null;
+      await checkActiveProblem();
+    }
+
+    async function loadMySubmission() {
+      if (!activeProblem) return;
+      const { data } = await supabaseClient
+        .from('live_submissions')
+        .select('*')
+        .eq('session_id', activeProblem.id)
+        .eq('student_id', verifiedStudentId)
+        .maybeSingle();
+      mySubmission = data || null;
+    }
+
+    function renderProblemArea() {
+      const area = document.getElementById('problemArea');
+      clearInterval(timerInterval);
+
+      if (!activeProblem) {
+        const modeHint = manualRoomCode
+          ? `입력하신 입장코드(${escapeHtml(manualRoomCode)})로 진행 중인 문제를 찾을 수 없습니다. 코드가 맞는지 선생님께 확인해주세요.
+             <div class="manual-code-badge"><button onclick="clearManualCode()">🔙 우리 반 문제로 돌아가기</button></div>`
+          : `아직 출제된 문제가 없습니다.<br>선생님이 문제를 올리면 자동으로 나타납니다.
+             <div class="manual-code-badge">다른 반 문제를 풀어야 하나요? <button onclick="promptManualCode()">🔑 입장코드 입력</button></div>`;
+        area.innerHTML = `<div class="card"><div class="waiting">⏳ ${modeHint}</div></div>`;
+        return;
+      }
+
+      const submittedBadge = mySubmission
+        ? `<div class="submitted-badge">제출 완료 · ${new Date(mySubmission.updated_at || mySubmission.submitted_at).toLocaleTimeString('ko-KR')}</div>`
+        : '';
+
+      const prevAudioHtml = (mySubmission && mySubmission.solution_audio_url)
+        ? `<div class="field-hint" style="margin-bottom:6px;">이전에 제출한 음성:</div><audio controls src="${mySubmission.solution_audio_url}" style="width:100%; margin-bottom:10px;"></audio>`
+        : '';
+
+      const teacherTagHtml = activeProblem.teacher_name
+        ? `<div class="teacher-tag">🧑‍🏫 ${escapeHtml(activeProblem.teacher_name)} 선생님</div><br>`
+        : '';
+      const manualBadgeHtml = manualRoomCode
+        ? `<div class="manual-code-badge">🔑 입장코드(${escapeHtml(manualRoomCode)})로 접속 중 <button onclick="clearManualCode()">🔙 우리 반으로</button></div>`
+        : '';
+
+      area.innerHTML = `
+    <div class="problem-layout">
+    <div class="card problem-box">
+      ${teacherTagHtml}
+      <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(activeProblem.time_limit_seconds / 60)}분</div>
+      <div class="ptext">${activeProblem.problem_text}</div>
+      ${activeProblem.problem_image_url ? `<img src="${activeProblem.problem_image_url}" alt="문제 그림" style="max-width:${Math.round((activeProblem.image_scale || 1) * 100)}%; border:1px solid var(--line); border-radius:8px; display:block; margin:8px 0;">` : ''}
+      <div class="timer-row">
+        <div class="timer-label">남은 시간</div>
+        <div class="timer-value" id="studentTimer">--:--</div>
+      </div>
+      ${manualBadgeHtml}
+    </div>
+
+    <div class="card">
+      ${submittedBadge}
+      <div class="field">
+        <label>✍️ 아이패드 펜으로 풀이 과정을 써주세요</label>
+        <div class="canvas-toolbar">
+          <button class="tool-btn active" id="colorBtnBlack" onclick="setPenColor('#1B2A3D', 'colorBtnBlack')">⚫ 검정</button>
+          <button class="tool-btn" id="colorBtnRed" onclick="setPenColor('#C0392B', 'colorBtnRed')">🔴 빨강</button>
+          <button class="tool-btn" id="colorBtnBlue" onclick="setPenColor('#2563EB', 'colorBtnBlue')">🔵 파랑</button>
+          <button class="tool-btn" id="eraserBtn" onclick="toggleEraser()">🧹 지우개</button>
+          <button class="tool-btn" onclick="undoStroke()">↩️ 되돌리기</button>
+          <button class="tool-btn" onclick="clearCanvas()">🗑 전체지우기</button>
+        </div>
+        <div id="canvasPagesContainer" class="canvas-pages"></div>
+        <button type="button" class="btn secondary add-page-btn" onclick="addCanvasPage()">➕ 풀이 공간 더 추가하기 (지우지 않고 이어쓰기)</button>
+      </div>
+      <div class="field">
+        <label>🎙 (선택) 목소리로 풀이 설명하기</label>
+        ${prevAudioHtml}
+        <div class="voice-rec-row">
+          <button class="btn secondary" id="voiceRecBtn" onclick="toggleVoiceRecording()" style="width:auto; flex:1;">🎙 녹음 시작</button>
+          <span id="voiceRecTimer" class="voice-rec-timer hidden">00:00</span>
+        </div>
+        <audio id="voicePreview" class="hidden" controls style="width:100%; margin-top:8px;"></audio>
+        <button class="btn secondary hidden" id="voiceReRecordBtn" onclick="toggleVoiceRecording()" style="margin-top:8px;">🔁 다시 녹음하기</button>
+        <div class="field-hint">최대 ${activeProblem.voice_limit_seconds || VOICE_REC_DEFAULT_SECONDS}초까지 녹음돼요. 선생님이 나중에 들어볼 수 있어요.</div>
+      </div>
+      <div class="field">
+        <label>💬 (선택) 최종 답이나 짧은 메모</label>
+        <input type="text" id="solutionNote" placeholder="예: 정답 27/4" value="${mySubmission ? escapeHtml(mySubmission.solution_text || '') : ''}">
+      </div>
+      <button class="btn" id="submitBtn" onclick="submitSolution()">${mySubmission ? '🔁 다시 제출하기' : '🚀 풀이 올리기'}</button>
+    </div>
+    </div>
+  `;
+
+      if (window.MathJax) MathJax.typesetPromise([area.querySelector('.problem-box')]);
+      initCanvasPages();
+      resetVoiceRecordingState();
+
+      timerInterval = setInterval(updateStudentTimer, 1000);
+      updateStudentTimer();
+    }
+
+    // ---------------- [음성 설명 녹음] ----------------
+    function pickAudioMimeType() {
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      for (const type of candidates) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) return type;
+      }
+      return '';
+    }
+
+    function resetVoiceRecordingState() {
+      // 문제가 바뀌거나 화면이 다시 그려질 때, 이전 녹음 상태를 깨끗하게 초기화합니다.
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        try { mediaRecorder.stop(); } catch (e) { /* 무시 */ }
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+      clearInterval(voiceRecTimerInterval);
+      recordedAudioBlob = null;
+      audioChunks = [];
+    }
+
+    async function toggleVoiceRecording() {
+      const btn = document.getElementById('voiceRecBtn');
+      if (!btn) return;
+
+      // 녹음 중이었다면 -> 종료
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        return;
+      }
+
+      // 새로 녹음을 시작하기 전에 이전 미리듣기를 정리합니다.
+      recordedAudioBlob = null;
+      const preview = document.getElementById('voicePreview');
+      if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+      const reRecordBtn = document.getElementById('voiceReRecordBtn');
+      if (reRecordBtn) reRecordBtn.classList.add('hidden');
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        alert('마이크 사용 권한이 필요해요. 브라우저에서 마이크 접근을 허용해주세요.');
+        return;
+      }
+      micStream = stream;
+
+      const mimeType = pickAudioMimeType();
+      try {
+        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (e) {
+        alert('이 기기/브라우저에서는 음성 녹음을 지원하지 않아요.');
+        stream.getTracks().forEach(t => t.stop());
+        micStream = null;
+        return;
+      }
+
+      audioChunks = [];
+      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+        clearInterval(voiceRecTimerInterval);
+
+        recordedAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        const previewEl = document.getElementById('voicePreview');
+        const reRecordEl = document.getElementById('voiceReRecordBtn');
+        const timerEl2 = document.getElementById('voiceRecTimer');
+        const btnEl = document.getElementById('voiceRecBtn');
+        if (previewEl) {
+          previewEl.src = URL.createObjectURL(recordedAudioBlob);
+          previewEl.classList.remove('hidden');
+        }
+        if (reRecordEl) reRecordEl.classList.remove('hidden');
+        if (timerEl2) timerEl2.classList.add('hidden');
+        if (btnEl) { btnEl.textContent = '🎙 녹음 시작'; btnEl.classList.remove('recording'); }
+      };
+
+      mediaRecorder.start();
+      voiceRecSeconds = 0;
+      const voiceLimitSeconds = (activeProblem && activeProblem.voice_limit_seconds) || VOICE_REC_DEFAULT_SECONDS;
+      const timerEl = document.getElementById('voiceRecTimer');
+      if (timerEl) { timerEl.classList.remove('hidden'); timerEl.textContent = '00:00'; }
+      btn.textContent = '⏹ 녹음 종료';
+      btn.classList.add('recording');
+
+      voiceRecTimerInterval = setInterval(() => {
+        voiceRecSeconds++;
+        const m = String(Math.floor(voiceRecSeconds / 60)).padStart(2, '0');
+        const s = String(voiceRecSeconds % 60).padStart(2, '0');
+        if (timerEl) timerEl.textContent = `${m}:${s}`;
+        if (voiceRecSeconds >= voiceLimitSeconds) {
+          mediaRecorder.stop(); // 이 문제에 설정된 최대 녹음시간에 도달하면 자동으로 종료합니다.
+        }
+      }, 1000);
+    }
+
+    // ---------------- [손글씨 캔버스 - 여러 페이지] ----------------
+    // 화면이 넓고 높은 노트북/데스크탑에서는 풀이 캔버스를 더 크게, 작은 태블릿에서는 기존 크기를 유지합니다.
+    function computeDefaultCanvasHeight() {
+      const vh = window.innerHeight || 800;
+      return Math.max(320, Math.min(600, Math.round(vh * 0.5)));
+    }
+
+    function createPageState() {
+      return {
+        canvas: null, ctx: null,
+        strokes: [], bgImage: null,
+        cssWidth: 0, cssHeight: computeDefaultCanvasHeight(),
+        currentStroke: null, isDrawing: false,
+        activePointerIds: new Set(), gestureMode: false
+      };
+    }
+
+    function setupCanvasBackingStore(canvas, page) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = page.cssWidth * dpr;
+      canvas.height = page.cssHeight * dpr;
+      canvas.style.height = page.cssHeight + 'px';
+      page.ctx = canvas.getContext('2d');
+      page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      page.ctx.scale(dpr, dpr);
+      page.ctx.lineCap = 'round';
+      page.ctx.lineJoin = 'round';
+    }
+
+    // 문제가 새로 열릴 때(renderProblemArea) 호출: 페이지를 1개로 초기화합니다.
+    function initCanvasPages() {
+      pages = [createPageState()];
+      activePageIndex = 0;
+      const container = document.getElementById('canvasPagesContainer');
+      if (!container) return;
+      container.innerHTML = '<canvas class="draw-canvas" id="drawCanvas_0"></canvas>';
+      setupPageCanvas(0);
+
+      // 이전에 제출한 손글씨가 있으면 첫 페이지의 배경으로 불러와서 이어서 그릴 수 있게 합니다.
+      if (mySubmission && mySubmission.solution_image) {
+        const img = new Image();
+        img.onload = () => { pages[0].bgImage = img; redrawPage(0); };
+        img.src = mySubmission.solution_image;
+      }
+    }
+
+    // 풀이 공간이 부족할 때: 기존 페이지는 그대로 두고 새 캔버스를 아래에 이어붙입니다.
+    function addCanvasPage() {
+      const page = createPageState();
+      pages.push(page);
+      const idx = pages.length - 1;
+
+      const container = document.getElementById('canvasPagesContainer');
+      if (!container) return;
+
+      const divider = document.createElement('div');
+      divider.className = 'page-divider';
+      divider.textContent = `✂️ ${idx + 1}번째 이어쓰기 공간`;
+      container.appendChild(divider);
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'draw-canvas';
+      canvas.id = `drawCanvas_${idx}`;
+      container.appendChild(canvas);
+
+      setupPageCanvas(idx);
+      activePageIndex = idx;
+      canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function setupPageCanvas(i) {
+      const canvas = document.getElementById(`drawCanvas_${i}`);
+      const page = pages[i];
+      if (!canvas || !page) return;
+      page.canvas = canvas;
+      page.cssWidth = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      setupCanvasBackingStore(canvas, page);
+      redrawPage(i);
+
+      canvas.onpointerdown = (e) => onPointerDown(e, i);
+      canvas.onpointermove = (e) => onPointerMove(e, i);
+      canvas.onpointerup = (e) => onPointerUp(e, i);
+      canvas.onpointerleave = (e) => onPointerUp(e, i);
+      canvas.onpointercancel = (e) => onPointerUp(e, i);
+    }
+
+    function getCanvasPos(canvas, e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function onPointerDown(e, i) {
+      const page = pages[i];
+      if (!page) return;
+      e.preventDefault();
+      activePageIndex = i;
+      page.activePointerIds.add(e.pointerId);
+
+      // 손가락(또는 펜)이 두 개 이상 동시에 닿으면 확대/축소 제스처로 간주하고
+      // 방금 그려지던 선은 취소해서 낙서가 남지 않도록 합니다.
+      if (page.activePointerIds.size > 1) {
+        page.gestureMode = true;
+        if (page.isDrawing && page.currentStroke) {
+          const idx = page.strokes.indexOf(page.currentStroke);
+          if (idx !== -1) page.strokes.splice(idx, 1);
+        }
+        page.isDrawing = false;
+        page.currentStroke = null;
+        redrawPage(i);
+        return;
+      }
+
+      if (page.gestureMode) return; // 손가락을 아직 다 떼지 않았으면 새 선을 시작하지 않음
+
+      page.isDrawing = true;
+      const canvas = e.target;
+      canvas.setPointerCapture(e.pointerId);
+      const pos = getCanvasPos(canvas, e);
+      page.currentStroke = { color: isEraser ? '#FFFFFF' : currentColor, size: isEraser ? 22 : currentSize, points: [pos] };
+      page.strokes.push(page.currentStroke);
+    }
+
+    function onPointerMove(e, i) {
+      const page = pages[i];
+      if (!page) return;
+      if (page.gestureMode || page.activePointerIds.size > 1) return; // 제스처 중에는 그리지 않음
+      if (!page.isDrawing || !page.currentStroke) return;
+      e.preventDefault();
+      const pos = getCanvasPos(e.target, e);
+      page.currentStroke.points.push(pos);
+      redrawPage(i);
+    }
+
+    function onPointerUp(e, i) {
+      const page = pages[i];
+      if (!page) return;
+      if (e && e.pointerId !== undefined) page.activePointerIds.delete(e.pointerId);
+      if (page.activePointerIds.size === 0) page.gestureMode = false; // 모든 손가락을 뗀 뒤에야 제스처 모드 해제
+      page.isDrawing = false;
+      page.currentStroke = null;
+    }
+
+    function redrawPage(i) {
+      const page = pages[i];
+      if (!page || !page.canvas || !page.ctx) return;
+      const ctx = page.ctx;
+      const dpr = window.devicePixelRatio || 1;
+      const cssWidth = page.canvas.width / dpr;
+      const cssHeight = page.canvas.height / dpr;
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+      if (page.bgImage) ctx.drawImage(page.bgImage, 0, 0, cssWidth, cssHeight);
+
+      page.strokes.forEach(stroke => {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.beginPath();
+        stroke.points.forEach((p, idx) => {
+          if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    // 여러 페이지를 세로로 이어 붙여 제출용 이미지 한 장으로 합칩니다.
+    function mergePagesToDataUrl() {
+      const width = pages.reduce((max, p) => Math.max(max, p.cssWidth || 0), 300);
+      const totalHeight = pages.reduce((sum, p) => sum + (p.cssHeight || 0), 0) || 320;
+
+      const merged = document.createElement('canvas');
+      merged.width = width;
+      merged.height = totalHeight;
+      const mctx = merged.getContext('2d');
+      mctx.fillStyle = '#fff';
+      mctx.fillRect(0, 0, width, totalHeight);
+
+      let yOffset = 0;
+      pages.forEach(page => {
+        if (page.canvas) mctx.drawImage(page.canvas, 0, yOffset, width, page.cssHeight);
+        yOffset += page.cssHeight;
+      });
+
+      return merged.toDataURL('image/png');
+    }
+
+    function setPenColor(color, btnId) {
+      currentColor = color;
+      isEraser = false;
+      ['colorBtnBlack', 'colorBtnRed', 'colorBtnBlue'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', id === btnId);
+      });
+      const eraserBtn = document.getElementById('eraserBtn');
+      if (eraserBtn) eraserBtn.classList.remove('active');
+    }
+
+    function toggleEraser() {
+      isEraser = !isEraser;
+      document.getElementById('eraserBtn').classList.toggle('active', isEraser);
+    }
+
+    function undoStroke() {
+      // 마지막으로 손을 댄 페이지에서 되돌립니다.
+      const page = pages[activePageIndex];
+      if (!page) return;
+      page.strokes.pop();
+      redrawPage(activePageIndex);
+    }
+
+    function clearCanvas() {
+      if (!confirm('전체 지우기를 할까요? (추가한 이어쓰기 공간도 모두 사라집니다)')) return;
+      initCanvasPages();
+    }
+
+    // ---------------- [화면 회전 / 크기 변경 대응] ----------------
+    // 캔버스 폭이 바뀌면(회전 등) 그림을 지우지 않고, 새 크기에 맞게 좌표를 다시 배치합니다.
+    function handleCanvasResize() {
+      pages.forEach((page, i) => {
+        const canvas = page.canvas;
+        if (!canvas) return; // 캔버스가 화면에 없으면(로그인/대기 화면 등) 무시
+
+        const newWidth = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+        if (!newWidth || Math.abs(newWidth - page.cssWidth) < 2) return; // 실질적인 변화 없으면 무시
+
+        const scaleX = newWidth / page.cssWidth;
+
+        page.strokes.forEach(stroke => {
+          stroke.points.forEach(p => { p.x *= scaleX; });
+          stroke.size *= scaleX;
+        });
+
+        page.cssWidth = newWidth;
+        setupCanvasBackingStore(canvas, page);
+        redrawPage(i);
+      });
+    }
+
+    let resizeDebounce = null;
+    function scheduleCanvasResize(delay) {
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(handleCanvasResize, delay);
+    }
+    window.addEventListener('resize', () => scheduleCanvasResize(200));
+    window.addEventListener('orientationchange', () => scheduleCanvasResize(350)); // 회전 애니메이션이 끝난 뒤에 다시 계산
+
+    function updateStudentTimer() {
+      if (!activeProblem) return;
+      const started = new Date(activeProblem.started_at).getTime();
+      const remain = Math.max(0, Math.floor((started + activeProblem.time_limit_seconds * 1000 - Date.now()) / 1000));
+      const el = document.getElementById('studentTimer');
+      if (!el) return;
+      const m = String(Math.floor(remain / 60)).padStart(2, '0');
+      const s = String(remain % 60).padStart(2, '0');
+      el.textContent = `${m}:${s}`;
+      el.classList.toggle('warning', remain <= 30);
+
+      const submitBtn = document.getElementById('submitBtn');
+      if (remain <= 0 && submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏰ 시간이 종료되었습니다';
+        clearInterval(timerInterval);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function submitSolution() {
+      const note = document.getElementById('solutionNote').value.trim();
+
+      const hasContent = pages.some(p => p.strokes.length > 0 || p.bgImage);
+      if (!hasContent) {
+        alert('펜으로 풀이 과정을 먼저 써주세요.');
+        return;
+      }
+      if (!activeProblem) { alert('현재 활성화된 문제가 없습니다.'); return; }
+
+      const started = new Date(activeProblem.started_at).getTime();
+      const remain = started + activeProblem.time_limit_seconds * 1000 - Date.now();
+      if (remain <= 0) {
+        alert('제한시간이 종료되어 제출할 수 없습니다.');
+        return;
+      }
+
+      // 이어쓰기로 추가한 모든 페이지를 세로로 이어 붙여 한 장의 이미지로 제출합니다.
+      const imageDataUrl = mergePagesToDataUrl();
+
+      // 새로 녹음한 음성이 있으면 Storage에 올리고 그 주소를 저장합니다. 없으면 기존에 제출했던 음성 주소를 그대로 유지합니다.
+      let audioUrl = (mySubmission && mySubmission.solution_audio_url) || null;
+      if (recordedAudioBlob) {
+        const ext = recordedAudioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+        const path = `${activeProblem.id}_${verifiedStudentId}.${ext}`;
+        const { error: uploadError } = await supabaseClient
+          .storage
+          .from('solution-audio')
+          .upload(path, recordedAudioBlob, { contentType: recordedAudioBlob.type || 'audio/webm', upsert: true });
+
+        if (uploadError) {
+          alert('음성 파일 업로드 중 오류가 발생했습니다: ' + uploadError.message);
+          return;
+        }
+        const { data: publicUrlData } = supabaseClient.storage.from('solution-audio').getPublicUrl(path);
+        audioUrl = publicUrlData.publicUrl;
+      }
+
+      const payload = {
+        session_id: activeProblem.id,
+        student_id: verifiedStudentId,
+        student_name: verifiedStudentName,
+        nickname: verifiedNickname || null,
+        solution_text: note || '',
+        solution_image: imageDataUrl,
+        solution_audio_url: audioUrl,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient
+        .from('live_submissions')
+        .upsert(payload, { onConflict: 'session_id,student_id' });
+
+      if (error) {
+        alert('제출 중 오류가 발생했습니다: ' + error.message);
+        return;
+      }
+
+      await loadMySubmission();
+      renderProblemArea();
+      alert('🎉 풀이가 제출되었습니다! 칠판 화면에서 확인해보세요.');
+    }
+
+    document.getElementById('studentNameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('studentNicknameInput').focus();
+    });
+    document.getElementById('studentNicknameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') verifyStudent();
+    });
+  </script>
+</body>
+
+</html>

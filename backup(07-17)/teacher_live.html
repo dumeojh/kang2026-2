@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실시간 풀이 제출 현황판 (교사용)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" id="MathJax-script" async></script>
+
+  <style>
+    :root {
+      --paper: #F5F7FA;
+      --line: #E1E6ED;
+      --card: #FFFFFF;
+      --ink: #1E2433;
+      --ink-soft: #707B8C;
+      --sidebar: #1B2440;
+      --sidebar-soft: #29335A;
+      --sidebar-line: rgba(255, 255, 255, 0.1);
+      --brand: #3452C6;
+      --brand-dark: #26399C;
+      --brand-soft: #E9EDFB;
+      --red: #E14434;
+      --red-soft: #FDE9E6;
+      --green: #1E9E6B;
+      --green-soft: #E3F6EE;
+      --gold: #D9A62B;
+      --silver: #A6B0BD;
+      --bronze: #BC7A48;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ---------- 왼쪽: 제출 명단 (스코어보드) ---------- */
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: var(--sidebar);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .sidebar {
+      width: 0;
+    }
+
+    .sidebar-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--sidebar-line);
+    }
+
+    .sidebar-head .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #8CA0D6;
+      text-transform: uppercase;
+    }
+
+    .sidebar-head .count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sub-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .sub-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      background: var(--sidebar-soft);
+      border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .sub-item:hover {
+      background: #34406C;
+    }
+
+    .sub-item.selected {
+      background: #384A80;
+      border-color: #5E75C2;
+    }
+
+    .sub-item .rank {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .sub-item.rank-1 .rank {
+      background: var(--gold);
+      color: #1B2440;
+    }
+
+    .sub-item.rank-2 .rank {
+      background: var(--silver);
+      color: #1B2440;
+    }
+
+    .sub-item.rank-3 .rank {
+      background: var(--bronze);
+      color: #1B2440;
+    }
+
+    .sub-item .name {
+      font-weight: 700;
+      font-size: 15px;
+      flex: 1;
+    }
+
+    .sub-item .time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #A9B7DE;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty-msg {
+      color: #8CA0D6;
+      font-size: 13.5px;
+      padding: 20px 10px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ---------- 오른쪽: 문제 + 풀이 ---------- */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 28px;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar h1 {
+      font-family: 'Gowun Batang', serif;
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .topbar h1::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px var(--red-soft);
+      flex-shrink: 0;
+    }
+
+    .timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--brand-dark);
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+    }
+
+    .timer.warning {
+      color: #fff;
+      background: var(--red);
+    }
+
+    .btn {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .btn.danger {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .btn.danger:hover {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      gap: 22px;
+      overflow: hidden;
+      /* 문제 칸과 풀이 칸이 각자 따로 스크롤되도록, 이 줄 자체는 스크롤하지 않습니다. */
+      padding: 26px 34px;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+
+    .problem-col {
+      width: 380px;
+      flex-shrink: 0;
+      height: 100%;
+      overflow-y: auto;
+      transition: width 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .problem-col {
+      width: 640px;
+    }
+
+    @media (max-width: 900px) {
+
+      /* 창이 좁아지면(예: 노트북 창을 반으로 나눠쓰는 경우) 기존처럼 위아래로 쌓이게 합니다. */
+      .content {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .problem-col,
+      .app.sidebar-collapsed .problem-col {
+        width: auto;
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+
+    .problem-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 26px;
+      margin-bottom: 22px;
+      box-shadow: 0 10px 26px -18px rgba(30, 36, 51, 0.25);
+    }
+
+    .problem-card .ptag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .problem-card .ptext {
+      font-size: calc(19px * var(--fscale, 1));
+      line-height: 1.7;
+    }
+
+    .ptag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .ptag-row .ptag {
+      margin-bottom: 0;
+    }
+
+    .layout-switch {
+      display: flex;
+      gap: 4px;
+      background: var(--bg, #F3F1EA);
+      border-radius: 999px;
+      padding: 3px;
+    }
+
+    .layout-switch-btn {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 5px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .layout-switch-btn.active {
+      background: var(--card);
+      color: var(--brand-dark, var(--brand));
+      box-shadow: 0 1px 4px rgba(30, 36, 51, 0.15);
+    }
+
+    .problem-card-body {
+      display: block;
+    }
+
+    .problem-card.layout-right .problem-card-body {
+      display: flex;
+      gap: 22px;
+      align-items: flex-start;
+    }
+
+    .problem-card.layout-right .p-main {
+      flex: 1 1 50%;
+      min-width: 0;
+    }
+
+    .problem-card.layout-right .p-panels {
+      flex: 1 1 50%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .problem-card.layout-right .p-panels .answer-panel,
+    .problem-card.layout-right .p-panels .solution-panel {
+      margin-top: 0;
+    }
+
+    @media (max-width: 900px) {
+      .problem-card.layout-right .problem-card-body {
+        flex-direction: column;
+      }
+    }
+
+    /* ---------- 문제 전체화면 모드 ---------- */
+    #problemArea:fullscreen,
+    #problemArea:-webkit-full-screen {
+      width: 100%;
+      height: 100%;
+      padding: 28px 40px;
+      overflow-y: auto;
+      background: var(--bg, #F3F1EA);
+      display: block;
+    }
+
+    #problemArea:fullscreen .problem-card,
+    #problemArea:-webkit-full-screen .problem-card {
+      max-width: none;
+      width: 100%;
+      margin: 0;
+      min-height: calc(100vh - 56px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #problemArea:fullscreen .ptag,
+    #problemArea:-webkit-full-screen .ptag {
+      font-size: 17px;
+    }
+
+    #problemArea:fullscreen .ptext,
+    #problemArea:-webkit-full-screen .ptext {
+      font-size: calc(46px * var(--fscale, 1));
+      line-height: 1.6;
+    }
+
+    #problemArea:fullscreen .ptext img,
+    #problemArea:-webkit-full-screen .ptext img,
+    #problemArea:fullscreen .p-main > img,
+    #problemArea:-webkit-full-screen .p-main > img {
+      max-width: 100%;
+      max-height: 60vh;
+      width: auto;
+    }
+
+    #problemArea:fullscreen .answer-panel,
+    #problemArea:fullscreen .solution-panel,
+    #problemArea:-webkit-full-screen .answer-panel,
+    #problemArea:-webkit-full-screen .solution-panel {
+      font-size: calc(34px * var(--fscale, 1));
+      line-height: 1.6;
+    }
+
+    #problemArea:fullscreen .answer-panel .a-label,
+    #problemArea:fullscreen .solution-panel .s-label,
+    #problemArea:-webkit-full-screen .answer-panel .a-label,
+    #problemArea:-webkit-full-screen .solution-panel .s-label {
+      font-size: 18px;
+    }
+
+    #problemArea:fullscreen .answer-toggle-row .btn,
+    #problemArea:-webkit-full-screen .answer-toggle-row .btn {
+      font-size: 19px;
+      padding: 15px 26px;
+    }
+
+    #problemArea:fullscreen .problem-card-body,
+    #problemArea:-webkit-full-screen .problem-card-body {
+      flex: 1;
+    }
+
+    #problemArea:fullscreen .problem-card.layout-right .problem-card-body,
+    #problemArea:-webkit-full-screen .problem-card.layout-right .problem-card-body {
+      align-items: stretch;
+    }
+
+    .fs-toggle-btn {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .fs-toggle-btn:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .font-scale-control {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--bg, #F3F1EA);
+      border-radius: 999px;
+      padding: 3px;
+    }
+
+    .font-scale-control button {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .font-scale-control button:hover {
+      background: var(--card);
+      color: var(--ink);
+    }
+
+    .font-scale-control .font-scale-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      min-width: 34px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .no-problem {
+      text-align: center;
+      color: var(--ink-soft);
+      padding: 80px 20px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .solution-view {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px 28px;
+      min-height: 260px;
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .solution-view .sv-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+      border-bottom: 1.5px dashed var(--line);
+      padding-bottom: 14px;
+    }
+
+    .solution-view .sv-name {
+      font-family: 'Gowun Batang', serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .solution-view .sv-time {
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    .solution-view .sv-body {
+      font-size: 17px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .solution-placeholder {
+      color: var(--ink-soft);
+      text-align: center;
+      padding: 60px 10px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ---------- 전체화면 복귀 배너 ---------- */
+    .fs-restore-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -10px rgba(10, 14, 26, 0.5);
+      font-size: 13px;
+    }
+
+    .fs-restore-banner.hidden {
+      display: none;
+    }
+
+    .fs-restore-banner button {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12.5px;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 13px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .fs-restore-banner button:hover {
+      opacity: 0.85;
+    }
+
+    .fs-restore-banner button.dismiss-btn {
+      background: transparent;
+      color: #fff;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+
+    /* ---------- 모달 공통 스타일 ---------- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 26, 41, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 28px 30px;
+      width: min(560px, 92vw);
+      box-shadow: 0 24px 60px -20px rgba(10, 14, 26, 0.45);
+    }
+
+    .modal-box h2 {
+      font-family: 'Gowun Batang', serif;
+      margin: 0 0 18px;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .modal-box label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .modal-box textarea,
+    .modal-box input,
+    .modal-box select {
+      width: 100%;
+      font-size: 14.5px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--line);
+      margin-bottom: 16px;
+      font-family: inherit;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .modal-box textarea:focus,
+    .modal-box input:focus,
+    .modal-box select:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ---------- 문제 은행 ---------- */
+    .bank-filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin: 14px 0 10px;
+      flex-wrap: wrap;
+    }
+
+    .bank-search-input {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 13.5px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--line);
+      margin-top: 10px;
+      color: var(--ink);
+    }
+
+    .bank-search-input:focus {
+      outline: none;
+      border-color: var(--ink-soft);
+    }
+
+    .filter-tab {
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .filter-tab.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .cat-badge {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+    }
+
+    .cat-badge.cat-suneung {
+      background: #E5EDFF;
+      color: #2C4CBB;
+    }
+
+    .cat-badge.cat-textbook {
+      background: #E4F6E9;
+      color: #227A46;
+    }
+
+    .cat-badge.cat-other {
+      background: #EFEFF2;
+      color: #5B5F6B;
+    }
+
+    .cat-badge.cat-blue { background: #E5EDFF; color: #2C4CBB; }
+    .cat-badge.cat-green { background: #E4F6E9; color: #227A46; }
+    .cat-badge.cat-red { background: #FBE4E1; color: #B5342A; }
+    .cat-badge.cat-purple { background: #EFE6F7; color: #6B3FA0; }
+    .cat-badge.cat-orange { background: #FFF1DA; color: #B4700A; }
+    .cat-badge.cat-teal { background: #DFF4F4; color: #177A7A; }
+    .cat-badge.cat-pink { background: #FBE3F1; color: #B5347E; }
+    .cat-badge.cat-gray { background: #EFEFF2; color: #5B5F6B; }
+
+    .bank-list {
+      margin-top: 16px;
+      max-height: 46vh;
+      overflow-y: auto;
+    }
+
+    .bank-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+
+    .bank-item-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .bank-title {
+      font-weight: 700;
+      font-size: 14.5px;
+      margin-bottom: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bank-meta {
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .bank-item-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .bank-item-actions .btn {
+      padding: 7px 12px;
+      font-size: 12.5px;
+    }
+
+    .bank-empty {
+      text-align: center;
+      color: var(--ink-soft);
+      padding: 30px 10px;
+      font-size: 14px;
+    }
+
+    /* ---------- 정답 보기 ---------- */
+    .answer-toggle-row {
+      margin-top: 16px;
+    }
+
+    .btn.answer-btn {
+      border-color: var(--gold);
+      color: #92660F;
+    }
+
+    .btn.answer-btn:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #fff;
+    }
+
+    .answer-panel {
+      margin-top: 12px;
+      background: #FBF3DF;
+      border: 1.5px dashed var(--gold);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: calc(16px * var(--fscale, 1));
+      line-height: 1.6;
+    }
+
+    .answer-panel.hidden {
+      display: none;
+    }
+
+    .answer-panel .a-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #92660F;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .sv-answer-box {
+      background: #FBF3DF;
+      border: 1.5px dashed var(--gold);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .sv-answer-box .a-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #92660F;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* ---------- 풀이 보기 ---------- */
+    .btn.solution-btn {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+    }
+
+    .btn.solution-btn:hover {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .solution-panel {
+      margin-top: 12px;
+      background: var(--brand-soft);
+      border: 1.5px dashed var(--brand);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: calc(16px * var(--fscale, 1));
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .solution-panel.hidden {
+      display: none;
+    }
+
+    .solution-panel .s-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* ---------- 학생 풀이 전체화면으로 보여주기 ---------- */
+    .sv-head-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .present-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .present-overlay.hidden {
+      display: none;
+    }
+
+    .present-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 30px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .present-header .p-name {
+      font-family: 'Gowun Batang', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-right: auto;
+    }
+
+    .present-header .p-time {
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    .present-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .present-body img {
+      max-width: 100%;
+      max-height: 72vh;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .present-body .p-note {
+      font-size: 22px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      text-align: center;
+    }
+
+    /* ---------- 담당 교사 / 입장코드 / 학급 설정 ---------- */
+    .teacher-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      padding: 6px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .teacher-chip:hover {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+    }
+
+    .teacher-chip b {
+      color: var(--ink);
+    }
+
+    .room-code-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+
+    .modal-box .scope-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 10px 0 16px;
+    }
+
+    .modal-box .scope-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .modal-box .scope-row .grade-label {
+      font-weight: 700;
+      font-size: 14px;
+      width: 52px;
+      flex-shrink: 0;
+    }
+
+    .modal-box .scope-row label.scope-all {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .modal-box .scope-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .setup-hint {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+
+    /* ---------- 설명 영상 녹화 ---------- */
+    .rec-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .rec-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 4px var(--red-soft);
+      animation: recPulse 1.4s infinite;
+    }
+
+    @keyframes recPulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+
+    /* ---------- 기록 상세보기 (밝은 배경용 명단 스타일) ---------- */
+    .archive-detail-body {
+      display: flex;
+      gap: 18px;
+      min-height: 380px;
+      max-height: 62vh;
+    }
+
+    .archive-detail-list {
+      width: 240px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      border-right: 1.5px solid var(--line);
+      padding-right: 14px;
+    }
+
+    .archive-detail-main {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+    }
+
+    .archive-detail-list .sub-item {
+      background: #F6F7FA;
+    }
+
+    .archive-detail-list .sub-item:hover {
+      background: #EBEEF4;
+    }
+
+    .archive-detail-list .sub-item.selected {
+      background: var(--brand-soft);
+      border-color: var(--brand);
+    }
+
+    .archive-detail-list .sub-item .rank {
+      background: rgba(30, 36, 51, 0.08);
+      color: var(--ink);
+    }
+
+    .archive-detail-list .sub-item .name {
+      color: var(--ink);
+    }
+
+    .archive-detail-list .sub-item .time {
+      color: var(--ink-soft);
+    }
+
+    .archive-problem-box {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 14.5px;
+      line-height: 1.6;
+    }
+
+    .archive-problem-box .meta {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="fs-restore-banner hidden" id="fsRestoreBanner">
+    <span>전체화면이 풀렸어요.</span>
+    <button type="button" onclick="restoreFullscreen()">🔎 다시 전체화면으로</button>
+    <button type="button" class="dismiss-btn" onclick="dismissFullscreenRestoreBanner()" title="닫기">✕</button>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="label">제출 명단 · 먼저 올린 순서</div>
+        <div class="count" id="subCount">0명 제출</div>
+      </div>
+      <div class="sub-list" id="subList">
+        <div class="empty-msg">아직 제출한 학생이 없습니다.</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <button class="btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="제출 명단을 숨기거나 다시 보여줍니다">👥 명단
+          숨기기</button>
+        <button class="btn" id="problemFsBtn" onclick="toggleProblemFullscreen()" title="문제를 화면 가득 크게 보여줍니다">🖥 문제 전체화면</button>
+        <button class="btn" id="appFsBtn" onclick="toggleAppFullscreen()" title="화면 전체(주소창 포함)를 꽉 채워 사용합니다">⛶ 전체화면 사용하기</button>
+        <h1 id="problemLabel">오늘의 문제</h1>
+        <div class="room-code-badge hidden" id="roomCodeBadge"></div>
+        <div class="timer" id="timerDisplay">--:--</div>
+        <div class="teacher-chip" id="teacherChip" onclick="openTeacherSetupModal(false)">🧑‍🏫 <b
+            id="teacherChipName">담당 학급 설정</b></div>
+        <button class="btn" onclick="openBankModal()">📚 문제 은행</button>
+        <button class="btn" onclick="showComingSoon()">🎥 설명 영상</button>
+        <button class="btn" onclick="openArchiveModal()">🗑 기록 관리</button>
+        <button class="btn" onclick="openBankPage()">📝 문제 은행 관리 페이지 열기 (새 탭)</button>
+        <button class="btn danger" onclick="closeActiveProblem()">■ 마감하기</button>
+      </div>
+
+      <div class="content">
+        <div class="problem-col" id="problemArea"></div>
+        <div class="solution-view" id="solutionView">
+          <div class="solution-placeholder">왼쪽 명단에서 학생 이름을 클릭하면 풀이 과정이 여기에 표시됩니다.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="bankModal">
+    <div class="modal-box" style="width:min(640px, 92vw);">
+      <h2>📚 문제 은행 · 출제하기</h2>
+      <div class="setup-hint">
+        목록에서 문제를 골라 바로 출제할 수 있어요. 문제를 새로 만들거나 수정·삭제하려면
+        <b>문제 은행 관리 페이지</b>를 이용해주세요.
+      </div>
+      <button class="btn" onclick="openBankPage()">📝 문제 은행 관리 페이지 열기 (새 탭)</button>
+      <input type="text" id="bankSearchInput" class="bank-search-input" placeholder="🔍 제목 / 문제 내용 / 단원으로 검색"
+        oninput="onBankSearchInput()">
+      <div class="bank-filter-tabs" id="bankFilterTabs">
+        <button class="filter-tab active" data-cat="전체" onclick="setBankFilter('전체')">전체</button>
+      </div>
+      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.</div>
+      <div class="bank-refresh-row"
+        style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px;">
+        <span id="bankLastLoadedLabel" style="font-size:12px; color:var(--muted, #888);"></span>
+        <button class="btn" onclick="loadBank(true)">🔄 새로고침</button>
+      </div>
+      <div class="bank-list" id="bankList"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeBankModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="archiveModal">
+    <div class="modal-box" style="width:min(680px, 92vw);">
+      <h2>🗑 제출 기록 관리</h2>
+      <div class="bank-meta" id="archiveSummary" style="margin-bottom:14px;">불러오는 중...</div>
+
+      <div
+        style="display:flex; align-items:center; gap:8px; margin-bottom:14px; padding:12px; background:#F6F7FA; border-radius:8px;">
+        <span style="font-size:13px; color:var(--ink-soft); white-space:nowrap;">아래 기간보다 오래된 기록 한꺼번에 삭제:</span>
+        <input id="archiveCutoffDays" type="number" value="30" min="1"
+          style="width:70px; padding:6px 8px; border-radius:6px; border:1px solid rgba(22,35,59,0.25);">
+        <span style="font-size:13px; color:var(--ink-soft);">일</span>
+        <button class="btn danger" style="margin-left:auto;" onclick="bulkDeleteOldProblems()">일괄 삭제</button>
+      </div>
+
+      <div class="bank-list" id="archiveList"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeArchiveModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="teacherSetupModal">
+    <div class="modal-box" style="width:min(560px, 92vw);">
+      <h2>🧑‍🏫 담당 학급 설정</h2>
+      <div class="setup-hint">
+        여기서 설정한 학급의 학생에게만 문제가 보입니다. 다른 선생님이 같은 시간에 문제를 내도
+        학생은 자기 반 담당 선생님의 문제만 자동으로 받게 됩니다.<br>
+        정해진 반이 아닌 학생도 들어와야 한다면(보충수업, 합반 등) 출제 후 화면에 뜨는
+        <b>입장코드</b>를 알려주세요.
+      </div>
+      <label>선생님 이름</label>
+      <input id="teacherNameInput" type="text" placeholder="예: 김민준">
+      <label>담당 학급 (학년별로 반 번호를 콤마로 구분해서 입력, 예: 1,3,5)</label>
+      <div class="scope-grid">
+        <div class="scope-row">
+          <span class="grade-label">1학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG1" onchange="toggleScopeAllInput(1)"> 학년
+            전체</label>
+          <input type="text" id="scopeClassesG1" placeholder="예: 1,3,5">
+        </div>
+        <div class="scope-row">
+          <span class="grade-label">2학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG2" onchange="toggleScopeAllInput(2)"> 학년
+            전체</label>
+          <input type="text" id="scopeClassesG2" placeholder="예: 2,4">
+        </div>
+        <div class="scope-row">
+          <span class="grade-label">3학년</span>
+          <label class="scope-all"><input type="checkbox" id="scopeAllG3" onchange="toggleScopeAllInput(3)"> 학년
+            전체</label>
+          <input type="text" id="scopeClassesG3" placeholder="예: 6,7">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn hidden" id="teacherSetupCancelBtn" onclick="closeTeacherSetupModal()">취소</button>
+        <button class="btn" style="background:var(--brand); color:#fff;" onclick="saveTeacherProfile()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="comingSoonModal">
+    <div class="modal-box" style="width:min(420px, 90vw); text-align:center;">
+      <h2>🚧 공사중</h2>
+      <p style="color:var(--ink-soft); margin:14px 0 22px; line-height:1.6;">설명영상 기능은 현재 준비 중이에요.<br>곧 다시 만나요!</p>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn" onclick="closeComingSoon()">🔙 돌아오기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="archiveDetailModal">
+    <div class="modal-box" style="width:min(820px, 94vw);">
+      <h2>🔎 기록 상세보기</h2>
+      <div class="archive-problem-box">
+        <div id="archiveDetailProblemText"></div>
+        <div class="meta" id="archiveDetailMeta"></div>
+      </div>
+
+      <div class="bank-meta" id="archiveDetailCount" style="margin-bottom:10px;">불러오는 중...</div>
+      <div class="archive-detail-body">
+        <div class="archive-detail-list" id="archiveDetailList"></div>
+        <div class="archive-detail-main" id="archiveDetailMain">
+          <div class="solution-placeholder">왼쪽 명단에서 학생을 클릭하면 풀이가 여기에 표시됩니다.</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" onclick="closeArchiveDetailModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <div class="present-overlay hidden" id="presentOverlay"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let activeProblem = null;   // 현재 활성 문제 row
+    let submissions = [];       // 현재 문제에 대한 제출 목록 (제출시각 순)
+    let selectedStudentId = null;
+    let timerInterval = null;
+    let realtimeChannel = null;
+    let answerRevealed = false; // "정답 보기"를 눌렀는지 (오른쪽 풀이 화면에도 같이 반영됩니다)
+    let solutionRevealed = false; // "풀이 보기"를 눌렀는지
+    let problemPanelLayout = localStorage.getItem('problemPanelLayout') || 'below'; // 정답/풀이를 문제 '아래'에 보여줄지 '오른쪽'에 보여줄지
+    let problemFontScale = parseFloat(localStorage.getItem('problemFontScale')) || 1; // 문제/정답/풀이 글씨 크기 배율 (1 = 100%)
+
+    // ---------------- [제출 명단 숨기기] ----------------
+    // 문제가 길거나 풀이를 크게 보고 싶을 때, 왼쪽 제출 명단을 잠깐 숨기고
+    // 그만큼의 공간을 문제 칸에 몰아줍니다. 마지막으로 고른 상태는 기억해둡니다.
+    const SIDEBAR_COLLAPSED_KEY = 'liveSidebarCollapsed';
+
+    // ---------------- [문제 전체화면 모드] ----------------
+    // 새 탭을 열거나 다른 창으로 포커스가 옮겨가면 브라우저가 전체화면을 강제로 풀어버립니다.
+    // "사용자가 명시적으로 전체화면을 끈 것"과 구분하기 위해, 마지막으로 켠 전체화면 종류를 기억해둡니다.
+    let wantsFullscreenType = null; // 'app' | 'problem' | null
+
+    // 문제 은행 관리 페이지는 항상 전체화면으로 열리도록 되어 있어서, 그냥 열어주면 됩니다.
+    function openBankPage() {
+      window.open('problem_bank.html', '_blank');
+    }
+
+    function getFsElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
+    function isProblemFullscreen() {
+      const fsEl = getFsElement();
+      return !!fsEl && fsEl.id === 'problemArea';
+    }
+
+    function isAppFullscreen() {
+      const fsEl = getFsElement();
+      return !!fsEl && fsEl === document.documentElement;
+    }
+
+    function requestFS(el) {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if (el.webkitRequestFullScreen) return el.webkitRequestFullScreen();
+      if (el.msRequestFullscreen) return el.msRequestFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    function exitFS() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    async function toggleProblemFullscreen() {
+      try {
+        if (isProblemFullscreen()) {
+          wantsFullscreenType = null; // 직접 버튼을 눌러서 끈 것이므로, 다시 복귀 배너를 띄우지 않습니다.
+          await exitFS();
+        } else {
+          if (getFsElement()) await exitFS(); // 앱 전체화면 중이었다면 먼저 빠져나온 뒤 문제만 전체화면으로 전환
+          await requestFS(document.getElementById('problemArea'));
+          wantsFullscreenType = 'problem';
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
+      }
+    }
+
+    // 주소창까지 가리고 화면 전체(앱 전체 화면)를 태블릿 앱처럼 사용하고 싶을 때 씁니다.
+    async function toggleAppFullscreen() {
+      try {
+        if (isAppFullscreen()) {
+          wantsFullscreenType = null; // 직접 버튼을 눌러서 끈 것이므로, 다시 복귀 배너를 띄우지 않습니다.
+          await exitFS();
+        } else {
+          if (getFsElement()) await exitFS(); // 문제 전체화면 중이었다면 먼저 빠져나온 뒤 앱 전체를 전체화면으로 전환
+          await requestFS(document.documentElement);
+          wantsFullscreenType = 'app';
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
+      }
+    }
+
+    // 새 탭을 열었다가 돌아왔을 때 등, 원치 않게 전체화면이 풀렸을 때 한 번의 클릭으로 되돌립니다.
+    async function restoreFullscreen() {
+      if (!wantsFullscreenType) return;
+      try {
+        const target = wantsFullscreenType === 'problem' ? document.getElementById('problemArea') : document.documentElement;
+        await requestFS(target);
+      } catch (e) {
+        // 사용자 클릭으로 호출했으므로 대부분 성공하지만, 실패해도 조용히 무시합니다 (배너는 계속 떠 있음).
+      }
+    }
+
+    function dismissFullscreenRestoreBanner() {
+      wantsFullscreenType = null;
+      updateFullscreenRestoreBanner();
+    }
+
+    function updateFullscreenRestoreBanner() {
+      const banner = document.getElementById('fsRestoreBanner');
+      if (!banner) return;
+      const shouldShow = !!wantsFullscreenType && !getFsElement();
+      banner.classList.toggle('hidden', !shouldShow);
+    }
+
+    function updateProblemFsBtn() {
+      const btn = document.getElementById('problemFsBtn');
+      if (btn) btn.textContent = isProblemFullscreen() ? '↙️ 전체화면 종료' : '🖥 문제 전체화면';
+      const appBtn = document.getElementById('appFsBtn');
+      if (appBtn) appBtn.textContent = isAppFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면 사용하기';
+      // 전체화면 카드 안쪽의 ⛶ 버튼 라벨도 함께 맞춰줍니다 (내용은 그대로, 라벨만 갱신).
+      if (activeProblem) renderProblemCard();
+      updateFullscreenRestoreBanner();
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, updateProblemFsBtn);
+    });
+    // 새 탭에서 이 탭으로 다시 돌아왔을 때도 배너 상태를 다시 확인합니다.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') updateFullscreenRestoreBanner();
+    });
+
+    function toggleSidebar() {
+      const collapsed = document.querySelector('.app').classList.toggle('sidebar-collapsed');
+      document.getElementById('sidebarToggleBtn').textContent = collapsed ? '👥 명단 보이기' : '👥 명단 숨기기';
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* 무시 */ }
+    }
+
+    function initSidebarCollapsedState() {
+      let collapsed = false;
+      try { collapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'; } catch (e) { /* 무시 */ }
+      if (collapsed) {
+        document.querySelector('.app').classList.add('sidebar-collapsed');
+        document.getElementById('sidebarToggleBtn').textContent = '👥 명단 보이기';
+      }
+    }
+    initSidebarCollapsedState();
+
+    // ---------------- [담당 교사 / 담당 학급 프로필] ----------------
+    // 이 브라우저(이 컴퓨터)에서 활동하는 선생님이 누구이고, 어느 학급을 담당하는지를 저장합니다.
+    // 학생 화면은 이 정보(target_scope)를 보고 "내 반 담당 선생님의 문제"만 자동으로 받습니다.
+    const TEACHER_PROFILE_KEY = 'liveTeacherProfile';
+    let teacherProfile = null; // { teacherId, teacherName, scope: ["1-01","2-ALL", ...] }
+
+    function loadTeacherProfileFromStorage() {
+      try {
+        const raw = localStorage.getItem(TEACHER_PROFILE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function generateTeacherId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function updateTeacherChip() {
+      const nameEl = document.getElementById('teacherChipName');
+      if (!teacherProfile) {
+        nameEl.textContent = '담당 학급 설정';
+        return;
+      }
+      const scopeLabel = (teacherProfile.scope || []).map(formatScopeToken).join(', ') || '학급 미지정';
+      nameEl.textContent = `${teacherProfile.teacherName} · ${scopeLabel}`;
+    }
+
+    function formatScopeToken(token) {
+      const [g, c] = token.split('-');
+      return c === 'ALL' ? `${g}학년 전체` : `${g}학년 ${parseInt(c, 10)}반`;
+    }
+
+    function toggleScopeAllInput(grade) {
+      const allChk = document.getElementById(`scopeAllG${grade}`);
+      const classesInput = document.getElementById(`scopeClassesG${grade}`);
+      classesInput.disabled = allChk.checked;
+      if (allChk.checked) classesInput.value = '';
+    }
+
+    function openTeacherSetupModal(forced) {
+      // forced=true면(아직 설정이 없어서 강제로 띄우는 경우) 취소 버튼을 숨겨서 반드시 저장하게 합니다.
+      document.getElementById('teacherSetupCancelBtn').classList.toggle('hidden', !!forced);
+
+      document.getElementById('teacherNameInput').value = teacherProfile ? teacherProfile.teacherName : '';
+      [1, 2, 3].forEach(g => {
+        const scopeSet = new Set(teacherProfile ? teacherProfile.scope : []);
+        const isAll = scopeSet.has(`${g}-ALL`);
+        document.getElementById(`scopeAllG${g}`).checked = isAll;
+        const classNums = Array.from(scopeSet)
+          .filter(t => t.startsWith(`${g}-`) && t !== `${g}-ALL`)
+          .map(t => parseInt(t.split('-')[1], 10))
+          .sort((a, b) => a - b);
+        document.getElementById(`scopeClassesG${g}`).value = classNums.join(',');
+        toggleScopeAllInput(g);
+      });
+
+      document.getElementById('teacherSetupModal').classList.remove('hidden');
+    }
+
+    function closeTeacherSetupModal() {
+      if (!teacherProfile) return; // 아직 설정 전이면 닫지 못하게 합니다 (반드시 설정 필요).
+      document.getElementById('teacherSetupModal').classList.add('hidden');
+    }
+
+    function saveTeacherProfile() {
+      const name = document.getElementById('teacherNameInput').value.trim();
+      if (!name) { alert('선생님 이름을 입력해주세요.'); return; }
+
+      const scope = [];
+      [1, 2, 3].forEach(g => {
+        const isAll = document.getElementById(`scopeAllG${g}`).checked;
+        if (isAll) { scope.push(`${g}-ALL`); return; }
+        const raw = document.getElementById(`scopeClassesG${g}`).value.trim();
+        if (!raw) return;
+        raw.split(',').map(s => s.trim()).filter(Boolean).forEach(numStr => {
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > 0) scope.push(`${g}-${String(num).padStart(2, '0')}`);
+        });
+      });
+
+      if (scope.length === 0) { alert('담당 학급을 하나 이상 입력해주세요.'); return; }
+
+      teacherProfile = {
+        teacherId: (teacherProfile && teacherProfile.teacherId) || generateTeacherId(),
+        teacherName: name,
+        scope: scope
+      };
+      localStorage.setItem(TEACHER_PROFILE_KEY, JSON.stringify(teacherProfile));
+      updateTeacherChip();
+      document.getElementById('teacherSetupModal').classList.add('hidden');
+
+      // 설정을 마친 뒤에는 내 담당 학급 기준으로 현재 진행 중인 문제를 다시 불러옵니다.
+      loadMyActiveProblem();
+    }
+
+    function requireTeacherProfile() {
+      if (teacherProfile) return true;
+      alert('먼저 담당 학급을 설정해주세요.');
+      openTeacherSetupModal(true);
+      return false;
+    }
+
+    function generateRoomCode() {
+      return String(Math.floor(1000 + Math.random() * 9000)); // 4자리 입장코드
+    }
+
+    async function init() {
+      teacherProfile = loadTeacherProfileFromStorage();
+      updateTeacherChip();
+
+      if (!teacherProfile) {
+        renderNoProblem();
+        openTeacherSetupModal(true);
+        return;
+      }
+
+      await loadMyActiveProblem();
+    }
+
+    async function loadMyActiveProblem() {
+      if (!teacherProfile) return;
+      const { data } = await supabaseClient
+        .from('live_problems')
+        .select('*')
+        .eq('is_active', true)
+        .eq('teacher_id', teacherProfile.teacherId)
+        .order('started_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        setActiveProblem(data[0]);
+      } else {
+        renderNoProblem();
+      }
+    }
+
+    function renderNoProblem() {
+      activeProblem = null;
+      document.getElementById('problemLabel').textContent = '오늘의 문제';
+      document.getElementById('timerDisplay').textContent = '--:--';
+      document.getElementById('roomCodeBadge').classList.add('hidden');
+      document.getElementById('problemArea').innerHTML = `<div class="no-problem">아직 출제된 문제가 없습니다. "📚 문제 은행"에서 문제를 골라 출제해보세요.</div>`;
+      document.getElementById('subList').innerHTML = `<div class="empty-msg">아직 제출한 학생이 없습니다.</div>`;
+      document.getElementById('subCount').textContent = '0명 제출';
+      clearInterval(timerInterval);
+      if (realtimeChannel) { supabaseClient.removeChannel(realtimeChannel); realtimeChannel = null; }
+    }
+
+    function setActiveProblem(problem) {
+      activeProblem = problem;
+      selectedStudentId = null;
+      answerRevealed = false;
+      solutionRevealed = false;
+      document.getElementById('problemLabel').textContent = `문제 #${problem.id}`;
+
+      const badge = document.getElementById('roomCodeBadge');
+      if (problem.room_code) {
+        // 담당 학급(대상)은 바로 옆 "🧑‍🏫 teacher-chip"에 이미 표시되므로 여기서는 입장코드만 보여줍니다.
+        badge.textContent = `🔑 입장코드 ${problem.room_code}`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+
+      loadSubmissions();
+      subscribeRealtime();
+    }
+
+    // 문제 카드를 그립니다. answerRevealed/solutionRevealed/problemPanelLayout 값을 그대로 반영하므로,
+    // 레이아웃(아래/오른쪽)만 바꿀 때도 이미 펼쳐본 정답·풀이가 다시 접히지 않습니다.
+    function renderProblemCard() {
+      const problem = activeProblem;
+      if (!problem) return;
+
+      const hasExtras = !!(problem.answer_text || problem.solution_html);
+      const layoutSwitchHtml = hasExtras ? `
+      <div class="layout-switch" title="정답/풀이를 어디에 보여줄지 선택">
+        <button type="button" class="layout-switch-btn ${problemPanelLayout === 'below' ? 'active' : ''}" onclick="setPanelLayout('below')">⬇️ 아래로</button>
+        <button type="button" class="layout-switch-btn ${problemPanelLayout === 'right' ? 'active' : ''}" onclick="setPanelLayout('right')">➡️ 오른쪽</button>
+      </div>` : '';
+      const fsToggleHtml = `<button type="button" class="fs-toggle-btn" onclick="toggleProblemFullscreen()">${isProblemFullscreen() ? '↙️ 전체화면 종료' : '⛶ 전체화면'}</button>`;
+      const editLinkHtml = `<button type="button" class="fs-toggle-btn" onclick="openProblemInBankEditor()" title="문제 은행에서 이 문제를 편집합니다 (새 탭)">✏️ 편집</button>`;
+      const fontScaleHtml = `
+      <div class="font-scale-control" title="문제/정답/풀이 글씨 크기 조절">
+        <button type="button" onclick="adjustFontScale(-0.1)">가⁻</button>
+        <span class="font-scale-label" onclick="resetFontScale()" title="눌러서 100%로 초기화">${Math.round(problemFontScale * 100)}%</span>
+        <button type="button" onclick="adjustFontScale(0.1)">가⁺</button>
+      </div>`;
+
+      const answerPanelHtml = problem.answer_text ? `
+      <div class="answer-panel ${answerRevealed ? '' : 'hidden'}" id="answerPanel">
+        <div class="a-label">정답</div>
+        <div id="answerBody">${problem.answer_text}</div>
+      </div>
+      ` : '';
+
+      const solutionPanelHtml = problem.solution_html ? `
+      <div class="solution-panel ${solutionRevealed ? '' : 'hidden'}" id="solutionPanel">
+        <div class="s-label">풀이</div>
+        <div id="solutionBody">${problem.solution_html}</div>
+      </div>
+      ` : '';
+
+      document.getElementById('problemArea').innerHTML = `
+    <div class="problem-card layout-${problemPanelLayout}">
+      <div class="ptag-row">
+        <div class="ptag">오늘의 문제 · 제한시간 ${Math.round(problem.time_limit_seconds / 60)}분</div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          ${fontScaleHtml}
+          ${layoutSwitchHtml}
+          ${editLinkHtml}
+          ${fsToggleHtml}
+        </div>
+      </div>
+      <div class="problem-card-body">
+        <div class="p-main">
+          <div class="ptext">${problem.problem_text}</div>
+          ${problem.problem_image_url ? `<img src="${problem.problem_image_url}" alt="문제 그림" style="max-width:${Math.round((problem.image_scale || 1) * 100)}%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; display:block; margin:10px 0;">` : ''}
+          ${hasExtras ? `
+          <div class="answer-toggle-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${problem.answer_text ? `<button class="btn answer-btn" id="answerToggleBtn" onclick="toggleAnswer()">${answerRevealed ? '🙈 정답 숨기기' : '🔑 정답 보기'}</button>` : ''}
+            ${problem.solution_html ? `<button class="btn solution-btn" id="solutionToggleBtn" onclick="toggleSolution()">${solutionRevealed ? '🙈 풀이 숨기기' : '✎ 풀이 보기'}</button>` : ''}
+          </div>
+          ${problemPanelLayout === 'below' ? answerPanelHtml + solutionPanelHtml : ''}
+          ` : ''}
+        </div>
+        ${(hasExtras && problemPanelLayout === 'right') ? `
+        <div class="p-panels">
+          ${answerPanelHtml}
+          ${solutionPanelHtml}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+      document.getElementById('problemArea').style.setProperty('--fscale', problemFontScale);
+    }
+
+    // 문제/정답/풀이 글씨 크기를 조절합니다. (0.4배 ~ 1.8배, 화면에 넘칠 때 줄여서 다 보이게)
+    function adjustFontScale(delta) {
+      problemFontScale = Math.min(1.8, Math.max(0.4, Math.round((problemFontScale + delta) * 10) / 10));
+      localStorage.setItem('problemFontScale', problemFontScale);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
+    }
+
+    function resetFontScale() {
+      problemFontScale = 1;
+      localStorage.setItem('problemFontScale', problemFontScale);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
+    }
+
+    // 정답/풀이를 문제 아래에 보여줄지, 오른쪽에 보여줄지 선택합니다. (둘 중 하나만 표시)
+    // 문제를 풀다가 오타/오류를 발견하면 바로 문제 은행 편집기로 이동해서 고칠 수 있게 합니다.
+    function openProblemInBankEditor() {
+      if (!activeProblem || !activeProblem.bank_id) {
+        alert('이 문제는 문제 은행과 연결된 정보가 없어서 편집 페이지로 바로 이동할 수 없어요. (예전에 출제된 문제일 수 있어요)\n문제 은행 관리 페이지에서 같은 문제를 찾아 직접 수정해주세요.');
+        return;
+      }
+      window.open('problem_bank.html?edit=' + activeProblem.bank_id, '_blank');
+    }
+
+    function setPanelLayout(mode) {
+      if (mode !== 'below' && mode !== 'right') return;
+      problemPanelLayout = mode;
+      localStorage.setItem('problemPanelLayout', mode);
+      renderProblemCard();
+      if (window.MathJax) MathJax.typesetPromise();
+    }
+
+    function toggleAnswer() {
+      const panel = document.getElementById('answerPanel');
+      const btn = document.getElementById('answerToggleBtn');
+      if (!panel) return;
+      const nowHidden = panel.classList.toggle('hidden');
+      answerRevealed = !nowHidden;
+      btn.textContent = nowHidden ? '🔑 정답 보기' : '🙈 정답 숨기기';
+      if (!nowHidden && window.MathJax) MathJax.typesetPromise([panel]);
+
+      // 오른쪽 풀이 화면에서 학생 답을 보고 있었다면, 정답 표시 여부를 그쪽에도 바로 반영합니다.
+      if (selectedStudentId) selectStudent(selectedStudentId);
+    }
+
+    function toggleSolution() {
+      const panel = document.getElementById('solutionPanel');
+      const btn = document.getElementById('solutionToggleBtn');
+      if (!panel) return;
+      const nowHidden = panel.classList.toggle('hidden');
+      solutionRevealed = !nowHidden;
+      btn.textContent = nowHidden ? '✎ 풀이 보기' : '🙈 풀이 숨기기';
+      if (!nowHidden && window.MathJax) MathJax.typesetPromise([panel]);
+    }
+
+    function updateTimer() {
+      if (!activeProblem) return;
+      const started = new Date(activeProblem.started_at).getTime();
+      const remain = Math.max(0, Math.floor((started + activeProblem.time_limit_seconds * 1000 - Date.now()) / 1000));
+      const m = String(Math.floor(remain / 60)).padStart(2, '0');
+      const s = String(remain % 60).padStart(2, '0');
+      const el = document.getElementById('timerDisplay');
+      el.textContent = `${m}:${s}`;
+      el.classList.toggle('warning', remain <= 30);
+      if (remain <= 0) clearInterval(timerInterval);
+    }
+
+    async function loadSubmissions() {
+      if (!activeProblem) return;
+      const { data } = await supabaseClient
+        .from('live_submissions')
+        .select('*')
+        .eq('session_id', activeProblem.id)
+        .order('submitted_at', { ascending: true });
+
+      submissions = data || [];
+      renderSubList();
+    }
+
+    function renderSubList() {
+      const list = document.getElementById('subList');
+      document.getElementById('subCount').textContent = `${submissions.length}명 제출`;
+
+      if (submissions.length === 0) {
+        list.innerHTML = `<div class="empty-msg">아직 제출한 학생이 없습니다.</div>`;
+        return;
+      }
+
+      const started = activeProblem ? new Date(activeProblem.started_at).getTime() : 0;
+
+      list.innerHTML = submissions.map((s, idx) => {
+        const rank = idx + 1;
+        const elapsedSec = Math.max(0, Math.round((new Date(s.submitted_at).getTime() - started) / 1000));
+        const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+        const sec = String(elapsedSec % 60).padStart(2, '0');
+        const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+        const selClass = s.student_id === selectedStudentId ? ' selected' : '';
+        return `
+      <div class="sub-item${rankClass}${selClass}" onclick="selectStudent('${s.student_id}')">
+        <div class="rank">${rank}</div>
+        <div class="name">${escapeHtml(displayNameFor(s))}${s.solution_audio_url ? ' 🎙' : ''}</div>
+        <div class="time">${m}:${sec}</div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    // 학생 한 명이 제출한 풀이 하나만 삭제합니다. (실시간 화면/기록 보관 화면 공통으로 사용)
+    async function deleteSubmission(id, isArchive) {
+      if (!confirm('이 학생이 제출한 풀이를 삭제할까요? 되돌릴 수 없습니다.')) return;
+
+      const { error } = await supabaseClient.from('live_submissions').delete().eq('id', id);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+
+      if (isArchive) {
+        archiveDetailSubs = archiveDetailSubs.filter(s => s.id !== id);
+        archiveDetailSelectedId = null;
+        renderArchiveDetailList();
+        document.getElementById('archiveDetailMain').innerHTML = '<div class="solution-placeholder">왼쪽 명단에서 학생을 클릭하면 풀이가 여기에 표시됩니다.</div>';
+        if (archiveDetailProblem) {
+          archiveCounts[archiveDetailProblem.id] = Math.max(0, (archiveCounts[archiveDetailProblem.id] || 1) - 1);
+        }
+      } else {
+        selectedStudentId = null;
+        document.getElementById('solutionView').innerHTML = '<div class="solution-placeholder">왼쪽 명단에서 학생 이름을 클릭하면 풀이 과정이 여기에 표시됩니다.</div>';
+        await loadSubmissions(); // 실시간 반영이 오기 전에도 목록이 바로 갱신되도록
+      }
+    }
+
+    function selectStudent(studentId) {
+      selectedStudentId = studentId;
+      const s = submissions.find(x => x.student_id === studentId);
+      renderSubList();
+      if (!s) return;
+
+      const dName = displayNameFor(s);
+      const hasNickname = dName !== s.student_name;
+      document.getElementById('solutionView').innerHTML = `
+    <div class="sv-head sv-head-row">
+      <div class="sv-name">${escapeHtml(dName)}${hasNickname ? ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(실명: ${escapeHtml(s.student_name)} · ${s.student_id})</span>` : ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(${s.student_id})</span>`}</div>
+      <div class="sv-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
+      <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" onclick="openPresentOverlay('${studentId}')">🖥 학생들에게 크게 보여주기</button>
+        <button class="btn danger" onclick="deleteSubmission(${s.id}, false)">🗑 이 풀이 삭제</button>
+      </div>
+    </div>
+    ${(answerRevealed && activeProblem && activeProblem.answer_text) ? `
+    <div class="sv-answer-box">
+      <div class="a-label">🔑 정답</div>
+      <div id="svAnswerBody">${activeProblem.answer_text}</div>
+    </div>
+    ` : ''}
+    ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; margin-bottom:14px; display:block;">` : ''}
+    ${s.solution_audio_url ? `<div style="margin-bottom:14px;"><div class="ptag" style="margin-bottom:6px;">🎙 음성 설명</div><audio controls src="${s.solution_audio_url}" style="width:100%;"></audio></div>` : ''}
+    ${s.solution_text ? `<div class="sv-body">${escapeHtml(s.solution_text)}</div>` : ''}
+  `;
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('solutionView')]);
+    }
+
+    function openPresentOverlay(studentId) {
+      const s = submissions.find(x => x.student_id === studentId);
+      if (!s) return;
+
+      const overlay = document.getElementById('presentOverlay');
+      overlay.innerHTML = `
+    <div class="present-header">
+      <div class="p-name">${escapeHtml(displayNameFor(s))}</div>
+      <div class="p-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
+      <button class="btn" onclick="closePresentOverlay()">✕ 닫기 (Esc)</button>
+    </div>
+    <div class="present-body">
+      ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지">` : ''}
+      ${s.solution_audio_url ? `<audio controls autoplay src="${s.solution_audio_url}" style="width:min(500px, 90%); margin-bottom:20px;"></audio>` : ''}
+      ${s.solution_text ? `<div class="p-note">${escapeHtml(s.solution_text)}</div>` : ''}
+    </div>
+  `;
+      overlay.classList.remove('hidden');
+      if (window.MathJax) MathJax.typesetPromise([overlay]);
+    }
+
+    function closePresentOverlay() {
+      document.getElementById('presentOverlay').classList.add('hidden');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !document.getElementById('presentOverlay').classList.contains('hidden')) {
+        closePresentOverlay();
+      }
+    });
+
+    // 별명이 있으면 별명을, 없으면 실명을 화면에 보여줍니다.
+    // (전체화면/칠판에 투사되는 화면일수록 실명 노출을 피하고 별명을 우선합니다)
+    function displayNameFor(s) {
+      return (s.nickname && s.nickname.trim()) ? s.nickname.trim() : s.student_name;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // problem_text가 null/undefined인 행이 섞여 있어도 목록 렌더링 전체가 죽지 않도록 하는 안전한 미리보기 문자열 생성기.
+    // (문제 은행이 1000개 이상으로 커지면 데이터 중 하나쯤은 예상 밖 값일 수 있다고 가정하고 방어)
+    function previewText(text, maxLen) {
+      const safe = String(text || '');
+      return safe.length > maxLen ? safe.slice(0, maxLen) + '…' : safe;
+    }
+
+    // 설명영상 기능은 공사중이라, 관련 버튼을 누르면 이 안내만 띄웁니다.
+    function showComingSoon() {
+      document.getElementById('comingSoonModal').classList.remove('hidden');
+    }
+    function closeComingSoon() {
+      document.getElementById('comingSoonModal').classList.add('hidden');
+    }
+
+    function subscribeRealtime() {
+      if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+      if (!activeProblem) return;
+
+      realtimeChannel = supabaseClient.channel(`submissions-${activeProblem.id}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'live_submissions',
+          filter: `session_id=eq.${activeProblem.id}`
+        }, () => {
+          loadSubmissions();
+        })
+        .subscribe();
+    }
+
+    async function issueFromBankRow(row) {
+      if (!requireTeacherProfile()) return;
+
+      // 이전에 켜져 있던 "내" 문제만 마감 처리합니다. 다른 선생님이 진행 중인 문제는 건드리지 않습니다.
+      await supabaseClient.from('live_problems')
+        .update({ is_active: false })
+        .eq('is_active', true)
+        .eq('teacher_id', teacherProfile.teacherId);
+
+      const { data, error } = await supabaseClient.from('live_problems').insert([{
+        bank_id: row.id,
+        problem_text: row.problem_text,
+        problem_image_url: row.problem_image_url || null,
+        image_scale: row.image_scale || 1,
+        time_limit_seconds: row.time_limit_seconds,
+        voice_limit_seconds: row.voice_limit_seconds || 60,
+        answer_text: row.answer_text || null,
+        solution_html: row.solution_html || null,
+        is_active: true,
+        started_at: new Date().toISOString(),
+        teacher_id: teacherProfile.teacherId,
+        teacher_name: teacherProfile.teacherName,
+        target_scope: teacherProfile.scope,
+        room_code: generateRoomCode()
+      }]).select().single();
+
+      if (error) { alert('출제 중 오류가 발생했습니다: ' + error.message); return; }
+
+      document.getElementById('solutionView').innerHTML = `<div class="solution-placeholder">왼쪽 명단에서 학생 이름을 클릭하면 풀이 과정이 여기에 표시됩니다.</div>`;
+      setActiveProblem(data);
+    }
+
+    // ---------------- [문제 은행 목록] ----------------
+    let bankRows = [];
+    let bankFilterCategory = '전체';
+    let bankSearchKeyword = '';
+    const BANK_RENDER_STEP = 40;
+    let bankRenderLimit = BANK_RENDER_STEP;
+    let bankLastLoadedAt = null; // 문제 은행을 마지막으로 서버에서 불러온 시각 (캐시 재사용 판단용)
+    let categories = [];         // problem_categories 테이블 캐시 (분류 종류 자체는 problem_bank.html에서 관리)
+    let categoriesLoadedAt = null;
+
+    function categoryBadgeClass(category) {
+      const found = categories.find(c => c.name === category);
+      return found ? `cat-${found.color}` : 'cat-gray';
+    }
+
+    // force가 false이고 이미 불러온 적 있으면 재요청하지 않습니다 (분류 종류는 자주 안 바뀌므로).
+    async function loadCategories(force = false) {
+      if (!force && categoriesLoadedAt) return;
+      const { data, error } = await supabaseClient
+        .from('problem_categories')
+        .select('id, name, color, sort_order')
+        .order('sort_order', { ascending: true });
+      if (error) { console.error('분류 목록을 불러오지 못했습니다:', error); return; }
+      categories = data || [];
+      categoriesLoadedAt = Date.now();
+      renderBankFilterTabs();
+    }
+
+    function renderBankFilterTabs() {
+      const wrap = document.getElementById('bankFilterTabs');
+      if (!wrap) return;
+      wrap.innerHTML = [`<button class="filter-tab ${bankFilterCategory === '전체' ? 'active' : ''}" data-cat="전체" onclick="setBankFilter('전체')">전체</button>`]
+        .concat(categories.map(c => `
+          <button class="filter-tab ${bankFilterCategory === c.name ? 'active' : ''}" data-cat="${c.name}" onclick="setBankFilter('${c.name.replace(/'/g, "\\'")}')">${escapeHtml(c.name)}</button>
+        `)).join('');
+    }
+
+    function difficultyLabel(d) {
+      if (d === '하') return '🟢하';
+      if (d === '상') return '🔴상';
+      return '🟡중';
+    }
+
+    function setBankFilter(cat) {
+      bankFilterCategory = cat;
+      bankRenderLimit = BANK_RENDER_STEP;
+      document.querySelectorAll('#bankFilterTabs .filter-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+      });
+      renderBankList();
+    }
+
+    function onBankSearchInput() {
+      bankSearchKeyword = document.getElementById('bankSearchInput').value.trim().toLowerCase();
+      bankRenderLimit = BANK_RENDER_STEP;
+      renderBankList();
+    }
+
+    function showMoreBankItems() {
+      bankRenderLimit += BANK_RENDER_STEP;
+      renderBankList();
+    }
+
+
+    // force가 false이고 이미 한 번 불러온 캐시가 있으면 서버에 다시 요청하지 않고 캐시를 그대로 씁니다.
+    // (수업 중 출제 모달을 열 때마다 문제 1000개를 통째로 재다운로드하지 않도록)
+    async function loadBank(force = false) {
+      if (!force && bankLastLoadedAt) {
+        renderBankList();
+        updateBankLastLoadedLabel();
+        return;
+      }
+
+      const listEl = document.getElementById('bankList');
+      if (listEl) listEl.innerHTML = '<div class="bank-empty">불러오는 중...</div>';
+
+      const { data, error } = await supabaseClient
+        .from('live_problem_bank')
+        // 이 화면에서는 concept_*, practice_* 필드를 전혀 쓰지 않으므로(편집/개념 카드는 problem_bank.html 전용)
+        // 목록 로딩 페이로드를 줄이기 위해 실제로 쓰는 컬럼만 지정해서 가져옵니다.
+        .select('id, title, category, unit_tag, difficulty, problem_text, problem_image_url, image_scale, is_favorite, time_limit_seconds, voice_limit_seconds, answer_text, solution_html, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        if (listEl) listEl.innerHTML = `<div class="bank-empty">문제 은행을 불러오지 못했습니다: ${error.message}</div>`;
+        return;
+      }
+      bankRows = data || [];
+      bankLastLoadedAt = Date.now();
+      renderBankList();
+      updateBankLastLoadedLabel();
+    }
+
+    function updateBankLastLoadedLabel() {
+      const label = document.getElementById('bankLastLoadedLabel');
+      if (!label) return;
+      if (!bankLastLoadedAt) { label.textContent = ''; return; }
+      const timeStr = new Date(bankLastLoadedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      label.textContent = `마지막 갱신 ${timeStr} · 총 ${bankRows.length}개`;
+    }
+
+    function renderBankList() {
+      const el = document.getElementById('bankList');
+      let rows = bankFilterCategory === '전체'
+        ? bankRows
+        : bankRows.filter(r => (r.category || '기타문제') === bankFilterCategory);
+
+      if (bankSearchKeyword) {
+        rows = rows.filter(r =>
+          (r.title || '').toLowerCase().includes(bankSearchKeyword) ||
+          (r.problem_text || '').toLowerCase().includes(bankSearchKeyword) ||
+          (r.unit_tag || '').toLowerCase().includes(bankSearchKeyword)
+        );
+      }
+
+      if (rows.length === 0) {
+        el.innerHTML = `<div class="bank-empty">${bankRows.length === 0 ? '저장된 문제가 없습니다. "문제 은행 관리 페이지"에서 문제를 추가해보세요.' : '조건에 맞는 문제가 없습니다.'}</div>`;
+        return;
+      }
+
+      // ⭐ 즐겨찾기한 문제를 맨 위로 (문제 은행 관리 페이지에서 정한 즐겨찾기와 동일하게 반영됩니다)
+      rows = [...rows].sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
+
+      const total = rows.length;
+      const visibleRows = rows.slice(0, bankRenderLimit);
+
+      el.innerHTML = visibleRows.map(row => {
+        const label = row.title || previewText(row.problem_text, 40);
+        const dateStr = new Date(row.created_at).toLocaleDateString('ko-KR');
+        const category = row.category || '기타문제';
+        const imageBadge = row.problem_image_url ? `<span class="cat-badge">🖼 그림</span>` : '';
+        const favBadge = row.is_favorite ? '⭐ ' : '';
+        return `
+      <div class="bank-item">
+        <div class="bank-item-main">
+          <div class="bank-title"><span class="cat-badge ${categoryBadgeClass(category)}">${escapeHtml(category)}</span>${imageBadge}${favBadge}${escapeHtml(label)}</div>
+          <div class="bank-meta">${row.unit_tag ? `📎 ${escapeHtml(row.unit_tag)} · ` : ''}${difficultyLabel(row.difficulty)} · 제한시간 ${Math.round(row.time_limit_seconds / 60)}분 · 🎙${row.voice_limit_seconds || 60}초 · ${dateStr}${row.answer_text ? ' · 🔑 정답 있음' : ''}</div>
+        </div>
+        <div class="bank-item-actions">
+          <button class="btn" style="background:var(--brand); color:#fff;" onclick="issueFromBankId(${row.id})">🚀 출제</button>
+          <button class="btn" onclick="showComingSoon()">🎥 설명영상</button>
+        </div>
+      </div>
+    `;
+      }).join('') + (
+          total > visibleRows.length
+            ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreBankItems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(BANK_RENDER_STEP, total - visibleRows.length)})</div>`
+            : (total > BANK_RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+        );
+    }
+
+
+    async function openBankModal() {
+      bankFilterCategory = '전체';
+      bankSearchKeyword = '';
+      bankRenderLimit = BANK_RENDER_STEP;
+      const searchInput = document.getElementById('bankSearchInput');
+      if (searchInput) searchInput.value = '';
+      await loadCategories(true);
+      renderBankFilterTabs();
+      loadBank(true); // 문제 은행 관리 페이지 등 다른 화면에서 방금 추가/수정/삭제했을 수 있으므로 열 때마다 새로 불러옵니다.
+      document.getElementById('bankModal').classList.remove('hidden');
+    }
+    function closeBankModal() {
+      document.getElementById('bankModal').classList.add('hidden');
+    }
+
+    async function issueFromBankId(id) {
+      const row = bankRows.find(r => r.id === id);
+      if (!row) return;
+      closeBankModal();
+      await issueFromBankRow(row);
+    }
+
+    // ---------------- [제출 기록 관리 / 정리] ----------------
+    let archiveProblems = [];
+    let archiveCounts = {};
+
+    async function loadArchive() {
+      const { data: probData, error: probError } = await supabaseClient
+        .from('live_problems')
+        .select('*')
+        .order('started_at', { ascending: false });
+
+      if (probError) {
+        document.getElementById('archiveList').innerHTML = `<div class="bank-empty">기록을 불러오지 못했습니다: ${probError.message}</div>`;
+        return;
+      }
+
+      // 제출 건수만 가볍게 집계 (이미지 데이터는 불러오지 않아서 트래픽이 적습니다)
+      const { data: subIdRows } = await supabaseClient.from('live_submissions').select('session_id');
+
+      archiveCounts = {};
+      (subIdRows || []).forEach(r => {
+        archiveCounts[r.session_id] = (archiveCounts[r.session_id] || 0) + 1;
+      });
+
+      archiveProblems = probData || [];
+      renderArchiveList(subIdRows ? subIdRows.length : 0);
+    }
+
+    function renderArchiveList(totalSubs) {
+      const estimatedKB = totalSubs * 15; // 학생 1건당 평균 약 15KB로 추정
+      const estimatedText = estimatedKB >= 1024 ? `약 ${(estimatedKB / 1024).toFixed(1)}MB` : `약 ${estimatedKB}KB`;
+      document.getElementById('archiveSummary').textContent =
+        `문제 세션 ${archiveProblems.length}개 · 제출 기록 총 ${totalSubs}건 (${estimatedText} 추정)`;
+
+      const list = document.getElementById('archiveList');
+      if (archiveProblems.length === 0) {
+        list.innerHTML = `<div class="bank-empty">출제된 기록이 없습니다.</div>`;
+        return;
+      }
+
+      list.innerHTML = archiveProblems.map(p => {
+        const label = previewText(p.problem_text, 40);
+        const dateStr = new Date(p.started_at).toLocaleString('ko-KR');
+        const count = archiveCounts[p.id] || 0;
+        const teacher = p.teacher_name || '알 수 없음';
+        const scope = (p.target_scope || []).map(formatScopeToken).join(', ') || '대상 정보 없음';
+        const isMine = teacherProfile && p.teacher_id === teacherProfile.teacherId;
+        const isCurrentlyShown = activeProblem && activeProblem.id === p.id;
+
+        let actionHtml;
+        if (p.is_active && isCurrentlyShown) {
+          // 지금 화면에 떠 있는, 실제로 진행 중인 문제 — 여기서 실수로 마감/삭제하지 않도록 보호합니다.
+          actionHtml = `<span style="font-size:12px; color:var(--green); font-weight:700;">진행중 (현재 화면)</span>`;
+        } else if (p.is_active && isMine) {
+          // 예전에 "마감하기"를 안 누르고 넘어간 내 오래된 기록 — 여기서 바로 마감해서 삭제할 수 있게 해줍니다.
+          actionHtml = `<button class="btn" onclick="event.stopPropagation(); forceCloseArchiveProblem(${p.id})" title="마감 처리하면 아래에서 삭제할 수 있게 됩니다">🔓 마감 처리하기</button>`;
+        } else if (p.is_active) {
+          actionHtml = `<span style="font-size:12px; color:var(--green); font-weight:700;">진행중 (${escapeHtml(teacher)})</span>`;
+        } else {
+          actionHtml = `<button class="btn danger" onclick="event.stopPropagation(); deleteProblemRecord(${p.id})">🗑 삭제</button>`;
+        }
+
+        return `
+      <div class="bank-item" style="cursor:pointer;" onclick="openArchiveDetail(${p.id})">
+        <div class="bank-item-main">
+          <div class="bank-title">${escapeHtml(label)}</div>
+          <div class="bank-meta">${dateStr} · 🧑‍🏫 ${escapeHtml(teacher)} · 🏫 ${escapeHtml(scope)} · 제출 ${count}건</div>
+        </div>
+        <div class="bank-item-actions">${actionHtml}</div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    // 예전에 마감을 안 누르고 지나간 내 기록을 여기서 바로 마감 처리합니다. (현재 화면에 떠 있는 문제는 이 버튼이 뜨지 않아 안전합니다)
+    async function forceCloseArchiveProblem(id) {
+      if (!confirm('이 문제를 마감 처리할까요? 마감하면 목록에서 삭제할 수 있게 됩니다.')) return;
+      const { error } = await supabaseClient.from('live_problems').update({ is_active: false }).eq('id', id);
+      if (error) { alert('마감 처리 중 오류가 발생했습니다: ' + error.message); return; }
+      loadArchive();
+    }
+
+    function openArchiveModal() {
+      document.getElementById('archiveSummary').textContent = '불러오는 중...';
+      document.getElementById('archiveList').innerHTML = '';
+      loadArchive();
+      document.getElementById('archiveModal').classList.remove('hidden');
+    }
+    function closeArchiveModal() {
+      document.getElementById('archiveModal').classList.add('hidden');
+    }
+
+    // ---------------- [기록 상세보기] ----------------
+    // 지난 문제 하나를 골라, 그 문제를 누구에게(어느 학급) 냈는지와
+    // 제출한 학생 명단 · 각 학생의 마지막 제출 내용을 다시 볼 수 있게 합니다.
+    let archiveDetailProblem = null;
+    let archiveDetailSubs = [];
+    let archiveDetailSelectedId = null;
+
+    async function openArchiveDetail(problemId) {
+      const problem = archiveProblems.find(p => p.id === problemId);
+      if (!problem) return;
+      archiveDetailProblem = problem;
+      archiveDetailSelectedId = null;
+      archiveDetailSubs = [];
+
+      document.getElementById('archiveDetailProblemText').textContent = problem.problem_text;
+      document.getElementById('archiveDetailMeta').textContent = buildArchiveMetaText(problem);
+      document.getElementById('archiveDetailCount').textContent = '불러오는 중...';
+      document.getElementById('archiveDetailList').innerHTML = '<div class="bank-empty">불러오는 중...</div>';
+      document.getElementById('archiveDetailMain').innerHTML = '<div class="solution-placeholder">왼쪽 명단에서 학생을 클릭하면 풀이가 여기에 표시됩니다.</div>';
+      document.getElementById('archiveDetailModal').classList.remove('hidden');
+
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('archiveDetailProblemText')]);
+
+      const { data, error } = await supabaseClient
+        .from('live_submissions')
+        .select('*')
+        .eq('session_id', problemId)
+        .order('submitted_at', { ascending: true });
+
+      if (error) {
+        document.getElementById('archiveDetailList').innerHTML = `<div class="bank-empty">불러오지 못했습니다: ${escapeHtml(error.message)}</div>`;
+        return;
+      }
+
+      archiveDetailSubs = data || [];
+      renderArchiveDetailList();
+    }
+
+    function buildArchiveMetaText(problem) {
+      const dateStr = new Date(problem.started_at).toLocaleString('ko-KR');
+      const teacher = problem.teacher_name || '알 수 없음';
+      const scope = (problem.target_scope || []).map(formatScopeToken).join(', ') || '대상 정보 없음';
+      return `${dateStr} · 🧑‍🏫 ${teacher} 선생님 · 🏫 ${scope}`;
+    }
+
+    function renderArchiveDetailList() {
+      const listEl = document.getElementById('archiveDetailList');
+      document.getElementById('archiveDetailCount').textContent = `${archiveDetailSubs.length}명 제출`;
+
+      if (archiveDetailSubs.length === 0) {
+        listEl.innerHTML = '<div class="bank-empty">제출한 학생이 없습니다.</div>';
+        return;
+      }
+
+      const started = archiveDetailProblem ? new Date(archiveDetailProblem.started_at).getTime() : 0;
+
+      listEl.innerHTML = archiveDetailSubs.map((s, idx) => {
+        const elapsedSec = Math.max(0, Math.round((new Date(s.submitted_at).getTime() - started) / 1000));
+        const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+        const sec = String(elapsedSec % 60).padStart(2, '0');
+        const selClass = s.student_id === archiveDetailSelectedId ? ' selected' : '';
+        return `
+      <div class="sub-item${selClass}" onclick="selectArchiveStudent('${s.student_id}')">
+        <div class="rank">${idx + 1}</div>
+        <div class="name">${escapeHtml(displayNameFor(s))}${s.solution_audio_url ? ' 🎙' : ''}</div>
+        <div class="time">${m}:${sec}</div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    function selectArchiveStudent(studentId) {
+      archiveDetailSelectedId = studentId;
+      const s = archiveDetailSubs.find(x => x.student_id === studentId);
+      renderArchiveDetailList();
+      if (!s) return;
+
+      const dName = displayNameFor(s);
+      const hasNickname = dName !== s.student_name;
+      document.getElementById('archiveDetailMain').innerHTML = `
+    <div class="sv-head sv-head-row">
+      <div class="sv-name">${escapeHtml(dName)}${hasNickname ? ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(실명: ${escapeHtml(s.student_name)} · ${s.student_id})</span>` : ` <span style="font-size:13px; font-weight:400; color:var(--ink-soft);">(${s.student_id})</span>`}</div>
+      <div class="sv-time">제출: ${new Date(s.submitted_at).toLocaleTimeString('ko-KR')}</div>
+      <button class="btn danger" style="margin-left:auto;" onclick="deleteSubmission(${s.id}, true)">🗑 이 풀이 삭제</button>
+    </div>
+    ${s.solution_image ? `<img src="${s.solution_image}" alt="풀이 이미지" style="max-width:100%; border:1px solid rgba(22,35,59,0.15); border-radius:8px; margin-bottom:14px; display:block;">` : ''}
+    ${s.solution_audio_url ? `<div style="margin-bottom:14px;"><div class="ptag" style="margin-bottom:6px;">🎙 음성 설명</div><audio controls src="${s.solution_audio_url}" style="width:100%;"></audio></div>` : ''}
+    ${s.solution_text ? `<div class="sv-body">${escapeHtml(s.solution_text)}</div>` : ''}
+  `;
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('archiveDetailMain')]);
+    }
+
+    function closeArchiveDetailModal() {
+      document.getElementById('archiveDetailModal').classList.add('hidden');
+    }
+
+    async function deleteProblemRecord(id) {
+      const count = archiveCounts[id] || 0;
+      if (!confirm(`이 문제와 제출 기록 ${count}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+
+      const { error } = await supabaseClient.from('live_problems').delete().eq('id', id);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+      loadArchive();
+    }
+
+    async function bulkDeleteOldProblems() {
+      const days = parseFloat(document.getElementById('archiveCutoffDays').value) || 30;
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const targets = archiveProblems.filter(p => !p.is_active && new Date(p.started_at) < cutoff);
+      if (targets.length === 0) {
+        alert(`${days}일보다 오래된 삭제 대상 기록이 없습니다.`);
+        return;
+      }
+      const totalSubs = targets.reduce((sum, p) => sum + (archiveCounts[p.id] || 0), 0);
+      if (!confirm(`${days}일보다 오래된 문제 ${targets.length}개와 제출 기록 ${totalSubs}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+
+      const ids = targets.map(p => p.id);
+      const { error } = await supabaseClient.from('live_problems').delete().in('id', ids);
+      if (error) { alert('삭제 중 오류가 발생했습니다: ' + error.message); return; }
+
+      alert('정리가 완료되었습니다.');
+      loadArchive();
+    }
+
+    async function closeActiveProblem() {
+      if (!activeProblem) return;
+      if (!confirm('현재 문제를 마감할까요? 학생들은 더 이상 이 문제에 제출할 수 없습니다.')) return;
+      await supabaseClient.from('live_problems').update({ is_active: false }).eq('id', activeProblem.id);
+      renderNoProblem();
+    }
+
+    // ---------------- [가정학습 설명 영상 녹화1] ----------------
+    init();
+  </script>
+</body>
+
+</html>

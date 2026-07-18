@@ -1,0 +1,2942 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안성여고 소인수 강좌 시스템</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <style>
+        html {
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* 로그인 화면용 카드 (교사 PIN 입력) */
+        .container {
+            max-width: 440px;
+            margin: 90px auto;
+            background: white;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ---------------- 상단 메뉴바 (컴퓨터 화면용 고정 헤더) ---------------- */
+        .topbar {
+            background: #1f2937;
+            padding: 0 32px;
+            min-height: 68px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+        }
+
+        .topbar .brand {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+            padding: 14px 0;
+        }
+
+        .topbar nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 10px 0;
+        }
+
+        .topbar nav button,
+        .topbar nav a {
+            width: auto;
+            margin-bottom: 0;
+            background: transparent;
+            border: none;
+            color: #cfd8dc;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+
+        .topbar nav button:hover,
+        .topbar nav a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .topbar nav button.active {
+            background: #E64A19;
+            color: #fff;
+        }
+
+        .topbar nav a.ext {
+            color: #80cbc4;
+        }
+
+        .topbar nav button.nav-icon-only {
+            padding: 10px 14px;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        /* ---------------- 본문 콘텐츠 영역 ---------------- */
+        .content-wrap {
+            max-width: 1040px;
+            margin: 32px auto;
+            padding: 0 24px 60px;
+            box-sizing: border-box;
+        }
+
+        .content-wrap.wide {
+            max-width: 1240px;
+        }
+
+        .content-wrap.full-wide {
+            max-width: 98%;
+        }
+
+        .section-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+            padding: 34px 38px;
+            box-sizing: border-box;
+        }
+
+        /* ---------------- 홈 화면 바로가기 카드 ---------------- */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 10px;
+        }
+
+        .quick-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 26px 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .quick-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-color: #b0bec5;
+        }
+
+        .quick-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .quick-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .quick-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: white;
+            transition: 0.3s;
+        }
+
+        .btn-student {
+            background-color: #4CAF50;
+        }
+
+        .btn-status {
+            background-color: #00897B;
+        }
+
+        .btn-list {
+            background-color: #9C27B0;
+        }
+
+        .btn-admin {
+            background-color: #607D8B;
+        }
+
+        .btn-stat {
+            background-color: #E64A19;
+        }
+
+        .btn-excel {
+            background-color: #217346;
+        }
+
+        .btn-save-order {
+            background-color: #FF9800;
+        }
+
+        .btn-auth {
+            background-color: #03A9F4;
+        }
+
+        .btn-print {
+            background-color: #3F51B5;
+        }
+
+        .btn-back {
+            background-color: #e0e0e0;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            width: 60px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group select {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input[type="text"]:not(.input-group input),
+        input[type="number"]:not(.input-group input),
+        select:not(.input-group select) {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            background-color: #fff;
+            cursor: grab;
+        }
+
+        .subject-item:active {
+            cursor: grabbing;
+        }
+
+        .subject-item button {
+            width: auto;
+            padding: 8px 12px;
+            margin: 0 0 0 5px;
+            font-size: 14px;
+        }
+
+        .btn-edit {
+            background-color: #2196F3;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+        }
+
+        #studentMgmtTable button {
+            width: auto;
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 0 4px 0 0;
+            font-size: 14px;
+        }
+
+        .sortable-ghost {
+            background-color: #e3f2fd;
+            opacity: 0.8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .empty-row td {
+            color: #888;
+            padding: 20px;
+        }
+
+        .filter-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* ---------------- 한 줄 툴바 (필터 + 액션버튼) ---------------- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #eef1f2;
+            border: 1px solid #e0e3e5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar-filters {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .toolbar-filters label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #546e7a;
+            white-space: nowrap;
+        }
+
+        .toolbar-filters select {
+            width: auto;
+            min-width: 130px;
+            margin-bottom: 0;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-actions button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 9px 16px;
+            font-size: 14px;
+        }
+
+        /* ---------------- 학년/반 버튼식 선택 ---------------- */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn-toggle {
+            width: auto;
+            margin-bottom: 0;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid #cfd8dc;
+            border-radius: 6px;
+            background: #fff;
+            color: #455a64;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .btn-toggle:hover {
+            background: #f1f3f5;
+            border-color: #90a4ae;
+        }
+
+        .btn-toggle.active {
+            background: #1565C0;
+            border-color: #1565C0;
+            color: #fff;
+        }
+
+        .toolbar-hint {
+            color: #90a4ae;
+            font-size: 13px;
+        }
+
+        /* ---------------- 신청 불일치 검사 ---------------- */
+        .mismatch-summary {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .mismatch-summary.ok {
+            background-color: #e8f5e9;
+            color: #2E7D32;
+        }
+
+        .mismatch-summary.warn {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .mismatch-group {
+            border: 1px solid #ffcdd2;
+            background: #fff8f8;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+
+        .mismatch-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .mismatch-grade {
+            background: #1565C0;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 3px 9px;
+            border-radius: 12px;
+        }
+
+        .mismatch-subject {
+            font-weight: bold;
+            font-size: 16px;
+            color: #c62828;
+        }
+
+        .mismatch-count {
+            font-size: 13px;
+            color: #666;
+            margin-left: auto;
+        }
+
+        .mismatch-students {
+            font-size: 13.5px;
+            color: #555;
+            line-height: 1.6;
+            background: #fff;
+            border: 1px solid #f0dede;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+        }
+
+        .mismatch-fix {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mismatch-fix select {
+            width: auto;
+            min-width: 200px;
+            margin-bottom: 0;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .mismatch-fix button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 8px 16px;
+            font-size: 13.5px;
+            background-color: #217346;
+        }
+
+        .mismatch-fix button.mismatch-delete-btn {
+            background-color: #c62828;
+        }
+
+        .system-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .admin-tab-btn {
+            width: auto;
+            padding: 12px 18px;
+            border: none;
+            background: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #90a4ae;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .admin-tab-btn:hover {
+            color: #546e7a;
+        }
+
+        .admin-tab-btn.active {
+            color: #1565C0;
+            border-bottom-color: #1565C0;
+        }
+
+        .admin-tab-panel.hidden {
+            display: none;
+        }
+
+        .auth-message {
+            text-align: center;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+        }
+
+        #statisticsTable th {
+            background-color: #ffe0b2;
+        }
+
+        /* ---------------- [통계현황 표로보기] ---------------- */
+        #statTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+        }
+
+        #statTable th,
+        #statTable td {
+            border: 1px solid #e3e3e3;
+            padding: 9px 8px;
+            text-align: center;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        #statTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+        }
+
+        .stat-subject-cell {
+            text-align: left !important;
+            font-weight: bold;
+            color: #263238;
+            padding-left: 14px !important;
+            position: sticky;
+            left: 0;
+            background-color: #fff;
+            z-index: 2;
+            border-right: 2px solid #cfd8dc !important;
+            white-space: nowrap;
+        }
+
+        #statTableWrap thead th.stat-subject-cell {
+            z-index: 4;
+        }
+
+        #statTableBody tr:nth-child(even) td:not(.stat-subject-cell) {
+            background-color: #fafbfc;
+        }
+
+        #statTableBody tr:hover td:not(.stat-subject-cell) {
+            background-color: #eef5ff;
+        }
+
+        #statTableBody tr:hover td.stat-subject-cell {
+            background-color: #eef5ff;
+        }
+
+        .stat-total-row td {
+            border-top: 2px solid #9e9e9e;
+            background-color: #fff8e1;
+            font-weight: bold;
+        }
+
+        .stat-total-row td.stat-subject-cell {
+            background-color: #fff8e1;
+        }
+
+        .stat-empty-cell {
+            color: #cfd8dc;
+        }
+
+        .stat-total {
+            font-weight: bold;
+            color: #d32f2f;
+            font-size: 1.1em;
+        }
+
+        .stat-class-detail {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .final-subject-input {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .final-subject-input input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 0 !important;
+        }
+
+        .final-subject-input button {
+            width: auto;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            background-color: #1976D2;
+        }
+
+        /* ---------------- [신청내역(과목별) 목록] ---------------- */
+        .attendance-subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 16px 18px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #fff;
+        }
+
+        .attendance-subject-item .att-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attendance-subject-item .att-grade-badge {
+            display: inline-block;
+            min-width: 46px;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .attendance-subject-item .att-subject-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #263238;
+        }
+
+        .attendance-subject-item .att-count {
+            font-size: 13px;
+            color: #607D8B;
+        }
+
+        .attendance-subject-item button {
+            width: auto;
+            margin-bottom: 0;
+            padding: 9px 16px;
+            font-size: 14px;
+            background-color: #00897B;
+        }
+
+        /* ---------------- [출석부 표] ---------------- */
+        .attendance-page {
+            margin-bottom: 40px;
+        }
+
+        .attendance-page-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #263238;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .attendance-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+        }
+
+        table.attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+        }
+
+        table.attendance-table th,
+        table.attendance-table td {
+            border: 1px solid #cfd8dc;
+            padding: 4px;
+            text-align: center;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        table.attendance-table thead th {
+            background-color: #eceff1;
+            font-weight: bold;
+        }
+
+        table.attendance-table .attendance-id-header {
+            background-color: #455a64;
+            color: #fff;
+            min-width: 42px;
+        }
+
+        .attendance-date-header,
+        .attendance-sign-header {
+            min-width: 40px;
+            height: 34px;
+        }
+
+        .att-head-label {
+            display: block;
+            font-size: 10px;
+            font-weight: normal;
+            color: #dde1e4;
+            line-height: 1.2;
+        }
+
+        .att-session-no {
+            display: block;
+            font-size: 11px;
+            color: #455a64;
+            font-weight: bold;
+        }
+
+        .att-slash {
+            display: block;
+            font-size: 15px;
+            font-weight: bold;
+            color: #263238;
+            line-height: 1.4;
+        }
+
+        .attendance-check-cell {
+            min-width: 40px;
+            height: 28px;
+        }
+
+        @media print {
+
+            body {
+                background-color: #fff;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container,
+            .section-card {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .content-wrap {
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .topbar,
+            button,
+            .filter-box,
+            .btn-back,
+            .search-box,
+            .final-subject-input button {
+                display: none !important;
+            }
+
+            .attendance-page {
+                page-break-after: always;
+                break-after: page;
+            }
+
+            .attendance-page:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .attendance-table-wrap {
+                overflow: visible;
+                border: none;
+            }
+
+            table.attendance-table {
+                width: 100%;
+                table-layout: fixed;
+            }
+
+            table.attendance-table th,
+            table.attendance-table td {
+                padding: 3px 1px;
+                font-size: 11px;
+            }
+
+            .attendance-id-header {
+                min-width: 0;
+                font-weight: bold;
+                color: #000 !important;
+                background-color: #eceff1 !important;
+            }
+
+            .att-head-label {
+                display: none;
+            }
+
+            .attendance-date-header,
+            .attendance-sign-header,
+            .attendance-check-cell {
+                min-width: 0;
+                width: auto;
+            }
+
+            .final-subject-input input {
+                border: none;
+                background: transparent;
+                text-align: center;
+                font-weight: bold;
+                color: #d32f2f;
+            }
+
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                page-break-inside: auto;
+                /* 표 내부에서 자연스럽게 페이지가 나뉘도록 허용 */
+            }
+
+            tr {
+                page-break-inside: avoid;
+                /* 한 줄(학생 한 명)이 페이지 경계에서 잘리지 않도록 보호 */
+            }
+
+            /* 35명마다 강제 페이지 넘김 (단, 마지막 명단이 35번째인 경우 빈 페이지 생성 방지) */
+            #statusTableBody tr:nth-child(35n):not(:last-child) {
+                page-break-after: always;
+                break-after: page;
+            }
+
+            th,
+            td {
+                border: 1px solid #000;
+                /* 35명이 한 페이지에 들어갈 수 있도록 폰트와 여백을 축소 */
+                padding: 4px 8px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="lockScreen">
+        <h1>🔒 교사용 관리 시스템</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">이 화면은 교사 전용입니다. 비밀번호를 입력해주세요.</p>
+        <input type="password" id="teacherPin" placeholder="비밀번호" style="text-align:center; letter-spacing: 3px;"
+            onkeydown="if(event.key === 'Enter') checkTeacherPin();">
+        <button class="btn-auth" onclick="checkTeacherPin()">입장하기</button>
+        <p style="text-align: center; font-size: 13px;">
+            <a href="student.html">👨‍🎓 학생이신가요? 학생용 신청 페이지로 이동</a>
+        </p>
+    </div>
+
+    <div class="hidden" id="mainContainer">
+        <header class="topbar">
+            <div class="brand">🏫 소인수 강좌 관리 시스템</div>
+            <nav>
+                <button data-section="mainMenu" class="active" onclick="showSection('mainMenu')">🏠 홈</button>
+                <button data-section="classStatusSection" onclick="showSection('classStatusSection')">📊 반별 신청
+                    현황</button>
+                <button data-section="statTableSection" onclick="showSection('statTableSection')">📑 통계현황 표로보기</button>
+                <button data-section="attendanceListSection" onclick="showSection('attendanceListSection')">📝
+                    신청내역(과목별)</button>
+                <button data-section="mismatchSection" onclick="showSection('mismatchSection')">⚠️ 신청 불일치 검사</button>
+                <a href="#" onclick="goToStatistics(); return false;">📈 통계 현황 (박스형)</a>
+                <a class="ext" href="student.html" target="_blank">👨‍🎓 학생용 페이지 ↗</a>
+                <button class="nav-icon-only" data-section="adminSection" onclick="handleAdminGearClick()"
+                    title="과목 환경설정">⚙️</button>
+            </nav>
+        </header>
+
+        <main class="content-wrap" id="contentWrap">
+
+            <div id="mainMenu" class="section-card">
+                <h1>🏫 소인수 강좌 관리 시스템</h1>
+                <p style="text-align: center; margin-bottom: 30px; color: #666;">위쪽 메뉴 또는 아래 카드를 선택해 이용하세요.</p>
+                <div class="quick-grid">
+                    <div class="quick-card" onclick="showSection('classStatusSection')">
+                        <div class="quick-icon">📊</div>
+                        <div class="quick-title">반별 신청 현황</div>
+                        <div class="quick-desc">전체명단/신청자만 보기를 선택해 조회합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="handleAdminGearClick()">
+                        <div class="quick-icon">⚙️</div>
+                        <div class="quick-title">과목 환경설정</div>
+                        <div class="quick-desc">과목과 시스템 기준을 관리합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('statTableSection')">
+                        <div class="quick-icon">📑</div>
+                        <div class="quick-title">통계현황 표로보기</div>
+                        <div class="quick-desc">학년·반별 신청 인원을 표로 봅니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('attendanceListSection')">
+                        <div class="quick-icon">📝</div>
+                        <div class="quick-title">신청내역(과목별) · 출석부</div>
+                        <div class="quick-desc">과목별 신청 인원을 확인하고 32단위 출석부를 인쇄합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="showSection('mismatchSection')">
+                        <div class="quick-icon">⚠️</div>
+                        <div class="quick-title">신청 불일치 검사</div>
+                        <div class="quick-desc">환경설정 과목명과 다른(옛 이름으로 남은) 신청 내역을 찾아 정리합니다.</div>
+                    </div>
+                    <div class="quick-card" onclick="goToStatistics()">
+                        <div class="quick-icon">📈</div>
+                        <div class="quick-title">통계 현황 (박스형)</div>
+                        <div class="quick-desc">과목별 인원을 자유롭게 배치해 폐강/합반을 검토합니다.</div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 10px; font-size: 13px;">
+                    <a href="student.html" target="_blank">👨‍🎓 학생용 신청 페이지 바로가기 →</a>
+                </p>
+            </div>
+
+            <div id="classStatusSection" class="hidden section-card">
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <div class="filter-row">
+                            <label>학년</label>
+                            <div class="btn-group" id="statusGradeButtons">
+                                <button type="button" class="btn-toggle" data-grade="all"
+                                    onclick="selectStatusGrade('all')">전체학년</button>
+                                <button type="button" class="btn-toggle" data-grade="1"
+                                    onclick="selectStatusGrade('1')">1학년</button>
+                                <button type="button" class="btn-toggle" data-grade="2"
+                                    onclick="selectStatusGrade('2')">2학년</button>
+                                <button type="button" class="btn-toggle" data-grade="3"
+                                    onclick="selectStatusGrade('3')">3학년</button>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <label>반</label>
+                            <div class="btn-group" id="statusClassButtons">
+                                <span class="toolbar-hint">학년을 먼저 선택하세요</span>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="statusViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="all"
+                                    onclick="selectStatusViewMode('all')">전체명단</button>
+                                <button type="button" class="btn-toggle" data-view="applied"
+                                    onclick="selectStatusViewMode('applied')">과목신청자만</button>
+                                <button type="button" class="btn-toggle" data-view="unapplied"
+                                    onclick="selectStatusViewMode('unapplied')">미신청자만</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn-excel" onclick="downloadStatusExcel()">📥 엑셀 다운로드</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ 명단 인쇄하기</button>
+                    </div>
+                </div>
+
+                <table id="statusTable">
+                    <thead>
+                        <tr>
+                            <th>연번</th>
+                            <th>학번</th>
+                            <th>이름</th>
+                            <th>신청 과목</th>
+                            <th>최종선택</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statusTableBody">
+                        <tr class="empty-row">
+                            <td colspan="5">조회할 학년과 반을 선택해주세요.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="adminSection" class="hidden section-card">
+                <h2>환경설정 (과목 및 시스템 관리)</h2>
+
+                <div class="admin-tabs">
+                    <button type="button" class="admin-tab-btn active" data-tab="adminTabSystem"
+                        onclick="selectAdminTab('adminTabSystem')">⚙️ 시스템 기본 설정</button>
+                    <button type="button" class="admin-tab-btn" data-tab="adminTabStudents"
+                        onclick="selectAdminTab('adminTabStudents')">🧑‍🎓 학생 명단 관리</button>
+                    <button type="button" class="admin-tab-btn" data-tab="adminTabSubjects"
+                        onclick="selectAdminTab('adminTabSubjects')">📚 과목 관리</button>
+                </div>
+
+                <div id="adminTabSystem" class="admin-tab-panel">
+                    <div class="system-box">
+                        <h3 style="margin-top: 0; color: #1565C0;">⚙️ 시스템 기본 설정 (기준점 설정)</h3>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">이곳에서 특정 학년의 입학년도를 기준으로 잡아주시면,
+                            나머지 학년의
+                            입학년도는 <strong>자동으로 계산되어</strong> 학생 명단을 대조합니다.</p>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label style="font-weight: bold; font-size: 14px;">기준 입학년도:</label>
+                                <input type="number" id="sysAdmissionYear" placeholder="예: 2026"
+                                    style="margin-bottom: 10px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-weight: bold; font-size: 14px;">기준 학년:</label>
+                                <select id="sysTargetGrade" style="margin-bottom: 10px;">
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn-admin"
+                            style="background-color: #1976D2; margin-bottom: 0; padding: 12px; font-size: 16px;"
+                            onclick="saveSystemSettings()">💾 시스템 설정 저장하기</button>
+                    </div>
+                </div>
+
+                <div id="adminTabStudents" class="admin-tab-panel hidden">
+                    <div class="system-box" style="border-color: #43A047;">
+                        <h3 style="margin-top: 0; color: #2E7D32;">🧑‍🎓 학생 명단 관리 (전입 · 전학 처리)</h3>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">
+                            <strong>전입</strong> 학생은 아래에서 추가하고, <strong>전학</strong> 학생은 명단에서 삭제하세요. 삭제 시 신청 내역(수강신청)도
+                            함께
+                            정리할 수 있어요.
+                        </p>
+
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom: 15px;">
+                            <div style="flex:2; min-width:160px;">
+                                <label style="font-weight:bold; font-size:13px;">검색 (이름 또는 학번)</label>
+                                <input type="text" id="studentMgmtSearch" placeholder="예: 홍길동 또는 10203"
+                                    oninput="renderStudentMgmtList()" style="margin-bottom:0;">
+                            </div>
+                            <div style="flex:1; min-width:110px;">
+                                <label style="font-weight:bold; font-size:13px;">학년 필터</label>
+                                <select id="studentMgmtGradeFilter" onchange="onStudentMgmtGradeFilterChange()"
+                                    style="margin-bottom:0;">
+                                    <option value="" selected>학년 선택</option>
+                                    <option value="all">전체</option>
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; min-width:100px;">
+                                <label style="font-weight:bold; font-size:13px;">반 필터</label>
+                                <select id="studentMgmtClassFilter" onchange="renderStudentMgmtList()"
+                                    style="margin-bottom:0;">
+                                    <option value="all">전체</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button class="btn-admin" style="margin-bottom:0; padding:11px 16px;"
+                                    onclick="loadStudentMgmt()">🔄 새로고침</button>
+                            </div>
+                        </div>
+
+                        <div style="overflow-x:auto; border:1px solid #e0e0e0; border-radius:10px; margin-bottom:20px;">
+                            <table id="studentMgmtTable" style="width:100%; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="background:#f1f8f2;">
+                                        <th style="padding:8px; text-align:left;">이름</th>
+                                        <th style="padding:8px;">1학년</th>
+                                        <th style="padding:8px;">2학년</th>
+                                        <th style="padding:8px;">3학년</th>
+                                        <th style="padding:8px;">입학년도</th>
+                                        <th style="padding:8px;">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentMgmtBody">
+                                    <tr class="empty-row">
+                                        <td colspan="6">불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="margin-bottom:8px;">➕ 전입 학생 추가 (한 명씩)</h4>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:15px;">
+                            <div style="flex:1; min-width:120px;">
+                                <label style="font-weight:bold; font-size:13px;">이름</label>
+                                <input type="text" id="newStudentName" placeholder="이름" style="margin-bottom:0;">
+                            </div>
+                            <div style="min-width:100px;">
+                                <label style="font-weight:bold; font-size:13px;">학년</label>
+                                <select id="newStudentGrade" onchange="suggestAdmissionYear()" style="margin-bottom:0;">
+                                    <option value="1">1학년</option>
+                                    <option value="2">2학년</option>
+                                    <option value="3">3학년</option>
+                                </select>
+                            </div>
+                            <div style="min-width:120px;">
+                                <label style="font-weight:bold; font-size:13px;">학번(5자리)</label>
+                                <input type="text" id="newStudentId" placeholder="예: 20315" style="margin-bottom:0;">
+                            </div>
+                            <div style="min-width:110px;">
+                                <label style="font-weight:bold; font-size:13px;">입학년도</label>
+                                <input type="number" id="newStudentYear" placeholder="예: 2025" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <button class="btn-admin"
+                                    style="margin-bottom:0; padding:11px 16px; background-color:#2E7D32;"
+                                    onclick="addStudentMgmt()">추가하기</button>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-bottom:8px;">📥 여러 명 한번에 등록 (엑셀 업로드)</h4>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <button class="btn-excel" onclick="downloadStudentTemplate()">📄 업로드 양식 받기</button>
+                            <label class="btn-admin"
+                                style="margin-bottom:0; padding:11px 16px; background-color:#00838F; display:inline-block; cursor:pointer;">
+                                📤 엑셀 업로드
+                                <input type="file" accept=".xlsx,.xls" onchange="handleStudentExcelFile(event)"
+                                    style="display:none;">
+                            </label>
+                            <button class="btn-excel" onclick="downloadStudentListExcel()">📥 현재 명단 엑셀로 다운로드</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="adminTabSubjects" class="admin-tab-panel hidden">
+                    <div class="filter-box">
+                        <label for="adminGradeFilter" style="font-weight: bold;">보기 필터 (학년):</label>
+                        <select id="adminGradeFilter" onchange="loadSubjects()"
+                            style="margin-bottom: 0; margin-top: 5px;">
+                            <option value="1">1학년</option>
+                            <option value="2">2학년</option>
+                            <option value="3">3학년</option>
+                        </select>
+                    </div>
+
+                    <hr style="border: 1px solid #ddd; margin-bottom: 20px;">
+
+                    <h3>새 과목 추가</h3>
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label for="subjectInput" style="width: auto; margin-right: 10px;">과목명</label>
+                        <input type="text" id="subjectInput" placeholder="현재 필터링된 학년에 추가할 과목 이름">
+                    </div>
+                    <button class="btn-admin" onclick="addSubject()">과목 추가하기</button>
+
+                    <h3 style="margin-top: 40px;">목록 (드래그하여 순서 변경)</h3>
+                    <p style="font-size: 14px; color: #666; text-align: center; margin-top: -10px;">항목을 위아래로 끌어서
+                        이동한 후 반드시
+                        저장
+                        버튼을 누르세요.</p>
+                    <button class="btn-save-order" onclick="saveOrder()">💾 변경된 순서 저장하기</button>
+
+                    <div id="subjectList"></div>
+                </div>
+            </div>
+
+            <div id="statTableSection" class="hidden section-card">
+                <h2>📑 통계현황 표로보기</h2>
+                <p id="statTableDesc"
+                    style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                    환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.
+                </p>
+
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="statViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="applied"
+                                    onclick="selectStatViewMode('applied')">신청과목</button>
+                                <button type="button" class="btn-toggle" data-view="final"
+                                    onclick="selectStatViewMode('final')">최종선택</button>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="statGrade1" checked onchange="onStatGradeFilterChange()"
+                                    style="width:16px; height:16px; margin:0;"> 1학년
+                            </label>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="statGrade2" checked onchange="onStatGradeFilterChange()"
+                                    style="width:16px; height:16px; margin:0;"> 2학년
+                            </label>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="statGrade3" checked onchange="onStatGradeFilterChange()"
+                                    style="width:16px; height:16px; margin:0;"> 3학년
+                            </label>
+                        </div>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn-excel" onclick="downloadStatTableExcel()">📥 엑셀 다운로드</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ 표 인쇄하기</button>
+                    </div>
+                </div>
+
+                <div id="statTableWrap" style="overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 10px;">
+                    <table id="statTable">
+                        <thead id="statTableHead"></thead>
+                        <tbody id="statTableBody">
+                            <tr class="empty-row">
+                                <td colspan="2">데이터를 불러오는 중입니다...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="attendanceListSection" class="hidden section-card">
+                <h2>📝 신청내역 (과목별) · 출석부</h2>
+                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                    과목을 선택하면 신청 학생 명단 기준으로 32단위(16회차 × 2페이지) 출석부를 확인하고 인쇄할 수 있습니다.
+                </p>
+
+                <div class="toolbar">
+                    <div class="toolbar-filters">
+                        <div class="filter-row">
+                            <label>보기</label>
+                            <div class="btn-group" id="attViewButtons">
+                                <button type="button" class="btn-toggle active" data-view="applied"
+                                    onclick="selectAttListViewMode('applied')">신청과목</button>
+                                <button type="button" class="btn-toggle" data-view="final"
+                                    onclick="selectAttListViewMode('final')">최종선택</button>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <span style="font-weight: bold; color: #546e7a; font-size: 13px;">🏷️ 표시할 학년</span>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#1565C0; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="attGrade1" checked onchange="loadAttendanceSubjects()"
+                                    style="width:16px; height:16px; margin:0;"> 1학년
+                            </label>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#2E7D32; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="attGrade2" checked onchange="loadAttendanceSubjects()"
+                                    style="width:16px; height:16px; margin:0;"> 2학년
+                            </label>
+                            <label
+                                style="display:flex; align-items:center; gap:6px; font-weight:bold; color:#E65100; cursor:pointer; font-size: 14px;">
+                                <input type="checkbox" id="attGrade3" checked onchange="loadAttendanceSubjects()"
+                                    style="width:16px; height:16px; margin:0;"> 3학년
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendanceSubjectList">
+                    <p class="toolbar-hint" style="text-align:center;">불러오는 중...</p>
+                </div>
+            </div>
+
+            <div id="attendanceSheetSection" class="hidden section-card">
+                <button class="btn-back" onclick="showSection('attendanceListSection')">← 신청내역(과목별)으로 돌아가기</button>
+
+                <div class="toolbar" style="justify-content:flex-end;">
+                    <div class="toolbar-actions">
+                        <button class="btn-print" onclick="window.print()">🖨️ 출석부 인쇄하기</button>
+                    </div>
+                </div>
+
+                <div id="attendanceSheetWrap"></div>
+            </div>
+
+            <div id="mismatchSection" class="hidden section-card">
+                <h2>⚠️ 신청 불일치 검사</h2>
+                <p style="text-align: center; color: #666; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
+                    학생이 신청할 당시의 과목명이, 이후 환경설정에서 이름이 바뀌거나 삭제되어 지금은 존재하지 않는
+                    경우를 찾아줍니다.<br>
+                    이런 신청 건은 "통계현황 표로보기"에는 집계되지 않으니, 오타 등 단순 이름 문제라면 현재 과목으로
+                    <b>연결</b>하고, 폐강처럼 신청 자체가 무효가 된 경우라면 <b>삭제</b>해주세요.
+                </p>
+
+                <div class="toolbar" style="justify-content:flex-end;">
+                    <div class="toolbar-actions">
+                        <button class="btn-status" onclick="runMismatchCheck()">🔍 다시 검사하기</button>
+                    </div>
+                </div>
+
+                <div id="mismatchResults">
+                    <p class="toolbar-hint" style="text-align:center;">검사 중입니다...</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let sortableInstance = null;
+
+        // ---------------- [교사용 PIN 잠금] ----------------
+        // ⚠️ 이 PIN은 학생의 우연한 접근을 막기 위한 간단한 장치이며, 강력한 보안은 아닙니다.
+        const TEACHER_PIN = "0000"; // 필요 시 이 값을 원하는 비밀번호로 변경하세요.
+
+        function checkTeacherPin() {
+            const val = document.getElementById('teacherPin').value;
+            if (val === TEACHER_PIN) {
+                sessionStorage.setItem('teacherAuthed', 'true');
+                unlockTeacherScreen();
+            } else {
+                alert("비밀번호가 올바르지 않습니다.");
+                document.getElementById('teacherPin').value = '';
+            }
+        }
+
+        // ---------------- [환경설정 톱니바퀴: 3번 클릭해야 비밀번호 입력창이 뜨는 잠금장치] ----------------
+        // ⚠️ 이 비밀번호도 간단한 장치이며, 강력한 보안은 아닙니다. 필요 시 아래 값을 원하는 비밀번호로 변경하세요.
+        const ADMIN_GEAR_PASSWORD = "1";
+        let adminGearClickCount = 0;
+        let adminGearClickTimer = null;
+
+        function handleAdminGearClick() {
+            adminGearClickCount++;
+
+            if (adminGearClickCount < 3) {
+                clearTimeout(adminGearClickTimer);
+                // 1.2초 안에 이어서 클릭하지 않으면 클릭 횟수를 초기화합니다.
+                adminGearClickTimer = setTimeout(() => { adminGearClickCount = 0; }, 1200);
+                return;
+            }
+
+            clearTimeout(adminGearClickTimer);
+            adminGearClickCount = 0;
+
+            const pwd = prompt("환경설정 비밀번호를 입력하세요.");
+            if (pwd === null) return; // 취소
+            if (pwd === ADMIN_GEAR_PASSWORD) {
+                showSection('adminSection');
+            } else {
+                alert("비밀번호가 올바르지 않습니다.");
+            }
+        }
+
+        // ---------------- [통계 현황(박스형) 이동: 클릭 시 비밀번호 1번 입력] ----------------
+        function goToStatistics() {
+            if (sessionStorage.getItem('statsAuthed') === 'true') {
+                location.href = 'statistics.html';
+                return;
+            }
+            const pwd = prompt("통계 현황(박스형) 비밀번호를 입력하세요.");
+            if (pwd === null) return; // 취소
+            if (pwd === ADMIN_GEAR_PASSWORD) {
+                sessionStorage.setItem('statsAuthed', 'true');
+                location.href = 'statistics.html';
+            } else {
+                alert("비밀번호가 올바르지 않습니다.");
+            }
+        }
+
+        function unlockTeacherScreen() {
+            document.getElementById('lockScreen').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+            openSectionFromQuery();
+        }
+
+        // statistics.html 등 다른 페이지에서 ?section=xxx 형태로 들어왔을 때 해당 메뉴를 바로 열어줍니다.
+        function openSectionFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const section = params.get('section');
+            const validSections = ['mainMenu', 'classStatusSection', 'adminSection', 'statTableSection', 'attendanceListSection', 'attendanceSheetSection', 'mismatchSection'];
+            if (section && validSections.includes(section)) {
+                showSection(section);
+            }
+        }
+
+        let currentStatusStudents = [];
+        let currentStatusEnrollments = [];
+        let currentStatusGrade = null;
+        let currentStatusClass = null;
+        let currentStatusViewMode = 'all';
+
+        function showSection(sectionId) {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('classStatusSection').classList.add('hidden');
+            document.getElementById('statTableSection').classList.add('hidden');
+            document.getElementById('attendanceListSection').classList.add('hidden');
+            document.getElementById('attendanceSheetSection').classList.add('hidden');
+            document.getElementById('mismatchSection').classList.add('hidden');
+
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.topbar nav button').forEach(b => b.classList.remove('active'));
+            const navBtn = document.querySelector(`.topbar nav button[data-section="${sectionId}"]`);
+            if (navBtn) navBtn.classList.add('active');
+
+            document.getElementById('contentWrap').classList.remove('wide', 'full-wide');
+            if (sectionId === 'statTableSection' || sectionId === 'attendanceSheetSection') {
+                document.getElementById('contentWrap').classList.add('full-wide');
+            } else if (sectionId === 'classStatusSection' || sectionId === 'attendanceListSection') {
+                document.getElementById('contentWrap').classList.add('wide');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'auto' });
+
+            if (sectionId === 'adminSection') {
+                selectAdminTab('adminTabSystem');
+                loadSystemSettings();
+                loadSubjects();
+                loadStudentMgmt();
+                suggestAdmissionYear();
+            } else if (sectionId === 'classStatusSection') {
+                currentStatusGrade = null;
+                currentStatusClass = null;
+                currentStatusViewMode = 'all';
+                document.querySelectorAll('#statusGradeButtons .btn-toggle').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#statusViewButtons .btn-toggle').forEach(b => b.classList.toggle('active', b.dataset.view === 'all'));
+                document.getElementById('statusClassButtons').innerHTML = '<span class="toolbar-hint">학년을 먼저 선택하세요</span>';
+                document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
+            } else if (sectionId === 'statTableSection') {
+                applyStatPrefs();
+                loadStatTable();
+            } else if (sectionId === 'attendanceListSection') {
+                loadAttendanceSubjects();
+            } else if (sectionId === 'mismatchSection') {
+                runMismatchCheck();
+            }
+        }
+
+        // ---------------- [반별 신청 현황 (미신청자 확인) 기능] ----------------
+
+        async function selectStatusGrade(grade) {
+            currentStatusGrade = grade;
+            currentStatusClass = null;
+
+            document.querySelectorAll('#statusGradeButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.grade === grade);
+            });
+
+            const classButtons = document.getElementById('statusClassButtons');
+            classButtons.innerHTML = '<span class="toolbar-hint">불러오는 중...</span>';
+            document.getElementById('statusTableBody').innerHTML = '<tr class="empty-row"><td colspan="5">반을 선택하시면 학생 명단이 표시됩니다.</td></tr>';
+
+            const { data: configData } = await supabaseClient.from('app_config').select('*').eq('id', 1).single();
+            if (!configData) {
+                alert("시스템 환경설정이 완료되지 않았습니다. 관리자 메뉴에서 [시스템 설정 저장하기]를 먼저 눌러주세요.");
+                classButtons.innerHTML = '';
+                return;
+            }
+
+            const gradesToLoad = grade === 'all' ? ['1', '2', '3'] : [grade];
+            const combinedStudents = [];
+
+            for (const g of gradesToLoad) {
+                const expectedYear = Number(configData.admission_year) - (Number(g) - Number(configData.target_grade));
+                const gradeCol = `grade${g}_id`;
+
+                const { data: studentsData, error } = await supabaseClient
+                    .from('students')
+                    .select(`name, ${gradeCol}, admission_year`)
+                    .eq('admission_year', expectedYear);
+
+                if (error) {
+                    console.error(error);
+                    alert("학생 명단을 불러오는데 실패했습니다.");
+                    classButtons.innerHTML = '<span class="toolbar-hint">불러오기 실패</span>';
+                    return;
+                }
+
+                (studentsData || [])
+                    .filter(s => s[gradeCol] && String(s[gradeCol]).length === 5)
+                    .forEach(s => {
+                        combinedStudents.push({ studentId: String(s[gradeCol]), name: s.name, grade: g });
+                    });
+            }
+
+            currentStatusStudents = combinedStudents;
+
+            const classes = new Set();
+            currentStatusStudents.forEach(s => classes.add(s.studentId.substring(1, 3)));
+
+            classButtons.innerHTML = '';
+            if (classes.size === 0) {
+                classButtons.innerHTML = '<span class="toolbar-hint">등록된 반이 없습니다.</span>';
+            } else {
+                const allBtn = document.createElement('button');
+                allBtn.type = 'button';
+                allBtn.className = 'btn-toggle';
+                allBtn.dataset.class = 'all';
+                allBtn.innerText = '전체반';
+                allBtn.onclick = () => selectStatusClass('all');
+                classButtons.appendChild(allBtn);
+
+                Array.from(classes).sort().forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn-toggle';
+                    btn.dataset.class = c;
+                    btn.innerText = parseInt(c, 10) + '반';
+                    btn.onclick = () => selectStatusClass(c);
+                    classButtons.appendChild(btn);
+                });
+            }
+
+            const { data: enrollData } = await supabaseClient.from('enrollments').select('*');
+            currentStatusEnrollments = enrollData || [];
+        }
+
+        function selectStatusClass(cls) {
+            currentStatusClass = cls;
+            document.querySelectorAll('#statusClassButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.class === cls);
+            });
+            renderClassStatusTable();
+        }
+
+        function selectStatusViewMode(mode) {
+            currentStatusViewMode = mode;
+            document.querySelectorAll('#statusViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            renderClassStatusTable();
+        }
+
+        function renderClassStatusTable() {
+            const grade = currentStatusGrade;
+            const cls = currentStatusClass;
+            const tbody = document.getElementById('statusTableBody');
+            tbody.innerHTML = '';
+
+            if (!grade || !cls) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">조회할 학년과 반을 선택해주세요.</td></tr>';
+                return;
+            }
+
+            let classStudents = currentStatusStudents;
+            if (cls !== 'all') {
+                classStudents = classStudents.filter(s => s.studentId.substring(1, 3) === cls);
+            }
+            classStudents = classStudents.slice().sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+            if (classStudents.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">해당 조건에 등록된 학생 명단이 없습니다. DB를 확인해주세요.</td></tr>';
+                return;
+            }
+
+            const rows = classStudents
+                .map(student => ({
+                    student,
+                    enrollment: currentStatusEnrollments.find(e => String(e.student_id) === student.studentId)
+                }))
+                .filter(r => {
+                    if (currentStatusViewMode === 'applied') return !!r.enrollment;
+                    if (currentStatusViewMode === 'unapplied') return !r.enrollment;
+                    return true; // 'all'
+                });
+
+            if (rows.length === 0) {
+                const msg = currentStatusViewMode === 'unapplied'
+                    ? '해당 조건의 학생은 전원 신청을 완료했습니다. 🎉'
+                    : '해당 조건에 과목을 신청한 학생이 없습니다.';
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${msg}</td></tr>`;
+                return;
+            }
+
+            let serialNum = 1;
+
+            rows.forEach(({ student, enrollment }) => {
+                const sId = student.studentId;
+                const sName = student.name;
+
+                const tr = document.createElement('tr');
+                if (enrollment) {
+                    const finalSub = enrollment.final_subject ? `<span style="color: #d32f2f; font-weight: bold;">${enrollment.final_subject}</span>` : '';
+                    tr.innerHTML = `
+                        <td>${serialNum++}</td>
+                        <td>${sId}</td>
+                        <td>${sName}</td>
+                        <td style="color: #1565C0; font-weight: bold;">${enrollment.subject_name}</td>
+                        <td>${finalSub}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td>${serialNum++}</td>
+                        <td>${sId}</td>
+                        <td>${sName}</td>
+                        <td style="color: #f44336; font-weight: bold;">미선택</td>
+                        <td></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function downloadStatusExcel() {
+            const table = document.getElementById('statusTable');
+            const tbody = document.getElementById('statusTableBody');
+
+            if (tbody.querySelector('.empty-row')) {
+                alert("다운로드할 데이터가 없습니다.");
+                return;
+            }
+
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "반별_신청현황" });
+            XLSX.writeFile(workbook, '소인수강좌_반별현황.xlsx');
+        }
+
+        // ---------------- [신청 불일치 검사 기능] ----------------
+        // 학생이 신청한 시점의 subject_name이, 이후 환경설정(settings)에서 이름이 바뀌거나
+        // 삭제되어 지금은 존재하지 않는 경우를 찾아서 목록으로 보여주고, 필요하면 현재 과목으로
+        // 일괄 연결(remap)할 수 있게 합니다.
+        let lastMismatchGroups = [];
+
+        async function runMismatchCheck() {
+            const resultsEl = document.getElementById('mismatchResults');
+            resultsEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">검사 중입니다...</p>';
+
+            const [{ data: settingsData, error: settingsError }, { data: enrollData, error: enrollError }] = await Promise.all([
+                supabaseClient.from('settings').select('*').order('display_order', { ascending: true }),
+                supabaseClient.from('enrollments').select('*')
+            ]);
+
+            if (settingsError || enrollError) {
+                resultsEl.innerHTML = '<p style="text-align:center; color:#f44336;">데이터를 불러오는데 실패했습니다.</p>';
+                return;
+            }
+
+            // 학년별로 "현재 환경설정에 등록된 과목명" 목록을 만듭니다.
+            const settingsByGrade = { '1': new Set(), '2': new Set(), '3': new Set() };
+            const subjectOptionsByGrade = { '1': [], '2': [], '3': [] };
+            (settingsData || []).forEach(s => {
+                const g = String(s.grade);
+                if (settingsByGrade[g]) {
+                    settingsByGrade[g].add(s.subject_name);
+                    subjectOptionsByGrade[g].push(s.subject_name);
+                }
+            });
+
+            // 신청 내역 중, 학생의 학년 기준 환경설정 목록에 없는 과목명을 모아 그룹으로 묶습니다.
+            const groups = {}; // key = "학년::과목명"
+            (enrollData || []).forEach(item => {
+                const sId = String(item.student_id || '');
+                if (sId.length !== 5) return; // 학번 형식이 이상한 건 이 검사 대상이 아님
+                const grade = sId.charAt(0);
+                if (!settingsByGrade[grade]) return; // 1,2,3학년이 아니면 건너뜀
+                const subject = item.subject_name;
+                if (!subject) return;
+                if (settingsByGrade[grade].has(subject)) return; // 정상적으로 일치함
+
+                const key = grade + '::' + subject;
+                if (!groups[key]) groups[key] = { grade, subject, students: [] };
+                groups[key].students.push({ id: sId, name: item.student_name || '(이름없음)' });
+            });
+
+            const groupList = Object.values(groups).sort((a, b) =>
+                a.grade.localeCompare(b.grade) || a.subject.localeCompare(b.subject)
+            );
+            lastMismatchGroups = groupList;
+
+            if (groupList.length === 0) {
+                resultsEl.innerHTML = '<div class="mismatch-summary ok">✅ 불일치가 없습니다. 모든 신청 내역이 현재 환경설정 과목과 일치합니다.</div>';
+                return;
+            }
+
+            const totalStudents = groupList.reduce((sum, g) => sum + g.students.length, 0);
+            const summaryHtml = `<div class="mismatch-summary warn">⚠️ ${groupList.length}건의 과목명 불일치 (총 ${totalStudents}명)가 발견되었습니다.</div>`;
+
+            const groupsHtml = groupList.map((g, idx) => {
+                const options = subjectOptionsByGrade[g.grade]
+                    .map(name => `<option value="${escapeHtmlStat(name)}">${escapeHtmlStat(name)}</option>`)
+                    .join('');
+                const studentList = g.students.map(s => `${s.id} ${s.name}`).join(', ');
+                return `
+                    <div class="mismatch-group">
+                        <div class="mismatch-head">
+                            <span class="mismatch-grade">${g.grade}학년</span>
+                            <span class="mismatch-subject">"${escapeHtmlStat(g.subject)}"</span>
+                            <span class="mismatch-count">${g.students.length}명 · 지금 환경설정에는 없는 과목명입니다</span>
+                        </div>
+                        <div class="mismatch-students">${escapeHtmlStat(studentList)}</div>
+                        <div class="mismatch-fix">
+                            <select id="mismatchSelect_${idx}">
+                                <option value="">→ 연결할 현재 과목 선택</option>
+                                ${options}
+                            </select>
+                            <button onclick="remapMismatchGroup(${idx})">🔗 선택한 과목으로 일괄 연결</button>
+                            <button class="mismatch-delete-btn" onclick="deleteMismatchGroup(${idx})">🗑️ 신청 삭제 (폐강 처리)</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            resultsEl.innerHTML = summaryHtml + groupsHtml;
+        }
+
+        async function remapMismatchGroup(idx) {
+            const group = lastMismatchGroups[idx];
+            if (!group) return;
+
+            const select = document.getElementById(`mismatchSelect_${idx}`);
+            const newName = select.value;
+            if (!newName) {
+                alert("먼저 연결할 현재 과목을 선택해주세요.\n\n(과목 자체가 없어진 경우라면 연결하지 말고, 학생에게 학생용 신청 페이지에서 다시 신청하도록 안내해주세요.)");
+                return;
+            }
+
+            const ok = confirm(
+                `"${group.subject}" 로 신청된 ${group.grade}학년 학생 ${group.students.length}명을 ` +
+                `"${newName}" 과목으로 일괄 변경합니다.\n\n` +
+                `대상 학번: ${group.students.map(s => s.id).join(', ')}\n\n` +
+                `이 작업은 되돌리기 버튼이 없습니다. 계속하시겠습니까?`
+            );
+            if (!ok) return;
+
+            // 같은 과목명이라도 다른 학년의 정상 신청 건까지 건드리지 않도록, 학번 첫 자리(학년)까지 함께 조건으로 걸어줍니다.
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .update({ subject_name: newName })
+                .eq('subject_name', group.subject)
+                .like('student_id', `${group.grade}____`);
+
+            if (error) {
+                alert("일괄 연결 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            alert(`✅ ${group.students.length}명의 신청 내역을 "${newName}" 과목으로 연결했습니다.`);
+            runMismatchCheck();
+        }
+
+        async function deleteMismatchGroup(idx) {
+            const group = lastMismatchGroups[idx];
+            if (!group) return;
+
+            const ok = confirm(
+                `"${group.subject}" 로 신청된 ${group.grade}학년 학생 ${group.students.length}명의 신청 기록을 완전히 삭제합니다.\n\n` +
+                `(폐강 등으로 이 과목 신청 자체가 무효가 된 경우에 사용하세요. 다른 과목으로 바뀌는 게 아니라, 신청 자체가 없어져서 "미선택" 상태가 됩니다.)\n\n` +
+                `대상 학번: ${group.students.map(s => s.id).join(', ')}\n\n` +
+                `이 작업은 되돌리기 버튼이 없습니다. 계속하시겠습니까?`
+            );
+            if (!ok) return;
+
+            const { error } = await supabaseClient
+                .from('enrollments')
+                .delete()
+                .eq('subject_name', group.subject)
+                .like('student_id', `${group.grade}____`);
+
+            if (error) {
+                alert("삭제 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            alert(`✅ ${group.students.length}명의 신청 기록을 삭제했습니다. 해당 학생들은 다시 "미선택" 상태가 됩니다.`);
+            runMismatchCheck();
+        }
+
+        // ---------------- [통계현황 표로보기 기능] ----------------
+
+        const STAT_GRADE_COLOR = { '1': '#1976D2', '2': '#2E7D32', '3': '#E65100' };
+        const STAT_GRADE_BG = { '1': '#E3F2FD', '2': '#E8F5E9', '3': '#FFF3E0' };
+        const STAT_GRADE_TEXT = { '1': '#1565C0', '2': '#2E7D32', '3': '#E65100' };
+
+        function escapeHtmlStat(str) {
+            const d = document.createElement('div');
+            d.innerText = str == null ? '' : str;
+            return d.innerHTML;
+        }
+
+        function getSelectedStatGrades() {
+            const grades = [];
+            if (document.getElementById('statGrade1').checked) grades.push('1');
+            if (document.getElementById('statGrade2').checked) grades.push('2');
+            if (document.getElementById('statGrade3').checked) grades.push('3');
+            return grades;
+        }
+
+        let statViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
+
+        function statTableDescText(mode) {
+            return mode === 'final'
+                ? '통계 현황(박스형)에서 저장한 최종선택 결과를 기준으로, 학년·반별 인원을 보여줍니다. (아직 저장하지 않고 화면에서 작업 중인 값은 포함되지 않습니다.)'
+                : '환경설정에 등록된 과목을 기준으로, 학년·반별 신청 인원을 한 눈에 볼 수 있는 표입니다.';
+        }
+
+        function saveStatPrefs() {
+            try {
+                localStorage.setItem('statTablePrefs', JSON.stringify({
+                    viewMode: statViewMode,
+                    grades: {
+                        g1: document.getElementById('statGrade1').checked,
+                        g2: document.getElementById('statGrade2').checked,
+                        g3: document.getElementById('statGrade3').checked
+                    }
+                }));
+            } catch (e) { }
+        }
+
+        function applyStatPrefs() {
+            let prefs = null;
+            try {
+                const raw = localStorage.getItem('statTablePrefs');
+                prefs = raw ? JSON.parse(raw) : null;
+            } catch (e) { }
+            if (!prefs) return;
+
+            if (prefs.viewMode === 'final' || prefs.viewMode === 'applied') {
+                statViewMode = prefs.viewMode;
+                document.querySelectorAll('#statViewButtons .btn-toggle').forEach(b => {
+                    b.classList.toggle('active', b.dataset.view === statViewMode);
+                });
+                document.getElementById('statTableDesc').innerText = statTableDescText(statViewMode);
+            }
+
+            if (prefs.grades) {
+                if (typeof prefs.grades.g1 === 'boolean') document.getElementById('statGrade1').checked = prefs.grades.g1;
+                if (typeof prefs.grades.g2 === 'boolean') document.getElementById('statGrade2').checked = prefs.grades.g2;
+                if (typeof prefs.grades.g3 === 'boolean') document.getElementById('statGrade3').checked = prefs.grades.g3;
+            }
+        }
+
+        function onStatGradeFilterChange() {
+            saveStatPrefs();
+            loadStatTable();
+        }
+
+        function selectStatViewMode(mode) {
+            statViewMode = mode;
+            document.querySelectorAll('#statViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            document.getElementById('statTableDesc').innerText = statTableDescText(mode);
+            saveStatPrefs();
+            loadStatTable();
+        }
+
+        async function loadStatTable() {
+            const theadEl = document.getElementById('statTableHead');
+            const tbody = document.getElementById('statTableBody');
+            const grades = getSelectedStatGrades();
+
+            if (grades.length === 0) {
+                theadEl.innerHTML = '<tr><th>과목</th></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td>위에서 학년을 하나 이상 선택해주세요.</td></tr>';
+                return;
+            }
+
+            theadEl.innerHTML = '';
+            tbody.innerHTML = '<tr class="empty-row"><td>데이터를 불러오는 중입니다...</td></tr>';
+
+            // 1. 학생 명단에서 선택 학년별 실제 반 구성(반 번호 목록) 가져오기
+            const [{ data: studentsData, error: studentsError }, { data: statConfigData }] = await Promise.all([
+                supabaseClient.from('students').select('*'),
+                supabaseClient.from('app_config').select('*').eq('id', 1).single()
+            ]);
+            if (studentsError) {
+                tbody.innerHTML = '<tr class="empty-row"><td>학생 명단을 불러오는데 실패했습니다.</td></tr>';
+                return;
+            }
+
+            // 시스템 기본설정(입학년도/기준학년) 기준으로, 학년별 올해 입학년도가 몇 년도여야 하는지 계산합니다.
+            // (학생 명단 관리 화면과 동일한 계산식) 설정이 없으면 검증을 건너뜁니다.
+            function getExpectedAdmissionYearStat(grade) {
+                if (!statConfigData) return null;
+                return Number(statConfigData.admission_year) - (Number(grade) - Number(statConfigData.target_grade));
+            }
+
+            const gradeClasses = {};
+            const classCounts = {}; // 학생 명단 기준 반별 정원 (전출생이 삭제되었는지 확인용)
+            grades.forEach(g => {
+                const col = `grade${g}_id`;
+                const expectedYear = getExpectedAdmissionYearStat(g);
+                // 학번 칸에 값이 있어도, 시스템 설정상 올해 이 학년의 입학년도와 다르면(지난 기수 데이터 등) 집계에서 제외합니다.
+                const relevantStudents = (studentsData || []).filter(s => {
+                    const v = s[col];
+                    if (!v || String(v).length !== 5) return false;
+                    if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return false;
+                    return true;
+                });
+
+                const set = new Set();
+                relevantStudents.forEach(s => set.add(parseInt(String(s[col]).substring(1, 3), 10)));
+                let list = Array.from(set).sort((a, b) => a - b);
+                if (list.length === 0) list = [1, 2, 3, 4, 5, 6]; // 학생 명단이 없을 때의 기본값
+                gradeClasses[g] = list;
+
+                list.forEach(c => { classCounts[`${g}-${c}`] = 0; });
+                relevantStudents.forEach(s => {
+                    const cls = parseInt(String(s[col]).substring(1, 3), 10);
+                    classCounts[`${g}-${cls}`] = (classCounts[`${g}-${cls}`] || 0) + 1;
+                });
+            });
+
+            // 2. 전체 신청 내역 가져오기 (선택된 학년만)
+            const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
+            if (enrollError) {
+                tbody.innerHTML = '<tr class="empty-row"><td>신청 내역을 불러오는데 실패했습니다.</td></tr>';
+                return;
+            }
+
+            const relevantEnrollments = (enrollData || []).filter(item => {
+                const sId = String(item.student_id);
+                if (sId.length !== 5) return false;
+                return grades.includes(sId.charAt(0));
+            });
+
+            // 3. 표에 표시할 행(과목) 목록 결정
+            let subjectRows; // [{ key, label }]
+
+            if (statViewMode === 'applied') {
+                // 환경설정(settings)에 등록된 선택 학년들의 과목 목록을 순서대로 가져와 합치기
+                const subjectResults = await Promise.all(
+                    grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+                );
+
+                if (subjectResults.some(r => r.error)) {
+                    tbody.innerHTML = '<tr class="empty-row"><td>과목 목록을 불러오는데 실패했습니다.</td></tr>';
+                    return;
+                }
+
+                const subjectNames = [];
+                subjectResults.forEach(r => {
+                    (r.data || []).forEach(s => { if (!subjectNames.includes(s.subject_name)) subjectNames.push(s.subject_name); });
+                });
+
+                if (subjectNames.length === 0) {
+                    tbody.innerHTML = '<tr class="empty-row"><td>환경설정(과목 관리)에 등록된 과목이 없습니다.</td></tr>';
+                    return;
+                }
+
+                subjectRows = subjectNames.map(name => ({ key: name, label: name }));
+            } else {
+                // 최종선택: 통계 현황(박스형)에서 실제로 [저장]되어 DB에 기록된 최종선택과목 값만 사용
+                const finalNames = [];
+                relevantEnrollments.forEach(item => {
+                    const f = item.final_subject;
+                    if (f && !finalNames.includes(f)) finalNames.push(f);
+                });
+                finalNames.sort((a, b) => a.localeCompare(b));
+
+                subjectRows = finalNames.map(name => ({ key: name, label: name }));
+            }
+
+            // 4. 과목별/학년별/반별 인원 집계
+            const counts = {};
+            subjectRows.forEach(row => { counts[row.key] = {}; });
+
+            relevantEnrollments.forEach(item => {
+                const sId = String(item.student_id);
+                const grade = sId.charAt(0);
+                const cls = parseInt(sId.substring(1, 3), 10);
+
+                let key;
+                if (statViewMode === 'applied') {
+                    key = item.subject_name;
+                    if (!counts[key]) return; // 환경설정에 없는(삭제된/바뀐) 과목명은 표에서 제외 → 미선택에 함께 잡힘
+                } else {
+                    key = item.final_subject;
+                    if (!key) return; // 최종선택이 아직 안 된 학생은 미선택에서 잡힘
+                }
+
+                const colKey = `${grade}-${cls}`;
+                counts[key][colKey] = (counts[key][colKey] || 0) + 1;
+            });
+
+            // 5. 미선택 인원 계산: 학생 명단(정원) 기준으로, 위에서 과목별로 집계되지 않은 학생 수를 반별로 계산합니다.
+            //    (신청 자체를 안 한 학생 + 환경설정과 이름이 어긋나 집계에서 빠진 학생이 모두 여기 포함됩니다.
+            //     후자가 많다면 [신청 불일치 검사]에서 정리해주세요.)
+            const unselectedLabel = statViewMode === 'applied' ? '미선택 (과목 신청 안 함)' : '미선택 (최종선택 안 됨)';
+            counts['__UNSELECTED__'] = {};
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => {
+                    const colKey = `${g}-${c}`;
+                    let matched = 0;
+                    subjectRows.forEach(row => { matched += (counts[row.key] && counts[row.key][colKey]) || 0; });
+                    const total = classCounts[colKey] || 0;
+                    counts['__UNSELECTED__'][colKey] = Math.max(total - matched, 0);
+                });
+            });
+            subjectRows.push({ key: '__UNSELECTED__', label: unselectedLabel });
+
+            renderStatHeader(grades, gradeClasses, statViewMode === 'final' ? '최종 선택 과목' : '과목', classCounts);
+            renderStatRows(subjectRows, grades, gradeClasses, counts);
+        }
+
+        function renderStatHeader(grades, gradeClasses, subjectColumnLabel, classCounts) {
+            let row1 = `<tr><th class="stat-subject-cell" rowspan="2" style="min-width:130px;">${subjectColumnLabel}</th>`;
+            let row2 = '<tr>';
+
+            grades.forEach(g => {
+                const classes = gradeClasses[g];
+                row1 += `<th colspan="${classes.length + 1}" style="background-color:${STAT_GRADE_COLOR[g]}; color:#fff;">${g}학년</th>`;
+                let gradeHeadcount = 0;
+                classes.forEach(c => {
+                    const headcount = (classCounts && classCounts[`${g}-${c}`]) || 0;
+                    gradeHeadcount += headcount;
+                    row2 += `<th style="background-color:${STAT_GRADE_BG[g]};">${c}반<br><span style="font-size:11px; font-weight:normal; color:#555;">정원 ${headcount}명</span></th>`;
+                });
+                row2 += `<th style="background-color:${STAT_GRADE_COLOR[g]}; color:#fff;">${g}학년 계<br><span style="font-size:11px; font-weight:normal;">정원 ${gradeHeadcount}명</span></th>`;
+            });
+
+            row1 += `<th rowspan="2" style="background-color:#B71C1C; color:#fff; min-width:90px;">과목 합계</th></tr>`;
+            row2 += '</tr>';
+
+            document.getElementById('statTableHead').innerHTML = row1 + row2;
+        }
+
+        function renderStatRows(subjectRows, grades, gradeClasses, counts) {
+            const colTotals = {};
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => { colTotals[`${g}-${c}`] = 0; });
+                colTotals[`${g}-total`] = 0;
+            });
+            let grandTotal = 0;
+            let html = '';
+
+            subjectRows.forEach(row => {
+                const key = row.key;
+                const isPending = key === '__UNSELECTED__';
+                let rowHtml = `<td class="stat-subject-cell"${isPending ? ' style="color:#f44336;"' : ''}>${escapeHtmlStat(row.label)}</td>`;
+                let subjectTotal = 0;
+
+                grades.forEach(g => {
+                    let gTotal = 0;
+                    gradeClasses[g].forEach(c => {
+                        const val = (counts[key] && counts[key][`${g}-${c}`]) || 0;
+                        gTotal += val;
+                        colTotals[`${g}-${c}`] += val;
+                        rowHtml += val > 0
+                            ? `<td style="font-weight:bold; color:${STAT_GRADE_TEXT[g]};">${val}</td>`
+                            : `<td class="stat-empty-cell">-</td>`;
+                    });
+                    colTotals[`${g}-total`] += gTotal;
+                    subjectTotal += gTotal;
+                    rowHtml += `<td style="background-color:${STAT_GRADE_BG[g]}; font-weight:bold; color:${STAT_GRADE_TEXT[g]};">${gTotal > 0 ? gTotal : '-'}</td>`;
+                });
+
+                rowHtml += `<td style="background-color:#FFEBEE; font-weight:bold; color:#C62828;">${subjectTotal > 0 ? subjectTotal : '-'}</td>`;
+                grandTotal += subjectTotal;
+
+                html += `<tr${isPending ? ' style="background-color:#FFF8F8;"' : ''}>${rowHtml}</tr>`;
+            });
+
+            let totalRow = `<td class="stat-subject-cell">합계</td>`;
+            grades.forEach(g => {
+                gradeClasses[g].forEach(c => { totalRow += `<td>${colTotals[`${g}-${c}`]}</td>`; });
+                totalRow += `<td style="background-color:${STAT_GRADE_BG[g]};">${colTotals[`${g}-total`]}</td>`;
+            });
+            totalRow += `<td style="background-color:#FFCDD2;">${grandTotal}</td>`;
+
+            html += `<tr class="stat-total-row">${totalRow}</tr>`;
+
+            document.getElementById('statTableBody').innerHTML = html;
+        }
+
+        function downloadStatTableExcel() {
+            const table = document.getElementById('statTable');
+            const sheetName = statViewMode === 'final' ? "최종선택통계표" : "통계현황표";
+            const fileName = statViewMode === 'final' ? '소인수강좌_최종선택통계표.xlsx' : '소인수강좌_통계현황표.xlsx';
+            const workbook = XLSX.utils.table_to_book(table, { sheet: sheetName });
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // ---------------- [환경설정(과목 관리 및 시스템 관리) 기능] ----------------
+
+        function selectAdminTab(tabId) {
+            document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.admin-tab-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.tab === tabId);
+            });
+        }
+
+        async function loadSystemSettings() {
+            const { data, error } = await supabaseClient
+                .from('app_config')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (data) {
+                document.getElementById('sysAdmissionYear').value = data.admission_year;
+                document.getElementById('sysTargetGrade').value = data.target_grade;
+            }
+        }
+
+        async function saveSystemSettings() {
+            const year = document.getElementById('sysAdmissionYear').value;
+            const grade = document.getElementById('sysTargetGrade').value;
+
+            if (!year) {
+                alert("기준 입학년도를 정확히 입력해주세요.");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('app_config').upsert([
+                { id: 1, admission_year: parseInt(year), target_grade: parseInt(grade) }
+            ]);
+
+            if (error) {
+                alert("설정 저장 중 오류가 발생했습니다: " + error.message);
+                console.error(error);
+            } else {
+                alert("시스템 기준 설정이 성공적으로 저장되었습니다.");
+            }
+        }
+
+        async function loadSubjects() {
+            const filterGrade = document.getElementById('adminGradeFilter').value;
+
+            const { data, error } = await supabaseClient
+                .from('settings')
+                .select('*')
+                .eq('grade', parseInt(filterGrade))
+                .order('display_order', { ascending: true });
+
+            if (error) {
+                console.error("데이터 로드 오류:", error);
+                return;
+            }
+
+            const list = document.getElementById('subjectList');
+            list.innerHTML = '';
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'subject-item';
+                div.setAttribute('data-id', item.id);
+                const safeName = String(item.subject_name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                div.innerHTML = `
+                <span><b>${item.grade}학년</b> - ${item.subject_name}</span>
+                <div>
+                    <button class="btn-edit" onclick="editSubject(${item.id}, '${safeName}')">수정</button>
+                    <button class="btn-delete" onclick="deleteSubject(${item.id}, '${item.grade}', '${safeName}')">삭제</button>
+                </div>
+            `;
+                list.appendChild(div);
+            });
+
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            sortableInstance = new Sortable(list, {
+                animation: 150,
+                ghostClass: 'sortable-ghost'
+            });
+        }
+
+        async function saveOrder() {
+            const items = document.querySelectorAll('#subjectList .subject-item');
+            const updates = [];
+
+            items.forEach((item, index) => {
+                const id = item.getAttribute('data-id');
+                updates.push({ id: parseInt(id), display_order: index });
+            });
+
+            if (updates.length === 0) {
+                alert("저장할 과목이 없습니다.");
+                return;
+            }
+
+            try {
+                await Promise.all(updates.map(u =>
+                    supabaseClient.from('settings').update({ display_order: u.display_order }).eq('id', u.id)
+                ));
+
+                alert("과목 순서가 성공적으로 저장되었습니다!");
+                loadSubjects();
+            } catch (err) {
+                console.error("순서 저장 중 오류:", err);
+                alert("순서 저장 중 오류가 발생했습니다.");
+            }
+        }
+
+        async function addSubject() {
+            const grade = document.getElementById('adminGradeFilter').value;
+            const subjectName = document.getElementById('subjectInput').value;
+
+            if (!subjectName) {
+                alert("과목 이름을 입력해주세요.");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('settings').insert([
+                { grade: parseInt(grade), subject_name: subjectName, display_order: 999 }
+            ]);
+
+            if (!error) {
+                document.getElementById('subjectInput').value = '';
+                loadSubjects();
+            } else {
+                console.error(error);
+                alert("과목 추가 실패");
+            }
+        }
+
+        async function deleteSubject(id, grade, subjectName) {
+            // 폐강 등으로 과목을 지울 때, 이미 이 과목을 신청한 학생 기록이 있는지 먼저 확인합니다.
+            const { data: enrollData, error: enrollError } = await supabaseClient
+                .from('enrollments')
+                .select('student_id, student_name')
+                .eq('subject_name', subjectName)
+                .like('student_id', `${grade}____`);
+
+            if (enrollError) {
+                alert("신청 현황을 확인하는 중 오류가 발생했습니다: " + enrollError.message);
+                return;
+            }
+
+            const count = (enrollData || []).length;
+
+            if (count > 0) {
+                const names = enrollData.map(s => `${s.student_id} ${s.student_name || ''}`).join(', ');
+                const wantDeleteBoth = confirm(
+                    `"${subjectName}" 과목을 신청한 학생이 ${count}명 있습니다.\n(${names})\n\n` +
+                    `폐강 등으로 이 과목을 삭제하면, 이 학생들의 신청 기록도 함께 삭제되어 "미선택" 상태로 돌아갑니다.\n` +
+                    `(다른 과목으로 바꿔주는 것이 아니라 완전히 삭제됩니다. 되돌릴 수 없습니다.)\n\n` +
+                    `과목과 학생 신청 기록을 모두 삭제할까요?`
+                );
+                if (!wantDeleteBoth) return; // 취소 시 과목도 삭제하지 않음 (신청기록이 붕 뜨는 것을 방지)
+
+                const { error: delEnrollError } = await supabaseClient
+                    .from('enrollments')
+                    .delete()
+                    .eq('subject_name', subjectName)
+                    .like('student_id', `${grade}____`);
+
+                if (delEnrollError) {
+                    alert("학생 신청 기록 삭제 중 오류가 발생했습니다: " + delEnrollError.message);
+                    return;
+                }
+            } else {
+                if (!confirm("삭제하시겠습니까?")) return;
+            }
+
+            await supabaseClient.from('settings').delete().eq('id', id);
+            loadSubjects();
+        }
+
+        async function editSubject(id, oldName) {
+            const newName = prompt("새로운 과목 이름을 입력하세요:", oldName);
+            if (newName && newName !== oldName) {
+                await supabaseClient.from('settings').update({ subject_name: newName }).eq('id', id);
+                loadSubjects();
+            }
+        }
+
+        // ---------------- [학생 명단 관리 (전입/전학) 기능] ----------------
+
+        let currentMgmtStudents = [];
+        let editingStudentId = null;
+        let studentMgmtConfig = null;
+
+        async function suggestAdmissionYear() {
+            const gradeSelect = document.getElementById('newStudentGrade');
+            if (!gradeSelect) return;
+            const grade = gradeSelect.value;
+
+            const { data: configData } = await supabaseClient.from('app_config').select('*').eq('id', 1).single();
+            if (!configData) return;
+
+            const expectedYear = Number(configData.admission_year) - (Number(grade) - Number(configData.target_grade));
+            const yearInput = document.getElementById('newStudentYear');
+            if (yearInput) yearInput.value = expectedYear;
+        }
+
+        async function loadStudentMgmt() {
+            const tbody = document.getElementById('studentMgmtBody');
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6">불러오는 중...</td></tr>';
+
+            const [{ data, error }, { data: configData }] = await Promise.all([
+                supabaseClient.from('students').select('*').order('name', { ascending: true }),
+                supabaseClient.from('app_config').select('*').eq('id', 1).single()
+            ]);
+
+            if (error) {
+                console.error(error);
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">학생 명단을 불러오는데 실패했습니다.</td></tr>';
+                return;
+            }
+
+            currentMgmtStudents = data || [];
+            studentMgmtConfig = configData || null;
+            editingStudentId = null;
+            populateStudentMgmtClassFilter();
+            renderStudentMgmtList();
+        }
+
+        // 학년 필터가 바뀌면, 그 학년에 존재하는 반 목록으로 반 필터를 다시 채웁니다.
+        function onStudentMgmtGradeFilterChange() {
+            populateStudentMgmtClassFilter();
+            renderStudentMgmtList();
+        }
+
+        // 시스템 기본설정(admission_year, target_grade)을 기준으로, 특정 학년이 실제로 올해 몇 년도 입학생인지 계산합니다.
+        // (반별 신청 현황 화면과 동일한 계산식) 설정이 없으면 null을 반환하며, 이 경우 입학년도 검증은 건너뜁니다.
+        function getExpectedAdmissionYearForGrade(grade) {
+            if (!studentMgmtConfig) return null;
+            return Number(studentMgmtConfig.admission_year) - (Number(grade) - Number(studentMgmtConfig.target_grade));
+        }
+
+        // 학번의 2~3번째 자리(예: 10203 -> "02")를 반으로 사용합니다. (반별 신청 현황과 동일한 규칙)
+        function getStudentMgmtClassOptions(gradeFilter) {
+            if (!gradeFilter) return [];
+            const classSet = new Set();
+            currentMgmtStudents.forEach(s => {
+                const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
+                cols.forEach(col => {
+                    const v = s[col];
+                    if (!v || String(v).length !== 5) return;
+                    if (gradeFilter !== 'all') {
+                        const expectedYear = getExpectedAdmissionYearForGrade(gradeFilter);
+                        if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return;
+                    }
+                    classSet.add(String(v).substring(1, 3));
+                });
+            });
+            return Array.from(classSet).sort();
+        }
+
+        function populateStudentMgmtClassFilter() {
+            const gradeFilterEl = document.getElementById('studentMgmtGradeFilter');
+            const classFilterEl = document.getElementById('studentMgmtClassFilter');
+            if (!classFilterEl) return;
+
+            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : '';
+            const prevValue = classFilterEl.value || 'all';
+            const classOptions = getStudentMgmtClassOptions(gradeFilter);
+
+            classFilterEl.innerHTML = '<option value="all">전체</option>' +
+                classOptions.map(c => `<option value="${c}">${parseInt(c, 10)}반</option>`).join('');
+
+            classFilterEl.value = classOptions.includes(prevValue) ? prevValue : 'all';
+        }
+
+        function renderStudentMgmtList() {
+            const tbody = document.getElementById('studentMgmtBody');
+            const keywordEl = document.getElementById('studentMgmtSearch');
+            const gradeFilterEl = document.getElementById('studentMgmtGradeFilter');
+            const classFilterEl = document.getElementById('studentMgmtClassFilter');
+            const keyword = keywordEl ? keywordEl.value.trim() : '';
+            const gradeFilter = gradeFilterEl ? gradeFilterEl.value : '';
+            const classFilter = classFilterEl ? classFilterEl.value : 'all';
+
+            // 학년을 아직 선택하지 않았으면 불필요하게 전체 명단을 보여주지 않습니다.
+            if (!gradeFilter) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">학년을 선택해주세요.</td></tr>';
+                return;
+            }
+
+            let list = currentMgmtStudents.filter(s => {
+                if (gradeFilter !== 'all') {
+                    const col = `grade${gradeFilter}_id`;
+                    if (!s[col]) return false;
+
+                    // 학번의 grade1_id 등이 값이 있어도, 시스템 설정상 올해 그 학년의 입학년도와 다르면
+                    // (지난 기수 데이터 등) 해당 학년으로 보여주지 않습니다.
+                    const expectedYear = getExpectedAdmissionYearForGrade(gradeFilter);
+                    if (expectedYear !== null && Number(s.admission_year) !== expectedYear) return false;
+                }
+                if (classFilter !== 'all') {
+                    const cols = gradeFilter === 'all' ? ['grade1_id', 'grade2_id', 'grade3_id'] : [`grade${gradeFilter}_id`];
+                    const matchesClass = cols.some(col => {
+                        const v = s[col];
+                        return v && String(v).length === 5 && String(v).substring(1, 3) === classFilter;
+                    });
+                    if (!matchesClass) return false;
+                }
+                if (keyword) {
+                    const idsStr = [s.grade1_id, s.grade2_id, s.grade3_id].filter(Boolean).join(' ');
+                    const haystack = `${s.name || ''} ${idsStr}`;
+                    if (!haystack.includes(keyword)) return false;
+                }
+                return true;
+            });
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">조건에 맞는 학생이 없습니다.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            list.forEach(s => {
+                const tr = document.createElement('tr');
+
+                if (editingStudentId === s.id) {
+                    tr.innerHTML = `
+                        <td><input type="text" id="editName_${s.id}" value="${escapeHtmlStat(s.name || '')}" style="margin:0; padding:6px; width:100%;"></td>
+                        <td><input type="text" id="editG1_${s.id}" value="${s.grade1_id || ''}" placeholder="-" style="margin:0; padding:6px; width:70px;"></td>
+                        <td><input type="text" id="editG2_${s.id}" value="${s.grade2_id || ''}" placeholder="-" style="margin:0; padding:6px; width:70px;"></td>
+                        <td><input type="text" id="editG3_${s.id}" value="${s.grade3_id || ''}" placeholder="-" style="margin:0; padding:6px; width:70px;"></td>
+                        <td><input type="number" id="editYear_${s.id}" value="${s.admission_year || ''}" style="margin:0; padding:6px; width:80px;"></td>
+                        <td style="white-space:nowrap;">
+                            <button class="btn-edit" onclick="saveStudentEdit(${s.id})">저장</button>
+                            <button class="btn-delete" onclick="cancelEditStudent()">취소</button>
+                        </td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td>${escapeHtmlStat(s.name || '')}</td>
+                        <td>${s.grade1_id || '-'}</td>
+                        <td>${s.grade2_id || '-'}</td>
+                        <td>${s.grade3_id || '-'}</td>
+                        <td>${s.admission_year || '-'}</td>
+                        <td style="white-space:nowrap;">
+                            <button class="btn-edit" onclick="startEditStudent(${s.id})">수정</button>
+                            <button class="btn-delete" onclick='deleteStudentMgmt(${s.id}, ${JSON.stringify(s.name || '')})'>삭제</button>
+                        </td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function startEditStudent(id) {
+            editingStudentId = id;
+            renderStudentMgmtList();
+        }
+
+        function cancelEditStudent() {
+            editingStudentId = null;
+            renderStudentMgmtList();
+        }
+
+        async function saveStudentEdit(id) {
+            const name = document.getElementById(`editName_${id}`).value.trim();
+            const g1 = document.getElementById(`editG1_${id}`).value.trim();
+            const g2 = document.getElementById(`editG2_${id}`).value.trim();
+            const g3 = document.getElementById(`editG3_${id}`).value.trim();
+            const year = document.getElementById(`editYear_${id}`).value.trim();
+
+            if (!name) {
+                alert("이름을 입력해주세요.");
+                return;
+            }
+
+            const update = {
+                name,
+                grade1_id: g1 || null,
+                grade2_id: g2 || null,
+                grade3_id: g3 || null,
+                admission_year: year ? parseInt(year, 10) : null
+            };
+
+            const { error } = await supabaseClient.from('students').update(update).eq('id', id);
+
+            if (error) {
+                console.error(error);
+                alert("수정 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            editingStudentId = null;
+            loadStudentMgmt();
+        }
+
+        async function addStudentMgmt() {
+            const name = document.getElementById('newStudentName').value.trim();
+            const grade = document.getElementById('newStudentGrade').value;
+            const sid = document.getElementById('newStudentId').value.trim();
+            const year = document.getElementById('newStudentYear').value.trim();
+
+            if (!name || !sid || !year) {
+                alert("이름, 학번, 입학년도를 모두 입력해주세요.");
+                return;
+            }
+            if (sid.length !== 5 || isNaN(Number(sid))) {
+                alert("학번은 5자리 숫자로 입력해주세요. (예: 20315)");
+                return;
+            }
+            if (sid.charAt(0) !== grade) {
+                alert("학번의 첫 자리가 선택한 학년과 일치하지 않습니다. 다시 확인해주세요.");
+                return;
+            }
+
+            const gradeCol = `grade${grade}_id`;
+
+            // 같은 학번이 이미 등록되어 있는지 확인 (중복 방지)
+            const { data: dup } = await supabaseClient.from('students').select('*').eq(gradeCol, sid);
+            if (dup && dup.length > 0) {
+                alert(`이미 등록된 학번입니다: [ ${dup[0].name} ] 학생이 이 학번을 사용 중입니다.`);
+                return;
+            }
+
+            const insertRow = { name, admission_year: parseInt(year, 10) };
+            insertRow[gradeCol] = sid;
+
+            const { error } = await supabaseClient.from('students').insert([insertRow]);
+
+            if (error) {
+                console.error(error);
+                alert("학생 추가 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            alert(`🎉 [ ${name} ] 학생이 추가되었습니다.`);
+            document.getElementById('newStudentName').value = '';
+            document.getElementById('newStudentId').value = '';
+            loadStudentMgmt();
+        }
+
+        async function deleteStudentMgmt(id, name) {
+            if (!confirm(`[ ${name} ] 학생을 명단에서 삭제하시겠습니까?\n(전학 등으로 완전히 나간 경우에만 삭제하세요)`)) return;
+
+            const student = currentMgmtStudents.find(s => s.id === id);
+            const idsToClean = student ? [student.grade1_id, student.grade2_id, student.grade3_id].filter(v => v) : [];
+
+            const { error } = await supabaseClient.from('students').delete().eq('id', id);
+
+            if (error) {
+                console.error(error);
+                alert("삭제 중 오류가 발생했습니다: " + error.message);
+                return;
+            }
+
+            if (idsToClean.length > 0) {
+                const wantCleanEnroll = confirm("이 학생의 수강신청 기록도 함께 삭제할까요?\n(남겨두면 통계·출석부 등에 계속 집계됩니다)");
+                if (wantCleanEnroll) {
+                    const { error: enrollError } = await supabaseClient
+                        .from('enrollments')
+                        .delete()
+                        .in('student_id', idsToClean)
+                        .eq('student_name', name);
+
+                    if (enrollError) {
+                        console.error(enrollError);
+                        alert("수강신청 기록 삭제 중 오류가 발생했습니다: " + enrollError.message);
+                    }
+                }
+            }
+
+            alert("삭제되었습니다.");
+            loadStudentMgmt();
+        }
+
+        function downloadStudentTemplate() {
+            const wsData = [
+                ['이름', '입학년도', '1학년학번', '2학년학번', '3학년학번'],
+                ['홍길동', 2025, 10203, '', '']
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '학생명단');
+            XLSX.writeFile(wb, '학생명단_업로드양식.xlsx');
+        }
+
+        function handleStudentExcelFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                    const toInsert = [];
+                    const skippedRows = [];
+
+                    rows.forEach((row, idx) => {
+                        const name = String(row['이름'] || '').trim();
+                        const year = row['입학년도'];
+                        const g1 = String(row['1학년학번'] || '').trim();
+                        const g2 = String(row['2학년학번'] || '').trim();
+                        const g3 = String(row['3학년학번'] || '').trim();
+
+                        if (!name || (!g1 && !g2 && !g3)) {
+                            skippedRows.push(idx + 2); // 엑셀 행 번호(헤더 포함)
+                            return;
+                        }
+
+                        toInsert.push({
+                            name,
+                            admission_year: year ? parseInt(year, 10) : null,
+                            grade1_id: g1 || null,
+                            grade2_id: g2 || null,
+                            grade3_id: g3 || null
+                        });
+                    });
+
+                    if (toInsert.length === 0) {
+                        alert("업로드할 유효한 데이터가 없습니다. (이름과 학번 중 최소 1개는 필요합니다)");
+                        return;
+                    }
+
+                    const warnMsg = skippedRows.length > 0
+                        ? `\n(형식이 맞지 않는 ${skippedRows.length}개 행은 제외됩니다: ${skippedRows.join(', ')}행)`
+                        : '';
+                    const proceed = confirm(`${toInsert.length}명을 새로 추가합니다.${warnMsg}\n계속할까요?`);
+                    if (!proceed) return;
+
+                    const { error } = await supabaseClient.from('students').insert(toInsert);
+
+                    if (error) {
+                        console.error(error);
+                        alert("업로드 중 오류가 발생했습니다: " + error.message);
+                        return;
+                    }
+
+                    alert(`🎉 ${toInsert.length}명이 추가되었습니다.`);
+                    loadStudentMgmt();
+                } catch (err) {
+                    console.error(err);
+                    alert("엑셀 파일을 읽는 중 오류가 발생했습니다. 양식을 확인해주세요.");
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function downloadStudentListExcel() {
+            const { data, error } = await supabaseClient.from('students').select('*').order('name', { ascending: true });
+
+            if (error || !data) {
+                alert("명단을 불러오는데 실패했습니다.");
+                return;
+            }
+
+            const wsData = [['이름', '입학년도', '1학년학번', '2학년학번', '3학년학번']];
+            data.forEach(s => wsData.push([s.name || '', s.admission_year || '', s.grade1_id || '', s.grade2_id || '', s.grade3_id || '']));
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '학생명단');
+            XLSX.writeFile(wb, '전체학생명단.xlsx');
+        }
+
+        // ---------------- [신청내역(과목별) · 출석부 기능] ----------------
+
+        const ATT_GRADE_COLOR = { '1': '#1976D2', '2': '#2E7D32', '3': '#E65100' };
+        const ATTENDANCE_SESSIONS_PER_PAGE = 16; // 32단위 = 16회차 × 2페이지
+        const ATTENDANCE_TOTAL_SESSIONS = 32;
+        let attListViewMode = 'applied'; // 'applied'(신청과목) | 'final'(최종선택)
+
+        function selectAttListViewMode(mode) {
+            attListViewMode = mode;
+            document.querySelectorAll('#attViewButtons .btn-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === mode);
+            });
+            loadAttendanceSubjects();
+        }
+
+        // 보기 모드에 따라 신청과목(subject_name) 또는 최종선택(final_subject) 값을 반환
+        function getAttSubjectValue(item) {
+            return attListViewMode === 'final' ? item.final_subject : item.subject_name;
+        }
+
+        function getSelectedAttendanceGrades() {
+            const grades = [];
+            if (document.getElementById('attGrade1').checked) grades.push('1');
+            if (document.getElementById('attGrade2').checked) grades.push('2');
+            if (document.getElementById('attGrade3').checked) grades.push('3');
+            return grades;
+        }
+
+        async function loadAttendanceSubjects() {
+            const listEl = document.getElementById('attendanceSubjectList');
+            const grades = getSelectedAttendanceGrades();
+
+            if (grades.length === 0) {
+                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">위에서 학년을 하나 이상 선택해주세요.</p>';
+                return;
+            }
+
+            listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">불러오는 중...</p>';
+
+            // 1. 전체 신청 내역 가져오기
+            const { data: enrollData, error: enrollError } = await supabaseClient.from('enrollments').select('*');
+            if (enrollError) {
+                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">신청 내역을 불러오는데 실패했습니다.</p>';
+                return;
+            }
+
+            let subjectEntries = []; // { subjectName, grades: [...] }
+
+            if (attListViewMode === 'final') {
+                // 최종선택: 학년 구분 없이 과목명 하나로 묶고, 실제 신청자가 속한 학년들을 grades 배열로 모아둡니다.
+                // (환경설정 목록이 아니라, 실제로 DB에 저장된 final_subject 값들을 기준으로 목록을 구성합니다.
+                //  통계현황 박스형에서 과목을 묶어 만든 새 최종과목명은 환경설정(과목 관리)에는 등록되어 있지 않기 때문입니다.)
+                const gradeSetMap = {}; // subjectName -> Set of grades
+                (enrollData || []).forEach(item => {
+                    const sId = String(item.student_id);
+                    if (sId.length !== 5) return;
+                    const grade = sId.charAt(0);
+                    if (!grades.includes(grade)) return;
+                    const val = item.final_subject;
+                    if (!val) return;
+                    if (!gradeSetMap[val]) gradeSetMap[val] = new Set();
+                    gradeSetMap[val].add(grade);
+                });
+                subjectEntries = Object.keys(gradeSetMap)
+                    .sort((a, b) => a.localeCompare(b, 'ko'))
+                    .map(name => ({ subjectName: name, grades: Array.from(gradeSetMap[name]).sort() }));
+            } else {
+                // 신청과목: 환경설정에 등록된 과목 목록(등록 순서) 기준, 학년별로 별도 표시
+                const subjectResults = await Promise.all(
+                    grades.map(g => supabaseClient.from('settings').select('*').eq('grade', parseInt(g, 10)).order('display_order', { ascending: true }))
+                );
+
+                if (subjectResults.some(r => r.error)) {
+                    listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">과목 목록을 불러오는데 실패했습니다.</p>';
+                    return;
+                }
+
+                subjectResults.forEach((r, idx) => {
+                    const g = grades[idx];
+                    (r.data || []).forEach(s => subjectEntries.push({ subjectName: s.subject_name, grades: [g] }));
+                });
+            }
+
+            if (subjectEntries.length === 0) {
+                listEl.innerHTML = attListViewMode === 'final'
+                    ? '<p class="toolbar-hint" style="text-align:center;">저장된 최종선택 내역이 없습니다. (통계현황 박스형에서 먼저 최종선택을 저장해주세요.)</p>'
+                    : '<p class="toolbar-hint" style="text-align:center;">환경설정(과목 관리)에 등록된 과목이 없습니다.</p>';
+                return;
+            }
+
+            // 2. 과목별 신청 학생 목록 집계 (grades에 포함된 학년의 학생만 대상)
+            listEl.innerHTML = '';
+            let hasAny = false;
+
+            subjectEntries.forEach(entry => {
+                const students = (enrollData || []).filter(item => {
+                    const sId = String(item.student_id);
+                    const val = getAttSubjectValue(item);
+                    return val === entry.subjectName && sId.length === 5 && entry.grades.includes(sId.charAt(0));
+                }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+
+                if (students.length === 0) return; // 신청자가 없는 과목은 목록에서 제외
+                hasAny = true;
+
+                const gradeBadges = entry.grades
+                    .map(g => `<span class="att-grade-badge" style="background-color:${ATT_GRADE_COLOR[g]};">${g}학년</span>`)
+                    .join('');
+
+                const div = document.createElement('div');
+                div.className = 'attendance-subject-item';
+                div.innerHTML = `
+                    <div class="att-info">
+                        ${gradeBadges}
+                        <span class="att-subject-name">${escapeHtmlStat(entry.subjectName)}</span>
+                        <span class="att-count">신청 ${students.length}명</span>
+                    </div>
+                    <button onclick='showAttendanceSheet(${JSON.stringify(entry.subjectName)}, ${JSON.stringify(entry.grades)})'>📋 출석부 보기 · 인쇄</button>
+                `;
+                listEl.appendChild(div);
+            });
+
+            if (!hasAny) {
+                listEl.innerHTML = '<p class="toolbar-hint" style="text-align:center;">해당 학년에 신청 내역이 있는 과목이 없습니다.</p>';
+            }
+        }
+
+        async function showAttendanceSheet(subjectName, gradeList) {
+            const { data: enrollData, error } = await supabaseClient.from('enrollments').select('*');
+
+            if (error) {
+                alert("학생 명단을 불러오는데 실패했습니다.");
+                return;
+            }
+
+            const students = (enrollData || []).filter(item => {
+                const sId = String(item.student_id);
+                const val = getAttSubjectValue(item);
+                if (attListViewMode === 'final' && !val) return false;
+                return val === subjectName && sId.length === 5 && gradeList.includes(sId.charAt(0));
+            }).sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)));
+
+            renderAttendanceSheet(subjectName, gradeList, students);
+            showSection('attendanceSheetSection');
+        }
+
+        function renderAttendanceSheet(subjectName, gradeList, students) {
+            const wrap = document.getElementById('attendanceSheetWrap');
+            wrap.innerHTML = '';
+
+            const gradeLabel = gradeList.map(g => `${g}학년`).join('·');
+
+            const pageCount = Math.ceil(ATTENDANCE_TOTAL_SESSIONS / ATTENDANCE_SESSIONS_PER_PAGE); // 32단위 → 2페이지
+
+            for (let p = 0; p < pageCount; p++) {
+                const startSession = p * ATTENDANCE_SESSIONS_PER_PAGE + 1;
+                const endSession = Math.min((p + 1) * ATTENDANCE_SESSIONS_PER_PAGE, ATTENDANCE_TOTAL_SESSIONS);
+                const sessionCount = endSession - startSession + 1;
+
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'attendance-page';
+
+                // 회차별 3단 헤더: 날짜 / 협력교사 사인 / 강사 사인
+                let dateHeaderCells = '';
+                let coTeacherHeaderCells = '';
+                let instructorHeaderCells = '';
+                for (let session = startSession; session <= endSession; session++) {
+                    dateHeaderCells += `<th class="attendance-date-header"><span class="att-session-no">${session}회차</span><span class="att-slash">/</span></th>`;
+                    coTeacherHeaderCells += `<th class="attendance-sign-header"><span class="att-head-label">협력교사<br>사인</span></th>`;
+                    instructorHeaderCells += `<th class="attendance-sign-header"><span class="att-head-label">강사<br>사인</span></th>`;
+                }
+
+                // 학생별(연번, 학번, 이름) 행 + 회차별 출석체크 칸
+                let bodyRows = '';
+                if (students.length === 0) {
+                    bodyRows = `<tr><td colspan="${3 + sessionCount}" style="color:#888;">신청한 학생이 없습니다.</td></tr>`;
+                } else {
+                    students.forEach((s, idx) => {
+                        let checkCells = '';
+                        for (let i = 0; i < sessionCount; i++) {
+                            checkCells += '<td class="attendance-check-cell"></td>';
+                        }
+                        bodyRows += `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${escapeHtmlStat(s.student_id)}</td>
+                                <td>${escapeHtmlStat(s.student_name)}</td>
+                                ${checkCells}
+                            </tr>
+                        `;
+                    });
+                }
+
+                pageDiv.innerHTML = `
+                    <div class="attendance-page-title">📋 ${gradeLabel} · ${escapeHtmlStat(subjectName)} 출석부 (${startSession}~${endSession}회차) — ${p + 1} / ${pageCount}페이지</div>
+                    <div class="attendance-table-wrap">
+                        <table class="attendance-table">
+                            <thead>
+                                <tr>
+                                    <th class="attendance-id-header" rowspan="3">연번</th>
+                                    <th class="attendance-id-header" rowspan="3">학번</th>
+                                    <th class="attendance-id-header" rowspan="3">이름</th>
+                                    ${dateHeaderCells}
+                                </tr>
+                                <tr>
+                                    ${coTeacherHeaderCells}
+                                </tr>
+                                <tr>
+                                    ${instructorHeaderCells}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${bodyRows}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                wrap.appendChild(pageDiv);
+            }
+        }
+
+        // 페이지의 모든 변수 선언이 끝난 뒤에 자동 로그인 및 ?section=xxx 라우팅을 실행합니다.
+        // (statTableSection 등에서 쓰는 변수들이 선언되기 '전'에 이 코드가 먼저 실행되면
+        //  자료가 표시되지 않는 오류가 발생하므로, 반드시 스크립트 맨 끝에서 실행해야 합니다.)
+        if (sessionStorage.getItem('teacherAuthed') === 'true') {
+            unlockTeacherScreen();
+        }
+    </script>
+</body>
+
+</html>
