@@ -1532,8 +1532,8 @@
       const el = document.getElementById('bankResultCount');
       if (!el) return;
       el.textContent = filteredCount === bankRows.length
-        ? `전체 ${bankRows.length}개`
-        : `전체 ${bankRows.length}개 중 ${filteredCount}개`;
+        ? `총 ${bankRows.length}개`
+        : `총 ${bankRows.length}개 중 ${filteredCount}개`;
     }
 
     // ---------------- [즐겨찾기] ----------------
@@ -1645,7 +1645,7 @@
       }).join('') + (
           total > visibleRows.length
             ? `<div class="bank-empty" style="cursor:pointer;" onclick="showMoreProblems()">👇 ${visibleRows.length}/${total}개 표시 중 · 더 보기 (+${Math.min(RENDER_STEP, total - visibleRows.length)})</div>`
-            : (total > RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">전체 ${total}개 표시 완료</div>` : '')
+            : (total > RENDER_STEP ? `<div class="bank-empty" style="opacity:.6;">총 ${total}개 표시 완료</div>` : '')
         );
 
       if (window.MathJax) MathJax.typesetPromise([list]);
@@ -1719,8 +1719,11 @@
     }
 
     function updateFsBtnLabel() {
+      const label = getFsElement() ? '↙️ 전체화면 종료' : '⛶ 전체화면';
       const btn = document.getElementById('pbFsBtn');
-      if (btn) btn.textContent = getFsElement() ? '↙️ 전체화면 종료' : '⛶ 전체화면';
+      if (btn) btn.textContent = label;
+      const editorBtn = document.getElementById('editorFsBtn');
+      if (editorBtn) editorBtn.textContent = label;
     }
 
     ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
@@ -1786,6 +1789,7 @@
     <div class="editor-header">
       <div class="editor-title">${isNew ? '📝 새 문제 만들기' : '✏️ 문제 편집'}</div>
       <div class="hint-kbd">⌘ / Ctrl + Enter 저장 · Esc 취소</div>
+      <button class="reveal-btn" onclick="toggleAppFullscreen()" id="editorFsBtn">${getFsElement() ? '↙️ 전체화면 종료' : '⛶ 전체화면'}</button>
       <button class="reveal-btn save-btn" onclick="saveEdit()">💾 저장</button>
       <button class="reveal-btn" onclick="requestCloseEditor()">취소</button>
       ${isNew ? '' : '<button class="reveal-btn danger-btn" onclick="deleteFromEditor()">🗑 삭제</button>'}
