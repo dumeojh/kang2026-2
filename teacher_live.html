@@ -580,7 +580,7 @@
       line-height: 1.7;
     }
 
-    /* ---------- 새 문제 출제 모달 ---------- */
+    /* ---------- 모달 공통 스타일 ---------- */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -644,18 +644,6 @@
       display: flex;
       gap: 10px;
       justify-content: flex-end;
-    }
-
-    .modal-box label.answer-label-lg {
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-
-    .modal-box textarea.answer-textarea-lg {
-      font-size: 18px;
-      line-height: 1.5;
-      padding: 14px 16px;
-      min-height: 110px;
     }
 
     /* ---------- 문제 은행 ---------- */
@@ -1185,7 +1173,7 @@
         <button class="btn" onclick="openBankModal()">📚 문제 은행</button>
         <button class="btn" onclick="showComingSoon()">🎥 설명 영상</button>
         <button class="btn" onclick="openArchiveModal()">🗑 기록 관리</button>
-        <button class="btn" onclick="openNewProblemModal()">＋ 새 문제 출제</button>
+        <button class="btn" onclick="window.open('problem_bank.html', '_blank')">📝 문제 은행 관리 페이지 열기 (새 탭)</button>
         <button class="btn danger" onclick="closeActiveProblem()">■ 마감하기</button>
       </div>
 
@@ -1196,29 +1184,6 @@
         </div>
       </div>
     </main>
-  </div>
-
-  <div class="modal-backdrop hidden" id="newProblemModal">
-    <div class="modal-box">
-      <h2 id="newProblemModalTitle">📝 새 문제 만들기</h2>
-      <label>제목 (선택 — 은행 목록에서 알아보기 쉽게)</label>
-      <input id="newProblemTitle" type="text" placeholder="예: 접선과 정적분 활용">
-      <label>분류</label>
-      <select id="newProblemCategory"></select>
-      <label>문제 본문 (LaTeX은 $...$ 로 감싸서 입력)</label>
-      <textarea id="newProblemText" rows="4" placeholder="문제를 입력하세요"></textarea>
-      <label>제한시간 (분)</label>
-      <input id="newProblemMinutes" type="number" value="5" min="1" max="60">
-      <label>🎙 음성 설명 녹음 제한시간 (초)</label>
-      <input id="newProblemVoiceSeconds" type="number" value="60" min="10" max="300" step="10">
-      <label class="answer-label-lg">정답 (선택 — "정답 보기" 버튼으로 원할 때만 공개)</label>
-      <textarea id="newProblemAnswer" class="answer-textarea-lg" rows="4" placeholder="예: 27/4"></textarea>
-      <div class="modal-actions">
-        <button class="btn" onclick="closeNewProblemModal()">취소</button>
-        <button class="btn" onclick="saveToBankOnly()">💾 은행에 저장</button>
-        <button class="btn" style="background:var(--brand); color:#fff;" onclick="saveAndIssue()">🚀 저장하고 출제</button>
-      </div>
-    </div>
   </div>
 
   <div class="modal-backdrop hidden" id="bankModal">
@@ -1594,7 +1559,7 @@
       document.getElementById('problemLabel').textContent = '오늘의 문제';
       document.getElementById('timerDisplay').textContent = '--:--';
       document.getElementById('roomCodeBadge').classList.add('hidden');
-      document.getElementById('problemArea').innerHTML = `<div class="no-problem">아직 출제된 문제가 없습니다. "＋ 새 문제 출제"를 눌러 시작하세요.</div>`;
+      document.getElementById('problemArea').innerHTML = `<div class="no-problem">아직 출제된 문제가 없습니다. "📚 문제 은행"에서 문제를 골라 출제해보세요.</div>`;
       document.getElementById('subList').innerHTML = `<div class="empty-msg">아직 제출한 학생이 없습니다.</div>`;
       document.getElementById('subCount').textContent = '0명 제출';
       clearInterval(timerInterval);
@@ -1928,98 +1893,6 @@
         .subscribe();
     }
 
-    let editingBankId = null; // 지금 문제 은행에서 수정 중인 항목의 id (새로 만드는 중이면 null)
-
-    async function openNewProblemModal() {
-      if (!requireTeacherProfile()) return;
-      editingBankId = null;
-      await loadCategories();
-      document.getElementById('newProblemModalTitle').textContent = '📝 새 문제 만들기';
-      document.getElementById('newProblemTitle').value = '';
-      renderNewProblemCategoryOptions();
-      if (categories[0]) document.getElementById('newProblemCategory').value = categories[0].name;
-      document.getElementById('newProblemText').value = '';
-      document.getElementById('newProblemMinutes').value = 5;
-      document.getElementById('newProblemVoiceSeconds').value = 60;
-      document.getElementById('newProblemAnswer').value = '';
-      document.getElementById('newProblemModal').classList.remove('hidden');
-    }
-
-    function closeNewProblemModal() {
-      document.getElementById('newProblemModal').classList.add('hidden');
-    }
-
-    async function insertBankRow() {
-      const title = document.getElementById('newProblemTitle').value.trim();
-      const category = document.getElementById('newProblemCategory').value;
-      const text = document.getElementById('newProblemText').value.trim();
-      const minutes = parseFloat(document.getElementById('newProblemMinutes').value) || 5;
-      const voiceSeconds = parseInt(document.getElementById('newProblemVoiceSeconds').value, 10) || 60;
-      const answer = document.getElementById('newProblemAnswer').value.trim();
-      if (!text) { alert('문제 본문을 입력해주세요.'); return null; }
-
-      const payload = {
-        title: title || null,
-        category: category,
-        problem_text: text,
-        time_limit_seconds: Math.round(minutes * 60),
-        voice_limit_seconds: voiceSeconds,
-        answer_text: answer || null
-      };
-
-      if (editingBankId) {
-        const { data, error } = await supabaseClient
-          .from('live_problem_bank')
-          .update(payload)
-          .eq('id', editingBankId)
-          .select()
-          .single();
-        if (error) { alert('수정 중 오류가 발생했습니다: ' + error.message); return null; }
-        upsertBankRowCache(data);
-        return data;
-      }
-
-      const { data, error } = await supabaseClient.from('live_problem_bank').insert([payload]).select().single();
-      if (error) { alert('저장 중 오류가 발생했습니다: ' + error.message); return null; }
-      upsertBankRowCache(data);
-      return data;
-    }
-
-    // 새로 만들거나 수정한 문제를 로컬 캐시(bankRows)에도 바로 반영해서,
-    // 캐시를 쓰는 동안에도 방금 저장한 문제가 목록에 즉시 보이도록 합니다.
-    function upsertBankRowCache(row) {
-      if (!row) return;
-      const idx = bankRows.findIndex(r => r.id === row.id);
-      if (idx >= 0) {
-        bankRows[idx] = row;
-      } else {
-        bankRows.unshift(row);
-      }
-      if (!bankLastLoadedAt) bankLastLoadedAt = Date.now(); // 아직 한 번도 불러온 적 없으면 캐시를 "존재하는 것"으로 취급
-    }
-
-    async function saveToBankOnly() {
-      const wasEditing = !!editingBankId;
-      const row = await insertBankRow();
-      if (!row) return;
-      editingBankId = null;
-      closeNewProblemModal();
-      if (wasEditing) {
-        alert('✅ 수정한 내용을 저장했습니다.');
-        openBankModal();
-      } else {
-        alert('📚 문제 은행에 저장했습니다. 필요할 때 "문제 은행"에서 골라 출제하세요.');
-      }
-    }
-
-    async function saveAndIssue() {
-      const row = await insertBankRow();
-      if (!row) return;
-      editingBankId = null;
-      closeNewProblemModal();
-      await issueFromBankRow(row);
-    }
-
     async function issueFromBankRow(row) {
       if (!requireTeacherProfile()) return;
 
@@ -2078,7 +1951,6 @@
       categories = data || [];
       categoriesLoadedAt = Date.now();
       renderBankFilterTabs();
-      renderNewProblemCategoryOptions();
     }
 
     function renderBankFilterTabs() {
@@ -2088,14 +1960,6 @@
         .concat(categories.map(c => `
           <button class="filter-tab ${bankFilterCategory === c.name ? 'active' : ''}" data-cat="${c.name}" onclick="setBankFilter('${c.name.replace(/'/g, "\\'")}')">${escapeHtml(c.name)}</button>
         `)).join('');
-    }
-
-    function renderNewProblemCategoryOptions() {
-      const select = document.getElementById('newProblemCategory');
-      if (!select) return;
-      const current = select.value;
-      select.innerHTML = categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
-      if (categories.some(c => c.name === current)) select.value = current;
     }
 
     function difficultyLabel(d) {
