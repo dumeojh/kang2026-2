@@ -70,6 +70,20 @@
             margin-top: 10px;
         }
 
+        /* 취소 버튼 스타일 */
+        .cancel-btn {
+            padding: 10px 20px;
+            background-color: #9E9E9E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-left: 10px;
+            display: none;
+            /* 기본은 숨김 */
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -93,7 +107,34 @@
             background-color: #f2f2f2;
         }
 
-        /* 관련 회사 및 기초사건 목록 태그 스타일 */
+        /* 🟢 표 안의 수정/삭제 버튼 스타일 */
+        .action-btn {
+            padding: 5px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #FF9800;
+        }
+
+        .edit-btn:hover {
+            background-color: #F57C00;
+        }
+
+        .delete-btn {
+            background-color: #F44336;
+        }
+
+        .delete-btn:hover {
+            background-color: #D32F2F;
+        }
+
         .company-list,
         .event-tag-list {
             display: flex;
@@ -129,7 +170,6 @@
             transform: scale(1.05);
         }
 
-        /* 2차원(2D) 트리 관계도 스타일 */
         .tree-layout {
             display: flex;
             flex-direction: column;
@@ -177,7 +217,6 @@
 
         .tree-node {
             border: 2px solid #4CAF50;
-            /* 여백과 글자 크기는 JS에서 동적으로 할당됨 */
             border-radius: 8px;
             background-color: white;
             font-weight: bold;
@@ -185,7 +224,6 @@
             width: 100%;
             margin-bottom: 10px;
             transition: all 0.3s ease;
-            /* 동적 크기 변화 부드럽게 */
         }
 
         .tree-company {
@@ -241,7 +279,10 @@
             <label>관련 회사</label>
             <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
         </div>
-        <button class="save-btn" onclick="saveData()">수파베이스에 저장하기</button>
+
+        <!-- 🟢 수정 모드를 지원하도록 버튼 ID 및 취소 버튼 추가 -->
+        <button class="save-btn" id="main-save-btn" onclick="saveData()">수파베이스에 저장하기</button>
+        <button class="cancel-btn" id="cancel-edit-btn" onclick="cancelEdit()">수정 취소</button>
         <p id="save-message" style="color: blue; font-weight: bold;"></p>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
@@ -280,6 +321,10 @@
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // 🟢 현재 수정 중인 데이터의 ID와 전체 데이터 배열을 저장할 변수
+        let currentEditId = null;
+        let currentDataList = [];
+
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -287,6 +332,7 @@
             btnElement.classList.add('active');
         }
 
+        // 🟢 수정 및 신규 저장을 모두 처리하도록 함수 업데이트
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
@@ -300,33 +346,48 @@
                 return;
             }
 
-            const { data, error } = await db
-                .from('events')
-                .insert([{
-                    root_event: root,
-                    link_1: link1,
-                    link_2: link2,
-                    link_3: link3,
-                    link_4: link4,
-                    company: company
-                }]);
+            const payload = {
+                root_event: root,
+                link_1: link1,
+                link_2: link2,
+                link_3: link3,
+                link_4: link4,
+                company: company
+            };
 
-            if (error) {
-                console.error('저장 에러:', error);
-                alert("저장 중 오류가 발생했습니다. 수파베이스 테이블에 link_3, link_4 컬럼이 있는지 확인해주세요.");
-                return;
+            if (currentEditId) {
+                // 수정 모드일 때 (Update)
+                const { error } = await db.from('events').update(payload).eq('id', currentEditId);
+
+                if (error) {
+                    console.error('수정 에러:', error);
+                    alert("데이터 수정 중 오류가 발생했습니다.");
+                    return;
+                }
+                document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 수정되었습니다.`;
+                cancelEdit(); // 수정이 끝나면 상태 초기화
+            } else {
+                // 신규 저장 모드일 때 (Insert)
+                const { error } = await db.from('events').insert([payload]);
+
+                if (error) {
+                    console.error('저장 에러:', error);
+                    alert("데이터 저장 중 오류가 발생했습니다.");
+                    return;
+                }
+                document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
+
+                // 입력칸 비우기
+                document.getElementById('link-event-1').value = '';
+                document.getElementById('link-event-2').value = '';
+                document.getElementById('link-event-3').value = '';
+                document.getElementById('link-event-4').value = '';
+                document.getElementById('related-company').value = '';
             }
-
-            document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
-
-            document.getElementById('link-event-1').value = '';
-            document.getElementById('link-event-2').value = '';
-            document.getElementById('link-event-3').value = '';
-            document.getElementById('link-event-4').value = '';
-            document.getElementById('related-company').value = '';
 
             setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
 
+            // 목록 새로고침
             if (document.getElementById('all-data-display').innerHTML !== '') fetchAllData();
         }
 
@@ -339,8 +400,13 @@
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
-            let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th></tr>';
+            currentDataList = data; // 수정을 위해 배열 저장
+
+            // 🟢 표 헤더에 '관리' 항목 추가
+            let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th><th>관리</th></tr>';
+
             data.forEach(item => {
+                // 🟢 표 데이터에 수정, 삭제 버튼 추가
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td>${item.link_1 || ''}</td>
@@ -348,10 +414,80 @@
                     <td>${item.link_3 || ''}</td>
                     <td>${item.link_4 || ''}</td>
                     <td>${item.company || ''}</td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="prepareEdit(${item.id})">수정</button>
+                        <button class="action-btn delete-btn" onclick="deleteData(${item.id})">삭제</button>
+                    </td>
                 </tr>`;
             });
             htmlString += '</table>';
             displayArea.innerHTML = htmlString;
+        }
+
+        // 🟢 수정을 위해 데이터를 입력칸에 채워 넣는 함수
+        function prepareEdit(id) {
+            const targetData = currentDataList.find(item => item.id === id);
+            if (!targetData) return;
+
+            document.getElementById('root-event').value = targetData.root_event || '';
+            document.getElementById('link-event-1').value = targetData.link_1 || '';
+            document.getElementById('link-event-2').value = targetData.link_2 || '';
+            document.getElementById('link-event-3').value = targetData.link_3 || '';
+            document.getElementById('link-event-4').value = targetData.link_4 || '';
+            document.getElementById('related-company').value = targetData.company || '';
+
+            currentEditId = id; // 수정할 ID 기억
+
+            // 버튼 디자인 변경
+            const saveBtn = document.getElementById('main-save-btn');
+            saveBtn.innerText = '수정된 내용 저장하기';
+            saveBtn.style.backgroundColor = '#FF9800';
+
+            document.getElementById('cancel-edit-btn').style.display = 'inline-block'; // 취소 버튼 보이기
+
+            // 위로 스크롤 이동
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 🟢 수정 취소 기능
+        function cancelEdit() {
+            currentEditId = null;
+
+            // 버튼 복구
+            const saveBtn = document.getElementById('main-save-btn');
+            saveBtn.innerText = '수파베이스에 저장하기';
+            saveBtn.style.backgroundColor = '#2196F3';
+
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+
+            // 입력칸 비우기
+            document.getElementById('root-event').value = '';
+            document.getElementById('link-event-1').value = '';
+            document.getElementById('link-event-2').value = '';
+            document.getElementById('link-event-3').value = '';
+            document.getElementById('link-event-4').value = '';
+            document.getElementById('related-company').value = '';
+        }
+
+        // 🟢 데이터 삭제 기능
+        async function deleteData(id) {
+            if (!confirm("정말로 이 데이터를 삭제하시겠습니까?")) return;
+
+            const { error } = await db.from('events').delete().eq('id', id);
+
+            if (error) {
+                console.error('삭제 에러:', error);
+                alert("삭제 중 오류가 발생했습니다.");
+                return;
+            }
+
+            // 삭제 후 목록 다시 불러오기
+            fetchAllData();
+
+            // 만약 삭제한 데이터가 현재 수정 중이던 데이터라면 폼 초기화
+            if (currentEditId === id) {
+                cancelEdit();
+            }
         }
 
         async function fetchCompanies() {
@@ -434,7 +570,6 @@
                 return;
             }
 
-            // 🟢 1. 현재 검색 결과 내에서 각 단어별 등장 빈도(반복 횟수) 계산
             const frequencyMap = {};
             data.forEach(path => {
                 const nodes = [path.link_1, path.link_2, path.link_3, path.link_4, path.company];
@@ -446,22 +581,18 @@
                 });
             });
 
-            // 🟢 2. 빈도수에 따라 노드의 크기(여백 및 글자)와 그림자를 조절하는 함수
             function getNodeStyle(text) {
                 const count = frequencyMap[text.trim()] || 1;
-                // 성장이 무한히 커지는 것을 방지 (최대 6단계 성장)
                 const growth = Math.min(count - 1, 6);
 
-                // 빈도에 따라 픽셀(크기) 동적 부여
-                const fontSize = 16 + (growth * 2.5); // 글자 크기 증가
-                const paddingV = 10 + (growth * 3);   // 세로 크기 증가
-                const paddingH = 20 + (growth * 5);   // 가로 크기 증가
-                const shadow = 2 + growth;            // 중요도에 따른 입체감 강화
+                const fontSize = 16 + (growth * 2.5);
+                const paddingV = 10 + (growth * 3);
+                const paddingH = 20 + (growth * 5);
+                const shadow = 2 + growth;
 
                 return `font-size: ${fontSize}px; padding: ${paddingV}px ${paddingH}px; box-shadow: ${shadow}px ${shadow}px ${shadow * 2}px rgba(0,0,0,0.15);`;
             }
 
-            // 🟢 3. 생성된 스타일을 각 HTML 태그에 입혀서 반환
             let htmlString = '<div class="tree-layout">';
             htmlString += `<div class="tree-root">${query}</div>`;
             htmlString += `<div class="tree-down-arrow">⬇</div>`;
