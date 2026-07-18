@@ -432,14 +432,45 @@
       color: var(--ink-soft);
     }
 
-    .cat-badge.cat-blue { background: var(--cat-blue-bg); color: var(--cat-blue); }
-    .cat-badge.cat-green { background: var(--cat-green-bg); color: var(--cat-green); }
-    .cat-badge.cat-red { background: var(--cat-red-bg); color: var(--cat-red); }
-    .cat-badge.cat-purple { background: var(--cat-purple-bg); color: var(--cat-purple); }
-    .cat-badge.cat-orange { background: var(--cat-orange-bg); color: var(--cat-orange); }
-    .cat-badge.cat-teal { background: var(--cat-teal-bg); color: var(--cat-teal); }
-    .cat-badge.cat-pink { background: var(--cat-pink-bg); color: var(--cat-pink); }
-    .cat-badge.cat-gray { background: var(--cat-gray-bg); color: var(--cat-gray); }
+    .cat-badge.cat-blue {
+      background: var(--cat-blue-bg);
+      color: var(--cat-blue);
+    }
+
+    .cat-badge.cat-green {
+      background: var(--cat-green-bg);
+      color: var(--cat-green);
+    }
+
+    .cat-badge.cat-red {
+      background: var(--cat-red-bg);
+      color: var(--cat-red);
+    }
+
+    .cat-badge.cat-purple {
+      background: var(--cat-purple-bg);
+      color: var(--cat-purple);
+    }
+
+    .cat-badge.cat-orange {
+      background: var(--cat-orange-bg);
+      color: var(--cat-orange);
+    }
+
+    .cat-badge.cat-teal {
+      background: var(--cat-teal-bg);
+      color: var(--cat-teal);
+    }
+
+    .cat-badge.cat-pink {
+      background: var(--cat-pink-bg);
+      color: var(--cat-pink);
+    }
+
+    .cat-badge.cat-gray {
+      background: var(--cat-gray-bg);
+      color: var(--cat-gray);
+    }
 
     /* ---------------- 분류 관리 모달 ---------------- */
     .cat-modal-overlay {
@@ -999,7 +1030,6 @@
       <button type="button" class="util-btn back-btn" onclick="goBackToTeacher()">🔙 교사 화면으로 돌아가기</button>
       <div class="eyebrow">LIVE QUIZ PROBLEM BANK</div>
       <h1>📚 문제 은행 관리</h1>
-      <p>여기서 만들고 정리한 문제는 <b>교사 화면(teacher_live.html)</b>의 "문제 은행 · 출제하기"에서 골라 바로 출제할 수 있어요.</p>
     </header>
 
     <div class="toolbar">
@@ -1016,7 +1046,8 @@
         <span id="bankResultCount" style="font-size:12.5px; color:var(--slate);"></span>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()" title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
+        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()"
+          title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
         <div class="view-mode-switch" title="문제 목록 보기 방식">
           <button type="button" class="view-mode-btn" data-mode="list" onclick="setViewMode('list')">🗂 목록형</button>
           <button type="button" class="view-mode-btn" data-mode="grid" onclick="setViewMode('grid')">🔳 격자형</button>
@@ -1042,13 +1073,15 @@
     </footer>
   </div>
 
-  <div id="categoryModalOverlay" class="cat-modal-overlay hidden" onclick="if(event.target===this) closeCategoryModal()">
+  <div id="categoryModalOverlay" class="cat-modal-overlay hidden"
+    onclick="if(event.target===this) closeCategoryModal()">
     <div class="cat-modal">
       <h2>⚙️ 분류 관리</h2>
       <p class="cat-modal-sub">색상 동그라미를 누르면 색이 바뀌고, 이름은 바로 고쳐 쓸 수 있어요. 문제가 남아있는 분류를 삭제하면 다른 분류로 옮길지 물어봅니다.</p>
       <div id="categoryModalBody"></div>
       <div class="cat-add-row">
-        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등" onkeydown="if(event.key==='Enter') handleAddCategory()">
+        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등"
+          onkeydown="if(event.key==='Enter') handleAddCategory()">
         <button class="util-btn primary" onclick="handleAddCategory()">＋ 추가</button>
       </div>
       <div class="cat-modal-footer">
@@ -1754,7 +1787,7 @@
     // 코드로 전체화면을 켤 수 없는 경우가 많아서, 일단 시도해보고 안 되면 배너로 한 번의 클릭을 유도합니다.
     function enterFullscreenOnLoad() {
       wantsFullscreenType = 'app';
-      requestFS(document.documentElement).catch(() => {}); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
+      requestFS(document.documentElement).catch(() => { }); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
       updateFullscreenRestoreBanner();
 
       // ?fs=1처럼 다른 화면에서 신호를 주며 넘어온 경우, 그 흔적은 주소에서 지워둡니다.
