@@ -10,7 +10,6 @@
             margin: 20px;
         }
 
-        /* 🟢 탭 메뉴 레이아웃 가로 배치 및 하단 선 디자인 개선 */
         .tab-menu {
             display: flex;
             align-items: flex-end;
@@ -26,7 +25,6 @@
             background-color: #f1f1f1;
             border-radius: 5px 5px 0 0;
             margin-bottom: -2px;
-            /* 탭 하단 선을 덮기 위함 */
             margin-right: 5px;
         }
 
@@ -36,10 +34,8 @@
             border-bottom: 2px solid #4CAF50;
         }
 
-        /* 🟢 새로 추가된 '전체 데이터 불러오기' 탭 버튼 스타일 (발생사건 오른쪽) */
         .load-data-tab {
             margin-left: 15px;
-            /* 발생사건 버튼과 살짝 띄워서 구분 */
             background-color: #607D8B;
             color: white;
             border-color: #546E7A;
@@ -55,7 +51,8 @@
             border: 1px solid #ccc;
             padding: 20px;
             border-radius: 0 5px 5px 5px;
-            max-width: 900px;
+            max-width: 1000px;
+            /* 열이 추가되어 너비를 약간 더 넓힘 */
         }
 
         .tab-content.active {
@@ -68,7 +65,8 @@
 
         .input-group label {
             display: inline-block;
-            width: 100px;
+            width: 110px;
+            /* 라벨 너비 살짝 조정 */
             font-weight: bold;
         }
 
@@ -208,6 +206,20 @@
             font-size: 18px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             z-index: 2;
+            text-align: center;
+            /* 텍스트 중앙 정렬 */
+        }
+
+        /* 🟢 부연설명을 보여주는 텍스트 스타일 */
+        .tree-root-desc {
+            font-size: 13px;
+            font-weight: normal;
+            color: #E3F2FD;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #64B5F6;
+            max-width: 300px;
+            line-height: 1.4;
         }
 
         .tree-down-arrow {
@@ -267,7 +279,6 @@
         <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
         <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
-        <!-- 🟢 발생사건 우측으로 이동된 '전체 데이터 불러오기' 전용 탭 버튼 -->
         <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
             불러오기</button>
     </div>
@@ -279,6 +290,11 @@
         <div class="input-group">
             <label>기초사건</label>
             <input type="text" id="root-event" placeholder="예: 기초사건1">
+        </div>
+        <!-- 🟢 기초사건 부연설명 입력칸 추가 -->
+        <div class="input-group">
+            <label>기초사건 설명</label>
+            <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
         </div>
         <div class="input-group">
             <label>연결사건 1</label>
@@ -329,7 +345,7 @@
         <div id="root-event-list-display"></div>
     </div>
 
-    <!-- 🟢 4. 전체 데이터 전용 관리 탭 (새로 추가됨) -->
+    <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
         <h3>저장된 전체 목록 관리</h3>
         <p>데이터베이스에 등록된 모든 사건을 조회하고, 수정 또는 삭제를 진행할 수 있습니다.</p>
@@ -355,6 +371,7 @@
 
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
+            const rootDesc = document.getElementById('root-desc').value.trim(); // 🟢 부연설명 데이터 가져오기
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
             const link3 = document.getElementById('link-event-3').value.trim();
@@ -366,37 +383,36 @@
                 return;
             }
 
+            // 🟢 payload에 root_desc 포함
             const payload = {
-                root_event: root, link_1: link1, link_2: link2,
+                root_event: root, root_desc: rootDesc, link_1: link1, link_2: link2,
                 link_3: link3, link_4: link4, company: company
             };
 
             if (currentEditId) {
-                // 수정 처리
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
                 if (error) {
                     console.error('수정 에러:', error);
-                    alert("데이터 수정 중 오류가 발생했습니다.");
+                    alert("데이터 수정 중 오류가 발생했습니다. (root_desc 열을 추가했는지 확인하세요)");
                     return;
                 }
 
                 cancelEdit();
                 alert(`'${root}' 데이터가 성공적으로 수정되었습니다.`);
 
-                // 🟢 수정이 끝나면 '전체 데이터' 탭으로 자동 이동하여 결과 확인
                 openTab('all-data-tab', document.querySelector('.load-data-tab'));
                 fetchAllData();
 
             } else {
-                // 신규 저장 처리
                 const { error } = await db.from('events').insert([payload]);
                 if (error) {
                     console.error('저장 에러:', error);
-                    alert("데이터 저장 중 오류가 발생했습니다.");
+                    alert("데이터 저장 중 오류가 발생했습니다. (root_desc 열을 추가했는지 확인하세요)");
                     return;
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
+                // 저장 후 입력칸 비우기 (기초사건과 설명은 남겨둠)
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
@@ -418,11 +434,14 @@
 
             currentDataList = data;
 
-            let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th><th>관리</th></tr>';
+            // 🟢 테이블 헤더에 '부연설명' 추가
+            let htmlString = '<table><tr><th>기초사건</th><th>부연설명</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th><th>관리</th></tr>';
 
             data.forEach(item => {
+                // 🟢 테이블 데이터에 root_desc 추가
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
+                    <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
                     <td>${item.link_1 || ''}</td>
                     <td>${item.link_2 || ''}</td>
                     <td>${item.link_3 || ''}</td>
@@ -443,6 +462,7 @@
             if (!targetData) return;
 
             document.getElementById('root-event').value = targetData.root_event || '';
+            document.getElementById('root-desc').value = targetData.root_desc || ''; // 🟢 부연설명 채우기
             document.getElementById('link-event-1').value = targetData.link_1 || '';
             document.getElementById('link-event-2').value = targetData.link_2 || '';
             document.getElementById('link-event-3').value = targetData.link_3 || '';
@@ -457,7 +477,6 @@
 
             document.getElementById('cancel-edit-btn').style.display = 'inline-block';
 
-            // 🟢 수정 버튼을 누르면 입력칸이 있는 '기초사건' 탭으로 화면 자동 이동
             openTab('event-tab', document.querySelectorAll('.tab-button')[0]);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -470,6 +489,7 @@
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
             document.getElementById('root-event').value = '';
+            document.getElementById('root-desc').value = ''; // 🟢 부연설명 비우기
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
             document.getElementById('link-event-3').value = '';
@@ -590,8 +610,19 @@
                 return `font-size: ${fontSize}px; padding: ${paddingV}px ${paddingH}px; box-shadow: ${shadow}px ${shadow}px ${shadow * 2}px rgba(0,0,0,0.15);`;
             }
 
+            // 🟢 기초사건의 부연설명 텍스트 찾기 (작성된 내용 중 첫 번째 내용을 가져옴)
+            let rootDescription = '';
+            const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
+            if (rootItem) {
+                rootDescription = rootItem.root_desc.trim();
+            }
+
             let htmlString = '<div class="tree-layout">';
-            htmlString += `<div class="tree-root">${query}</div>`;
+            // 🟢 기초사건 박스 안에 부연설명 포함
+            htmlString += `<div class="tree-root">
+                ${query}
+                ${rootDescription ? `<div class="tree-root-desc">${rootDescription}</div>` : ''}
+            </div>`;
             htmlString += `<div class="tree-down-arrow">⬇</div>`;
             htmlString += '<div class="tree-branches">';
 
