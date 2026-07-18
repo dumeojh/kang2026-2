@@ -1352,10 +1352,9 @@
     // "사용자가 명시적으로 전체화면을 끈 것"과 구분하기 위해, 마지막으로 켠 전체화면 종류를 기억해둡니다.
     let wantsFullscreenType = null; // 'app' | 'problem' | null
 
-    // 지금 전체화면 중이면, 새로 여는 문제 은행 탭도 전체화면으로 보여달라는 뜻으로 ?fs=1을 붙여서 엽니다.
+    // 문제 은행 관리 페이지는 항상 전체화면으로 열리도록 되어 있어서, 그냥 열어주면 됩니다.
     function openBankPage() {
-      const fsParam = getFsElement() ? '?fs=1' : '';
-      window.open('problem_bank.html' + fsParam, '_blank');
+      window.open('problem_bank.html', '_blank');
     }
 
     function getFsElement() {

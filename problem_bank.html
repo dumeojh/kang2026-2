@@ -1683,9 +1683,8 @@
     // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
 
     // ---------------- [전체화면] ----------------
-    // teacher_live.html이 전체화면 상태에서 이 페이지를 열면 ?fs=1이 붙어서 오는데,
-    // 브라우저 정책상 사용자가 직접 클릭하지 않으면 전체화면을 코드로 켤 수 없는 경우가 많아서,
-    // 일단 시도해보고 안 되면 배너로 "한 번의 클릭"으로 켤 수 있게 해줍니다.
+    // 이 페이지는 항상 전체화면으로 엽니다. 브라우저 정책상 사용자가 직접 클릭하지 않으면
+    // 전체화면을 코드로 켤 수 없는 경우가 많아서, 일단 시도해보고 안 되면 배너로 "한 번의 클릭"으로 켤 수 있게 해줍니다.
     let wantsFullscreenType = null; // null | 'app'
 
     function getFsElement() {
@@ -1751,14 +1750,15 @@
       document.addEventListener(evt, updateFullscreenRestoreBanner);
     });
 
-    // teacher_live.html이 전체화면 중에 이 페이지를 새 탭으로 열면 ?fs=1이 붙어옵니다.
-    function handleFullscreenDeepLink() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('fs') === '1') {
-        wantsFullscreenType = 'app';
-        requestFS(document.documentElement).catch(() => {}); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
-        updateFullscreenRestoreBanner();
+    // 문제 은행 관리 페이지는 항상 전체화면으로 씁니다. 브라우저 정책상 사용자가 직접 클릭하지 않으면
+    // 코드로 전체화면을 켤 수 없는 경우가 많아서, 일단 시도해보고 안 되면 배너로 한 번의 클릭을 유도합니다.
+    function enterFullscreenOnLoad() {
+      wantsFullscreenType = 'app';
+      requestFS(document.documentElement).catch(() => {}); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
+      updateFullscreenRestoreBanner();
 
+      // ?fs=1처럼 다른 화면에서 신호를 주며 넘어온 경우, 그 흔적은 주소에서 지워둡니다.
+      if (window.location.search.includes('fs=')) {
         const url = new URL(window.location.href);
         url.searchParams.delete('fs');
         window.history.replaceState({}, '', url);
@@ -2126,7 +2126,7 @@
   `;
     }
 
-    handleFullscreenDeepLink();
+    enterFullscreenOnLoad();
     loadBank().then(handleEditDeepLink);
 
     document.addEventListener('keydown', (e) => {
