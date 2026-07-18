@@ -56,6 +56,51 @@
       box-sizing: border-box;
     }
 
+    /* ---------- 전체화면 복귀 배너 ---------- */
+    .fs-restore-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -10px rgba(27, 58, 92, 0.5);
+      font-size: 13px;
+    }
+
+    .fs-restore-banner.hidden {
+      display: none;
+    }
+
+    .fs-restore-banner button {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      font-size: 12.5px;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 13px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .fs-restore-banner button:hover {
+      opacity: 0.85;
+    }
+
+    .fs-restore-banner button.dismiss-btn {
+      background: transparent;
+      color: #fff;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+
     body {
       margin: 0;
       padding: 40px 20px 80px;
@@ -387,45 +432,14 @@
       color: var(--ink-soft);
     }
 
-    .cat-badge.cat-blue {
-      background: var(--cat-blue-bg);
-      color: var(--cat-blue);
-    }
-
-    .cat-badge.cat-green {
-      background: var(--cat-green-bg);
-      color: var(--cat-green);
-    }
-
-    .cat-badge.cat-red {
-      background: var(--cat-red-bg);
-      color: var(--cat-red);
-    }
-
-    .cat-badge.cat-purple {
-      background: var(--cat-purple-bg);
-      color: var(--cat-purple);
-    }
-
-    .cat-badge.cat-orange {
-      background: var(--cat-orange-bg);
-      color: var(--cat-orange);
-    }
-
-    .cat-badge.cat-teal {
-      background: var(--cat-teal-bg);
-      color: var(--cat-teal);
-    }
-
-    .cat-badge.cat-pink {
-      background: var(--cat-pink-bg);
-      color: var(--cat-pink);
-    }
-
-    .cat-badge.cat-gray {
-      background: var(--cat-gray-bg);
-      color: var(--cat-gray);
-    }
+    .cat-badge.cat-blue { background: var(--cat-blue-bg); color: var(--cat-blue); }
+    .cat-badge.cat-green { background: var(--cat-green-bg); color: var(--cat-green); }
+    .cat-badge.cat-red { background: var(--cat-red-bg); color: var(--cat-red); }
+    .cat-badge.cat-purple { background: var(--cat-purple-bg); color: var(--cat-purple); }
+    .cat-badge.cat-orange { background: var(--cat-orange-bg); color: var(--cat-orange); }
+    .cat-badge.cat-teal { background: var(--cat-teal-bg); color: var(--cat-teal); }
+    .cat-badge.cat-pink { background: var(--cat-pink-bg); color: var(--cat-pink); }
+    .cat-badge.cat-gray { background: var(--cat-gray-bg); color: var(--cat-gray); }
 
     /* ---------------- 분류 관리 모달 ---------------- */
     .cat-modal-overlay {
@@ -972,6 +986,12 @@
 
 <body>
 
+  <div class="fs-restore-banner hidden" id="fsRestoreBanner">
+    <span>전체화면으로 보시려면 눌러주세요.</span>
+    <button type="button" onclick="restoreFullscreen()">🔎 전체화면으로 보기</button>
+    <button type="button" class="dismiss-btn" onclick="dismissFullscreenRestoreBanner()" title="닫기">✕</button>
+  </div>
+
   <div id="editOverlay" class="edit-overlay hidden"></div>
 
   <div class="wrap">
@@ -984,6 +1004,7 @@
 
     <div class="toolbar">
       <input type="text" id="searchInput" class="search-input" placeholder="🔍 제목/문제 내용으로 검색" oninput="onSearchInput()">
+      <button class="util-btn" onclick="toggleAppFullscreen()" id="pbFsBtn">⛶ 전체화면</button>
       <button class="util-btn" onclick="openCategoryModal()">⚙️ 분류 관리</button>
       <button class="util-btn primary" onclick="addNewProblem()">＋ 새 문제 만들기</button>
     </div>
@@ -995,8 +1016,7 @@
         <span id="bankResultCount" style="font-size:12.5px; color:var(--slate);"></span>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()"
-          title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
+        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()" title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
         <div class="view-mode-switch" title="문제 목록 보기 방식">
           <button type="button" class="view-mode-btn" data-mode="list" onclick="setViewMode('list')">🗂 목록형</button>
           <button type="button" class="view-mode-btn" data-mode="grid" onclick="setViewMode('grid')">🔳 격자형</button>
@@ -1022,15 +1042,13 @@
     </footer>
   </div>
 
-  <div id="categoryModalOverlay" class="cat-modal-overlay hidden"
-    onclick="if(event.target===this) closeCategoryModal()">
+  <div id="categoryModalOverlay" class="cat-modal-overlay hidden" onclick="if(event.target===this) closeCategoryModal()">
     <div class="cat-modal">
       <h2>⚙️ 분류 관리</h2>
       <p class="cat-modal-sub">색상 동그라미를 누르면 색이 바뀌고, 이름은 바로 고쳐 쓸 수 있어요. 문제가 남아있는 분류를 삭제하면 다른 분류로 옮길지 물어봅니다.</p>
       <div id="categoryModalBody"></div>
       <div class="cat-add-row">
-        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등"
-          onkeydown="if(event.key==='Enter') handleAddCategory()">
+        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등" onkeydown="if(event.key==='Enter') handleAddCategory()">
         <button class="util-btn primary" onclick="handleAddCategory()">＋ 추가</button>
       </div>
       <div class="cat-modal-footer">
@@ -1664,6 +1682,89 @@
     // 화면 전체를 편집기로 씁니다: 왼쪽은 입력창, 오른쪽은 실시간 미리보기.
     // 저장/취소/삭제 버튼은 항상 위쪽에 고정되어 있어서 스크롤할 필요가 없습니다.
 
+    // ---------------- [전체화면] ----------------
+    // teacher_live.html이 전체화면 상태에서 이 페이지를 열면 ?fs=1이 붙어서 오는데,
+    // 브라우저 정책상 사용자가 직접 클릭하지 않으면 전체화면을 코드로 켤 수 없는 경우가 많아서,
+    // 일단 시도해보고 안 되면 배너로 "한 번의 클릭"으로 켤 수 있게 해줍니다.
+    let wantsFullscreenType = null; // null | 'app'
+
+    function getFsElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
+    function isAppFullscreen() {
+      return getFsElement() === document.documentElement;
+    }
+
+    function requestFS(el) {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if (el.webkitRequestFullScreen) return el.webkitRequestFullScreen();
+      if (el.msRequestFullscreen) return el.msRequestFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    function exitFS() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+      return Promise.reject(new Error('전체화면 API 미지원'));
+    }
+
+    async function toggleAppFullscreen() {
+      try {
+        if (isAppFullscreen()) {
+          wantsFullscreenType = null; // 직접 눌러서 끈 것이므로 복귀 배너는 띄우지 않습니다.
+          await exitFS();
+        } else {
+          await requestFS(document.documentElement);
+          wantsFullscreenType = 'app';
+        }
+      } catch (e) {
+        alert('이 기기/브라우저에서는 전체화면 기능을 지원하지 않아요.');
+      }
+    }
+
+    async function restoreFullscreen() {
+      if (!wantsFullscreenType) return;
+      try {
+        await requestFS(document.documentElement);
+      } catch (e) {
+        // 사용자 클릭으로 호출했으니 대부분 성공하지만, 실패해도 조용히 무시합니다 (배너는 계속 떠 있음).
+      }
+    }
+
+    function dismissFullscreenRestoreBanner() {
+      wantsFullscreenType = null;
+      updateFullscreenRestoreBanner();
+    }
+
+    function updateFullscreenRestoreBanner() {
+      const banner = document.getElementById('fsRestoreBanner');
+      if (!banner) return;
+      banner.classList.toggle('hidden', !(wantsFullscreenType && !getFsElement()));
+      const btn = document.getElementById('pbFsBtn');
+      if (btn) btn.textContent = getFsElement() ? '↙️ 전체화면 종료' : '⛶ 전체화면';
+    }
+
+    ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, updateFullscreenRestoreBanner);
+    });
+
+    // teacher_live.html이 전체화면 중에 이 페이지를 새 탭으로 열면 ?fs=1이 붙어옵니다.
+    function handleFullscreenDeepLink() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fs') === '1') {
+        wantsFullscreenType = 'app';
+        requestFS(document.documentElement).catch(() => {}); // 막히면 조용히 무시 — 배너가 대신 안내합니다.
+        updateFullscreenRestoreBanner();
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('fs');
+        window.history.replaceState({}, '', url);
+      }
+    }
+
     // teacher_live.html의 "✏️ 편집" 버튼처럼 ?edit=123 형태로 들어오면, 해당 문제의 편집기를 자동으로 엽니다.
     function handleEditDeepLink() {
       const params = new URLSearchParams(window.location.search);
@@ -2025,6 +2126,7 @@
   `;
     }
 
+    handleFullscreenDeepLink();
     loadBank().then(handleEditDeepLink);
 
     document.addEventListener('keydown', (e) => {
