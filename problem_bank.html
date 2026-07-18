@@ -387,14 +387,45 @@
       color: var(--ink-soft);
     }
 
-    .cat-badge.cat-blue { background: var(--cat-blue-bg); color: var(--cat-blue); }
-    .cat-badge.cat-green { background: var(--cat-green-bg); color: var(--cat-green); }
-    .cat-badge.cat-red { background: var(--cat-red-bg); color: var(--cat-red); }
-    .cat-badge.cat-purple { background: var(--cat-purple-bg); color: var(--cat-purple); }
-    .cat-badge.cat-orange { background: var(--cat-orange-bg); color: var(--cat-orange); }
-    .cat-badge.cat-teal { background: var(--cat-teal-bg); color: var(--cat-teal); }
-    .cat-badge.cat-pink { background: var(--cat-pink-bg); color: var(--cat-pink); }
-    .cat-badge.cat-gray { background: var(--cat-gray-bg); color: var(--cat-gray); }
+    .cat-badge.cat-blue {
+      background: var(--cat-blue-bg);
+      color: var(--cat-blue);
+    }
+
+    .cat-badge.cat-green {
+      background: var(--cat-green-bg);
+      color: var(--cat-green);
+    }
+
+    .cat-badge.cat-red {
+      background: var(--cat-red-bg);
+      color: var(--cat-red);
+    }
+
+    .cat-badge.cat-purple {
+      background: var(--cat-purple-bg);
+      color: var(--cat-purple);
+    }
+
+    .cat-badge.cat-orange {
+      background: var(--cat-orange-bg);
+      color: var(--cat-orange);
+    }
+
+    .cat-badge.cat-teal {
+      background: var(--cat-teal-bg);
+      color: var(--cat-teal);
+    }
+
+    .cat-badge.cat-pink {
+      background: var(--cat-pink-bg);
+      color: var(--cat-pink);
+    }
+
+    .cat-badge.cat-gray {
+      background: var(--cat-gray-bg);
+      color: var(--cat-gray);
+    }
 
     /* ---------------- 분류 관리 모달 ---------------- */
     .cat-modal-overlay {
@@ -664,6 +695,7 @@
     }
 
     .solution-steps {
+      margin-top: 4px;
       font-size: 15px;
       color: var(--ink);
       white-space: pre-wrap;
@@ -963,7 +995,8 @@
         <span id="bankResultCount" style="font-size:12.5px; color:var(--slate);"></span>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()" title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
+        <button type="button" id="favoritesOnlyBtn" class="util-btn" onclick="toggleFavoritesOnly()"
+          title="즐겨찾기한 문제만 보기">⭐ 즐겨찾기만</button>
         <div class="view-mode-switch" title="문제 목록 보기 방식">
           <button type="button" class="view-mode-btn" data-mode="list" onclick="setViewMode('list')">🗂 목록형</button>
           <button type="button" class="view-mode-btn" data-mode="grid" onclick="setViewMode('grid')">🔳 격자형</button>
@@ -989,13 +1022,15 @@
     </footer>
   </div>
 
-  <div id="categoryModalOverlay" class="cat-modal-overlay hidden" onclick="if(event.target===this) closeCategoryModal()">
+  <div id="categoryModalOverlay" class="cat-modal-overlay hidden"
+    onclick="if(event.target===this) closeCategoryModal()">
     <div class="cat-modal">
       <h2>⚙️ 분류 관리</h2>
       <p class="cat-modal-sub">색상 동그라미를 누르면 색이 바뀌고, 이름은 바로 고쳐 쓸 수 있어요. 문제가 남아있는 분류를 삭제하면 다른 분류로 옮길지 물어봅니다.</p>
       <div id="categoryModalBody"></div>
       <div class="cat-add-row">
-        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등" onkeydown="if(event.key==='Enter') handleAddCategory()">
+        <input type="text" id="newCategoryInput" placeholder="예: 모의고사, 서술형 등"
+          onkeydown="if(event.key==='Enter') handleAddCategory()">
         <button class="util-btn primary" onclick="handleAddCategory()">＋ 추가</button>
       </div>
       <div class="cat-modal-footer">
