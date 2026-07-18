@@ -130,7 +130,7 @@
       color: #777;
     }
 
-    /* 회사 목록 스타일 */
+    /* 🟢 회사 목록 태그 스타일 추가 */
     .company-list {
       display: flex;
       flex-wrap: wrap;
@@ -145,6 +145,7 @@
       padding: 5px 15px;
       border-radius: 20px;
       font-weight: bold;
+      box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     }
   </style>
 
@@ -156,8 +157,8 @@
 
   <div class="tab-menu">
     <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
-    <button class="tab-button" id="company-tab-btn"
-      onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
+    <!-- 🟢 기초회사 탭을 누를 때 회사 데이터를 불러오는 함수(fetchCompanies) 실행 추가 -->
+    <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
     <button class="tab-button" onclick="openTab('occurred-tab', this)">발생사건</button>
   </div>
 
@@ -183,19 +184,19 @@
     <button class="save-btn" onclick="saveData()">수파베이스에 저장하기</button>
     <p id="save-message" style="color: blue; font-weight: bold;"></p>
 
-    <!-- 전체 데이터 보기 영역 추가 -->
+    <!-- 전체 데이터 보기 영역 -->
     <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
     <h3>저장된 전체 목록</h3>
     <button class="load-btn" style="background-color: #607D8B;" onclick="fetchAllData()">전체 데이터 불러오기</button>
     <div id="all-data-display"></div>
   </div>
 
-  <!-- 2. 기초회사 탭 -->
+  <!-- 2. 기초회사 탭 (🟢 회사 목록이 표시될 공간으로 수정) -->
   <div id="company-tab" class="tab-content">
-    <h3>저장된 회사 목록</h3>
-    <p>현재 데이터베이스에 등록된 관련 회사들입니다.</p>
+    <h3>저장된 관련 회사 목록</h3>
+    <p>기초사건에 기록된 회사들입니다.</p>
     <div id="company-display">
-      <!-- 회사 목록이 여기에 표시됩니다 -->
+      <!-- 자바스크립트를 통해 여기에 태그들이 그려집니다 -->
     </div>
   </div>
 
@@ -215,6 +216,7 @@
     const SUPABASE_URL = 'https://qdizucrodtfsqcjxadmk.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkaXp1Y3JvZHRmc3FjanhhZG1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTQ1OTQsImV4cCI6MjA5ODEzMDU5NH0.0ItwcoyDwAMm5VOn5NaLj9QzHzoU53G4AojTddvamPI';
 
+    // 변수 이름을 db로 유지
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // 탭 전환 함수
@@ -237,7 +239,6 @@
         return;
       }
 
-      // db.from을 사용하여 데이터 삽입
       const { data, error } = await db
         .from('events')
         .insert([
@@ -262,7 +263,6 @@
         document.getElementById('save-message').innerText = '';
       }, 3000);
 
-      // 데이터 저장 후 목록 새로고침
       if (document.getElementById('all-data-display').innerHTML !== '') {
         fetchAllData();
       }
@@ -273,7 +273,6 @@
       const displayArea = document.getElementById('all-data-display');
       displayArea.innerHTML = '<p>데이터를 불러오는 중...</p>';
 
-      // db.from을 사용하여 데이터 조회
       const { data, error } = await db
         .from('events')
         .select('*')
@@ -306,12 +305,12 @@
       displayArea.innerHTML = htmlString;
     }
 
-    // 🟢 기초회사 목록 불러오기 (새로 추가된 함수)
+    // 🟢 수파베이스에서 회사 이름만 불러와서 중복을 제거하고 보여주는 함수 추가
     async function fetchCompanies() {
       const displayArea = document.getElementById('company-display');
       displayArea.innerHTML = '<p>회사 정보를 불러오는 중...</p>';
 
-      // DB에서 회사 이름만 가져오기
+      // DB에서 company 컬럼만 가져오기
       const { data, error } = await db
         .from('events')
         .select('company');
@@ -322,10 +321,11 @@
         return;
       }
 
-      // 회사 이름 중복 제거 및 '없음'이나 빈 칸 제외
+      // 중복된 회사 이름을 제거하기 위해 Set 자료구조 사용
       const uniqueCompanies = new Set();
       data.forEach(item => {
         const comp = item.company ? item.company.trim() : '';
+        // '없음'이라고 기록된 것이나 빈 칸은 제외하고 추가
         if (comp && comp !== '없음') {
           uniqueCompanies.add(comp);
         }
@@ -336,7 +336,7 @@
         return;
       }
 
-      // 태그 형태로 보여주기
+      // 태그 형태의 HTML 생성
       let htmlString = '<div class="company-list">';
       uniqueCompanies.forEach(company => {
         htmlString += `<div class="company-tag">${company}</div>`;
@@ -359,7 +359,6 @@
         return;
       }
 
-      // db.from을 사용하여 검색
       const { data, error } = await db
         .from('events')
         .select('*')
