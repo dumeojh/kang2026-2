@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>사건 관계도 분석</title>
+    <!-- 네트워크 그래프 라이브러리 -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 20px;
+        }
+
+        .tab-menu {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ccc;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 5px 5px 0 0;
+            margin-bottom: -2px;
+            margin-right: 5px;
+        }
+
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            max-width: 1000px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: inline-block;
+            width: 110px;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .save-btn,
+        .search-btn,
+        .load-btn {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #network-container {
+            width: 100%;
+            height: 600px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="tab-menu">
+        <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건 기록</button>
+        <button class="tab-button" onclick="openTab('occurred-tab', this)">사건 관계도 분석</button>
+        <button class="tab-button" onclick="openTab('list-tab', this); fetchAllData()">데이터 관리</button>
+    </div>
+
+    <div id="event-tab" class="tab-content active">
+        <h3>기초사건 기록</h3>
+        <div class="input-group"><label>기초사건</label><input type="text" id="root-event"></div>
+        <div class="input-group"><label>부연설명</label><input type="text" id="root-desc"></div>
+        <div class="input-group"><label>연결사건 1</label><input type="text" id="link-event-1"></div>
+        <div class="input-group"><label>연결사건 2</label><input type="text" id="link-event-2"></div>
+        <div class="input-group"><label>연결사건 3</label><input type="text" id="link-event-3"></div>
+        <div class="input-group"><label>연결사건 4</label><input type="text" id="link-event-4"></div>
+        <div class="input-group"><label>관련 회사</label><input type="text" id="related-company"></div>
+        <button class="save-btn" onclick="saveData()">저장하기</button>
+    </div>
+
+    <div id="occurred-tab" class="tab-content">
+        <h3>사건 관계도 (네트워크)</h3>
+        <input type="text" id="search-query" placeholder="조회할 기초사건 입력">
+        <button class="search-btn" onclick="searchData()">분석</button>
+        <div id="network-container"></div>
+    </div>
+
+    <div id="list-tab" class="tab-content">
+        <h3>전체 데이터 관리</h3>
+        <div id="all-data-display"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://qdizucrodtfsqcjxadmk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkaXp1Y3JvZHRmc3FjanhhZG1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTQ1OTQsImV4cCI6MjA5ODEzMDU5NH0.0ItwcoyDwAMm5VOn5NaLj9QzHzoU53G4AojTddvamPI';
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function openTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        async function saveData() {
+            const data = {
+                root_event: document.getElementById('root-event').value,
+                root_desc: document.getElementById('root-desc').value,
+                link_1: document.getElementById('link-event-1').value,
+                link_2: document.getElementById('link-event-2').value,
+                link_3: document.getElementById('link-event-3').value,
+                link_4: document.getElementById('link-event-4').value,
+                company: document.getElementById('related-company').value
+            };
+            await db.from('events').insert([data]);
+            alert("저장 완료!");
+        }
+
+        async function searchData() {
+            const query = document.getElementById('search-query').value.trim();
+            const { data } = await db.from('events').select('*').eq('root_event', query);
+            if (!data) return;
+
+            const nodesMap = new Map();
+            const edges = [];
+
+            data.forEach(path => {
+                const seq = [
+                    { name: query, type: 'root' },
+                    { name: path.link_1, type: 'event' }, { name: path.link_2, type: 'event' },
+                    { name: path.link_3, type: 'event' }, { name: path.link_4, type: 'event' },
+                    { name: path.company, type: 'company' }
+                ].filter(i => i.name && i.name.trim() !== '' && i.name.trim() !== '없음');
+
+                seq.forEach(item => {
+                    if (!nodesMap.has(item.name)) nodesMap.set(item.name, { ...item, count: 1 });
+                    else nodesMap.get(item.name).count += 1;
+                });
+                for (let i = 0; i < seq.length - 1; i++) edges.push({ from: seq[i].name, to: seq[i + 1].name });
+            });
+
+            const nodes = Array.from(nodesMap.values()).map(n => ({
+                id: n.name, label: n.name, size: 15 + n.count * 3, color: n.type === 'root' ? '#2196F3' : '#4CAF50'
+            }));
+
+            new vis.Network(document.getElementById('network-container'), { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) }, {});
+        }
+
+        async function fetchAllData() {
+            const { data } = await db.from('events').select('*');
+            let html = '<table><tr><th>기초사건</th><th>연결사건 1-4</th><th>회사</th></tr>';
+            data.forEach(i => html += `<tr><td>${i.root_event}</td><td>${i.link_1}, ${i.link_2}...</td><td>${i.company}</td></tr>`);
+            document.getElementById('all-data-display').innerHTML = html + '</table>';
+        }
+    </script>
+</body>
+
+</html>
