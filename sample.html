@@ -3,10 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>전체 사건 관계도 분석</title>
-    <!-- 다방향 네트워크 그래프 라이브러리 -->
+    <title>사건 관계도 분석</title>
+
+    <!-- 🟢 다방향 네트워크 그래프를 그리기 위한 라이브러리 추가 -->
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -22,34 +24,189 @@
 
         .tab-button {
             padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
             border: 1px solid #ccc;
             background-color: #f1f1f1;
             border-radius: 5px 5px 0 0;
+            margin-bottom: -2px;
             margin-right: 5px;
         }
 
         .tab-button.active {
             background-color: #4CAF50;
             color: white;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .load-data-tab {
+            margin-left: 15px;
+            background-color: #607D8B;
+            color: white;
+            border-color: #546E7A;
+        }
+
+        .load-data-tab.active {
+            background-color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
         }
 
         .tab-content {
             display: none;
-            padding: 20px;
             border: 1px solid #ccc;
-            border-top: none;
+            padding: 20px;
+            border-radius: 0 5px 5px 5px;
+            max-width: 1000px;
         }
 
         .tab-content.active {
             display: block;
         }
 
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: inline-block;
+            width: 110px;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .save-btn,
+        .search-btn,
+        .load-btn {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .cancel-btn {
+            padding: 10px 20px;
+            background-color: #9E9E9E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-left: 10px;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th.sortable:hover {
+            background-color: #45a049;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #FF9800;
+        }
+
+        .edit-btn:hover {
+            background-color: #F57C00;
+        }
+
+        .delete-btn {
+            background-color: #F44336;
+        }
+
+        .delete-btn:hover {
+            background-color: #D32F2F;
+        }
+
+        .company-list,
+        .event-tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .company-tag {
+            background-color: #FFF3E0;
+            border: 1px solid #FF9800;
+            color: #E65100;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .root-event-tag {
+            background-color: #E8F5E9;
+            border: 1px solid #4CAF50;
+            color: #2E7D32;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            transition: 0.2s;
+        }
+
+        .root-event-tag:hover {
+            background-color: #C8E6C9;
+            transform: scale(1.05);
+        }
+
+        /* 네트워크 그래프를 띄울 컨테이너 (기존 tree-layout 대체) */
         #network-container {
             width: 100%;
-            height: 700px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
+            height: 600px;
+            background-color: #f0f4f8;
+            border-radius: 12px;
+            border: 2px solid #CFD8DC;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -57,88 +214,452 @@
 <body>
 
     <div class="tab-menu">
-        <button class="tab-button active" onclick="openTab('main-tab', this)">전체 네트워크 그래프</button>
-        <button class="tab-button" onclick="openTab('list-tab', this)">데이터 관리</button>
+        <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
+        <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
+        <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
+        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
+            불러오기</button>
     </div>
 
-    <div id="main-tab" class="tab-content active">
-        <h3>전체 사건 관계도</h3>
-        <p>DB에 저장된 모든 기초사건과 연결관계를 통합하여 시각화합니다.</p>
-        <button class="save-btn" onclick="buildFullNetwork()">데이터 전체 불러와서 그래프 그리기</button>
-        <div id="network-container"></div>
+    <!-- 1. 기초사건 탭 -->
+    <div id="event-tab" class="tab-content active">
+        <h3>기초사건 기록</h3>
+        <p>동일한 기초사건에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다.</p>
+        <div class="input-group">
+            <label>기초사건</label>
+            <input type="text" id="root-event" placeholder="예: 기초사건1">
+        </div>
+        <div class="input-group">
+            <label>기초사건 설명</label>
+            <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
+        </div>
+        <div class="input-group">
+            <label>연결사건 1</label>
+            <input type="text" id="link-event-1" placeholder="예: 사건1">
+        </div>
+        <div class="input-group">
+            <label>연결사건 2</label>
+            <input type="text" id="link-event-2" placeholder="예: 사건2">
+        </div>
+        <div class="input-group">
+            <label>연결사건 3</label>
+            <input type="text" id="link-event-3" placeholder="예: 사건3">
+        </div>
+        <div class="input-group">
+            <label>연결사건 4</label>
+            <input type="text" id="link-event-4" placeholder="예: 사건4">
+        </div>
+        <div class="input-group">
+            <label>관련 회사</label>
+            <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
+        </div>
+
+        <button class="save-btn" id="main-save-btn" onclick="saveData()">수파베이스에 저장하기</button>
+        <button class="cancel-btn" id="cancel-edit-btn" onclick="cancelEdit()">수정 취소</button>
+        <p id="save-message" style="color: blue; font-weight: bold;"></p>
     </div>
 
-    <div id="list-tab" class="tab-content">
-        <h3>데이터 관리</h3>
+    <!-- 2. 기초회사 탭 -->
+    <div id="company-tab" class="tab-content">
+        <h3>저장된 관련 회사 목록</h3>
+        <div id="company-display"></div>
+    </div>
+
+    <!-- 3. 발생사건 탭 -->
+    <div id="occurred-tab" class="tab-content">
+        <h3>사건 관계도 분석 (다방향 네트워크 그래프)</h3>
+        <p>마우스 휠로 확대/축소하거나 상자를 드래그해서 위치를 조정할 수 있습니다.</p>
+        <div class="input-group">
+            <label>기초사건 검색</label>
+            <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
+        </div>
+        <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
+
+        <!-- 네트워크 그래프가 그려질 영역 -->
+        <div id="result-display"></div>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+        <h3>등록된 기초사건 목록</h3>
+        <p>아래 사건을 클릭하면 상단 검색창에 입력되어 관계도가 바로 조회됩니다.</p>
+        <div id="root-event-list-display"></div>
+    </div>
+
+    <!-- 4. 전체 데이터 전용 관리 탭 -->
+    <div id="all-data-tab" class="tab-content">
+        <h3>저장된 전체 목록 관리</h3>
+        <p>항목의 헤더(초록색 배경)를 클릭하면 해당 열을 기준으로 데이터를 오름차순/내림차순 정렬할 수 있습니다.</p>
         <div id="all-data-display"></div>
     </div>
 
     <script>
         const SUPABASE_URL = 'https://qdizucrodtfsqcjxadmk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkaXp1Y3JvZHRmc3FjanhhZG1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTQ1OTQsImV4cCI6MjA5ODEzMDU5NH0.0ItwcoyDwAMm5VOn5NaLj9QzHzoU53G4AojTddvamPI';
+
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentEditId = null;
+        let currentDataList = [];
+        let sortConfig = { key: 'id', direction: 'desc' };
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
             document.getElementById(tabId).classList.add('active');
-            btnElement.classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
         }
 
-        // 🟢 데이터베이스의 모든 데이터를 가져와 거대한 네트워크를 구성하는 핵심 함수
-        async function buildFullNetwork() {
-            const container = document.getElementById('network-container');
-            container.innerHTML = '<p>전체 데이터를 분석하여 그래프를 그리는 중...</p>';
+        async function saveData() {
+            const root = document.getElementById('root-event').value.trim();
+            const rootDesc = document.getElementById('root-desc').value.trim();
+            const link1 = document.getElementById('link-event-1').value.trim();
+            const link2 = document.getElementById('link-event-2').value.trim();
+            const link3 = document.getElementById('link-event-3').value.trim();
+            const link4 = document.getElementById('link-event-4').value.trim();
+            const company = document.getElementById('related-company').value.trim();
+
+            if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
+
+            const payload = {
+                root_event: root, root_desc: rootDesc, link_1: link1, link_2: link2,
+                link_3: link3, link_4: link4, company: company
+            };
+
+            if (currentEditId) {
+                const { error } = await db.from('events').update(payload).eq('id', currentEditId);
+                if (error) { alert("데이터 수정 중 오류가 발생했습니다."); return; }
+                cancelEdit();
+                alert(`'${root}' 데이터가 성공적으로 수정되었습니다.`);
+                openTab('all-data-tab', document.querySelector('.load-data-tab'));
+                fetchAllData();
+            } else {
+                const { error } = await db.from('events').insert([payload]);
+                if (error) { alert("데이터 저장 중 오류가 발생했습니다."); return; }
+                document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
+
+                document.getElementById('link-event-1').value = '';
+                document.getElementById('link-event-2').value = '';
+                document.getElementById('link-event-3').value = '';
+                document.getElementById('link-event-4').value = '';
+                document.getElementById('related-company').value = '';
+                setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
+            }
+        }
+
+        async function fetchAllData() {
+            const displayArea = document.getElementById('all-data-display');
+            displayArea.innerHTML = '<p>데이터를 불러오는 중...</p>';
 
             const { data, error } = await db.from('events').select('*');
-            if (error || !data) { alert("데이터를 불러올 수 없습니다."); return; }
 
-            const nodesMap = new Map();
-            const edges = [];
+            if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
+            if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
+            currentDataList = data;
+            renderTable();
+        }
+
+        function sortData(key) {
+            if (sortConfig.key === key) {
+                sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortConfig.key = key;
+                sortConfig.direction = 'asc';
+            }
+            renderTable();
+        }
+
+        function getSortIcon(key) {
+            if (sortConfig.key !== key) return '<span style="color:#A5D6A7; font-size:12px;">↕</span>';
+            return sortConfig.direction === 'asc' ? '▲' : '▼';
+        }
+
+        function renderTable() {
+            const displayArea = document.getElementById('all-data-display');
+            const sortedData = [...currentDataList].sort((a, b) => {
+                let valA = a[sortConfig.key] || '';
+                let valB = b[sortConfig.key] || '';
+
+                if (sortConfig.key === 'id') {
+                    return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+                }
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            let htmlString = `<table>
+                <tr>
+                    <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
+                    <th class="sortable" onclick="sortData('root_desc')">부연설명 ${getSortIcon('root_desc')}</th>
+                    <th class="sortable" onclick="sortData('link_1')">연결사건 1 ${getSortIcon('link_1')}</th>
+                    <th class="sortable" onclick="sortData('link_2')">연결사건 2 ${getSortIcon('link_2')}</th>
+                    <th class="sortable" onclick="sortData('link_3')">연결사건 3 ${getSortIcon('link_3')}</th>
+                    <th class="sortable" onclick="sortData('link_4')">연결사건 4 ${getSortIcon('link_4')}</th>
+                    <th class="sortable" onclick="sortData('company')">관련 회사 ${getSortIcon('company')}</th>
+                    <th>관리</th>
+                </tr>`;
+
+            sortedData.forEach(item => {
+                htmlString += `<tr>
+                    <td>${item.root_event || ''}</td>
+                    <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
+                    <td>${item.link_1 || ''}</td>
+                    <td>${item.link_2 || ''}</td>
+                    <td>${item.link_3 || ''}</td>
+                    <td>${item.link_4 || ''}</td>
+                    <td>${item.company || ''}</td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="prepareEdit(${item.id})">수정</button>
+                        <button class="action-btn delete-btn" onclick="deleteData(${item.id})">삭제</button>
+                    </td>
+                </tr>`;
+            });
+            htmlString += '</table>';
+            displayArea.innerHTML = htmlString;
+        }
+
+        function prepareEdit(id) {
+            const targetData = currentDataList.find(item => item.id === id);
+            if (!targetData) return;
+
+            document.getElementById('root-event').value = targetData.root_event || '';
+            document.getElementById('root-desc').value = targetData.root_desc || '';
+            document.getElementById('link-event-1').value = targetData.link_1 || '';
+            document.getElementById('link-event-2').value = targetData.link_2 || '';
+            document.getElementById('link-event-3').value = targetData.link_3 || '';
+            document.getElementById('link-event-4').value = targetData.link_4 || '';
+            document.getElementById('related-company').value = targetData.company || '';
+
+            currentEditId = id;
+            const saveBtn = document.getElementById('main-save-btn');
+            saveBtn.innerText = '수정된 내용 저장하기';
+            saveBtn.style.backgroundColor = '#FF9800';
+            document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+
+            openTab('event-tab', document.querySelectorAll('.tab-button')[0]);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            currentEditId = null;
+            const saveBtn = document.getElementById('main-save-btn');
+            saveBtn.innerText = '수파베이스에 저장하기';
+            saveBtn.style.backgroundColor = '#2196F3';
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+
+            document.getElementById('root-event').value = '';
+            document.getElementById('root-desc').value = '';
+            document.getElementById('link-event-1').value = '';
+            document.getElementById('link-event-2').value = '';
+            document.getElementById('link-event-3').value = '';
+            document.getElementById('link-event-4').value = '';
+            document.getElementById('related-company').value = '';
+        }
+
+        async function deleteData(id) {
+            if (!confirm("정말로 이 데이터를 삭제하시겠습니까?")) return;
+            const { error } = await db.from('events').delete().eq('id', id);
+            if (error) { alert("삭제 중 오류가 발생했습니다."); return; }
+            fetchAllData();
+            if (currentEditId === id) cancelEdit();
+        }
+
+        async function fetchCompanies() {
+            const displayArea = document.getElementById('company-display');
+            displayArea.innerHTML = '<p>회사 리스트를 불러오는 중...</p>';
+            const { data, error } = await db.from('events').select('company');
+            if (error) return;
+
+            const uniqueCompanies = new Set();
+            data.forEach(item => {
+                const comp = item.company ? item.company.trim() : '';
+                if (comp && comp !== '없음') uniqueCompanies.add(comp);
+            });
+
+            if (uniqueCompanies.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 회사 정보가 없습니다.</p>'; return; }
+            let htmlString = '<div class="company-list">';
+            uniqueCompanies.forEach(company => { htmlString += `<div class="company-tag">${company}</div>`; });
+            htmlString += '</div>';
+            displayArea.innerHTML = htmlString;
+        }
+
+        async function fetchRootEvents() {
+            const displayArea = document.getElementById('root-event-list-display');
+            displayArea.innerHTML = '<p>기초사건 리스트를 불러오는 중...</p>';
+            const { data, error } = await db.from('events').select('root_event');
+            if (error) return;
+
+            const uniqueRootEvents = new Set();
+            data.forEach(item => {
+                const root = item.root_event ? item.root_event.trim() : '';
+                if (root) uniqueRootEvents.add(root);
+            });
+
+            if (uniqueRootEvents.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 기초사건 정보가 없습니다.</p>'; return; }
+            let htmlString = '<div class="event-tag-list">';
+            uniqueRootEvents.forEach(root => {
+                htmlString += `<div class="root-event-tag" onclick="selectRootEvent('${root}')">${root}</div>`;
+            });
+            htmlString += '</div>';
+            displayArea.innerHTML = htmlString;
+        }
+
+        function selectRootEvent(eventName) {
+            document.getElementById('search-query').value = eventName;
+            searchData();
+        }
+
+        // 🟢 다방향 네트워크 그래프 및 화살표, 색상 농도 로직 적용 🟢
+        async function searchData() {
+            const query = document.getElementById('search-query').value.trim();
+            const displayArea = document.getElementById('result-display');
+            displayArea.innerHTML = '<p>네트워크를 구성하는 중...</p>';
+
+            if (!query) { alert("검색할 기초사건을 입력해주세요."); return; }
+
+            const { data, error } = await db.from('events').select('*').eq('root_event', query);
+
+            if (error || !data || data.length === 0) {
+                displayArea.innerHTML = `<p style="color: red; margin-top: 20px;">'${query}'에 해당하는 데이터가 없습니다.</p>`;
+                return;
+            }
+
+            // 노드 빈도수, 엣지(연결) 빈도수, 노드 타입(기초/사건/회사)을 저장할 객체
+            const nodeCounts = {};
+            const nodeTypes = {};
+            const edgeCounts = {};
+
+            // 부연설명 찾기
+            let rootDescription = '';
+            const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
+            if (rootItem) { rootDescription = rootItem.root_desc.trim(); }
+
+            // 전체 데이터를 순회하며 노드와 연결(엣지) 관계 추출
             data.forEach(path => {
+                // 한 줄(Row)의 사건 흐름을 순서대로 배열화
                 const seq = [
-                    { name: path.root_event, type: 'root' },
+                    { name: query, type: 'root' },
                     { name: path.link_1, type: 'event' },
                     { name: path.link_2, type: 'event' },
                     { name: path.link_3, type: 'event' },
                     { name: path.link_4, type: 'event' },
                     { name: path.company, type: 'company' }
-                ].filter(item => item.name && item.name.trim() !== '' && item.name.trim() !== '없음');
+                ].filter(item => item.name && item.name.trim() !== '없음');
 
-                // 노드 생성
+                // 각 노드의 등장 횟수와 타입 기록
                 seq.forEach(item => {
                     const name = item.name.trim();
-                    if (!nodesMap.has(name)) {
-                        nodesMap.set(name, { id: name, label: name, type: item.type, count: 1 });
-                    } else {
-                        nodesMap.get(name).count += 1;
+                    nodeCounts[name] = (nodeCounts[name] || 0) + 1;
+
+                    // 우선순위 부여 (기초사건 > 회사 > 일반사건)
+                    if (!nodeTypes[name] || item.type === 'root') {
+                        nodeTypes[name] = item.type;
+                    } else if (item.type === 'company' && nodeTypes[name] !== 'root') {
+                        nodeTypes[name] = 'company';
                     }
                 });
 
-                // 엣지(연결) 생성
+                // 앞 사건에서 뒷 사건으로 연결고리(Edge) 생성
                 for (let i = 0; i < seq.length - 1; i++) {
-                    edges.push({ from: seq[i].name.trim(), to: seq[i + 1].name.trim() });
+                    const from = seq[i].name.trim();
+                    const to = seq[i + 1].name.trim();
+                    const edgeKey = `${from}|${to}`;
+                    edgeCounts[edgeKey] = (edgeCounts[edgeKey] || 0) + 1;
                 }
             });
 
-            // Vis.js 노드 스타일 적용
-            const nodes = Array.from(nodesMap.values()).map(n => {
-                const color = n.type === 'root' ? '#2196F3' : (n.type === 'company' ? '#FF9800' : '#4CAF50');
+            // 🟢 Vis.js 노드 데이터 배열 생성 (중복 많을수록 색상 진하게)
+            const visNodes = Object.keys(nodeCounts).map(name => {
+                const count = nodeCounts[name];
+                let bg, border, fontColor;
+
+                if (nodeTypes[name] === 'root') {
+                    bg = count >= 3 ? '#0D47A1' : count === 2 ? '#1976D2' : '#2196F3'; // 파란색 점점 진하게
+                    border = '#0D47A1';
+                    fontColor = 'white';
+                } else if (nodeTypes[name] === 'company') {
+                    bg = count >= 3 ? '#E65100' : count === 2 ? '#F57C00' : '#FF9800'; // 주황색 점점 진하게
+                    border = '#E65100';
+                    fontColor = count > 1 ? 'white' : 'black';
+                } else {
+                    bg = count >= 4 ? '#1B5E20' : count === 3 ? '#388E3C' : count === 2 ? '#4CAF50' : '#C8E6C9'; // 초록색 점점 진하게
+                    border = '#2E7D32';
+                    fontColor = count > 1 ? 'white' : 'black';
+                }
+
+                let labelText = name;
+                if (nodeTypes[name] === 'root' && rootDescription) {
+                    labelText += `\n(${rootDescription})`; // 기초사건에 부연설명 포함
+                }
+
                 return {
-                    id: n.id,
-                    label: n.label,
-                    shape: 'dot',
-                    size: 10 + (n.count * 2), // 많이 등장할수록 크게
-                    color: { background: color, border: '#fff' }
+                    id: name,
+                    label: labelText,
+                    shape: 'box',
+                    font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
+                    color: { background: bg, border: border },
+                    borderWidth: 2,
+                    shadow: true
                 };
             });
 
-            const networkData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
-            new vis.Network(container, networkData, {
-                nodes: { font: { face: 'Malgun Gothic' } },
-                edges: { arrows: 'to' }
+            // 🟢 Vis.js 엣지 데이터 배열 생성 (반복 횟수만큼 화살표 여러 가닥 생성)
+            const visEdges = [];
+            Object.keys(edgeCounts).forEach(key => {
+                const [from, to] = key.split('|');
+                const count = edgeCounts[key];
+
+                // 반복된 횟수(count)만큼 화살표 선을 여러 개 밀어넣습니다.
+                // 라이브러리가 자동으로 이 선들을 곡선으로 휘어지게 만들어 분리해 보여줍니다.
+                for (let i = 0; i < count; i++) {
+                    visEdges.push({
+                        from: from,
+                        to: to,
+                        arrows: 'to',
+                        color: { color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5' }, // 많이 연결될수록 선도 어둡게
+                        width: count > 1 ? 2 : 1
+                    });
+                }
             });
+
+            // 컨테이너 초기화 및 네트워크 그래프 주입
+            displayArea.innerHTML = '';
+            const container = document.createElement('div');
+            container.id = 'network-container';
+            displayArea.appendChild(container);
+
+            const networkData = {
+                nodes: new vis.DataSet(visNodes),
+                edges: new vis.DataSet(visEdges)
+            };
+
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD', // 위(Up)에서 아래(Down)로 흐름
+                        sortMethod: 'directed', // 화살표 방향을 기준으로 계층 정렬
+                        nodeSpacing: 180,
+                        levelSeparation: 120
+                    }
+                },
+                physics: {
+                    hierarchicalRepulsion: {
+                        nodeDistance: 150 // 노드 간 간격 조정
+                    }
+                },
+                edges: {
+                    smooth: {
+                        type: 'dynamic' // 🟢 동일한 노드 사이에 여러 개의 선이 있으면 자동으로 둥글게 갈라져서 표시됨
+                    }
+                }
+            };
+
+            // 네트워크 그래프 실행
+            new vis.Network(container, networkData, options);
         }
     </script>
 </body>
