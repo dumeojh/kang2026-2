@@ -10,8 +10,12 @@
             margin: 20px;
         }
 
+        /* 🟢 탭 메뉴 레이아웃 가로 배치 및 하단 선 디자인 개선 */
         .tab-menu {
+            display: flex;
+            align-items: flex-end;
             margin-bottom: 20px;
+            border-bottom: 2px solid #ccc;
         }
 
         .tab-button {
@@ -21,12 +25,29 @@
             border: 1px solid #ccc;
             background-color: #f1f1f1;
             border-radius: 5px 5px 0 0;
+            margin-bottom: -2px;
+            /* 탭 하단 선을 덮기 위함 */
+            margin-right: 5px;
         }
 
         .tab-button.active {
             background-color: #4CAF50;
             color: white;
-            border-bottom: none;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        /* 🟢 새로 추가된 '전체 데이터 불러오기' 탭 버튼 스타일 (발생사건 오른쪽) */
+        .load-data-tab {
+            margin-left: 15px;
+            /* 발생사건 버튼과 살짝 띄워서 구분 */
+            background-color: #607D8B;
+            color: white;
+            border-color: #546E7A;
+        }
+
+        .load-data-tab.active {
+            background-color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
         }
 
         .tab-content {
@@ -70,7 +91,6 @@
             margin-top: 10px;
         }
 
-        /* 취소 버튼 스타일 */
         .cancel-btn {
             padding: 10px 20px;
             background-color: #9E9E9E;
@@ -81,7 +101,6 @@
             margin-top: 10px;
             margin-left: 10px;
             display: none;
-            /* 기본은 숨김 */
         }
 
         table {
@@ -107,7 +126,6 @@
             background-color: #f2f2f2;
         }
 
-        /* 🟢 표 안의 수정/삭제 버튼 스타일 */
         .action-btn {
             padding: 5px 10px;
             margin: 2px;
@@ -249,6 +267,9 @@
         <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
         <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
+        <!-- 🟢 발생사건 우측으로 이동된 '전체 데이터 불러오기' 전용 탭 버튼 -->
+        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
+            불러오기</button>
     </div>
 
     <!-- 1. 기초사건 탭 -->
@@ -280,15 +301,9 @@
             <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
         </div>
 
-        <!-- 🟢 수정 모드를 지원하도록 버튼 ID 및 취소 버튼 추가 -->
         <button class="save-btn" id="main-save-btn" onclick="saveData()">수파베이스에 저장하기</button>
         <button class="cancel-btn" id="cancel-edit-btn" onclick="cancelEdit()">수정 취소</button>
         <p id="save-message" style="color: blue; font-weight: bold;"></p>
-
-        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
-        <h3>저장된 전체 목록</h3>
-        <button class="load-btn" style="background-color: #607D8B;" onclick="fetchAllData()">전체 데이터 불러오기</button>
-        <div id="all-data-display"></div>
     </div>
 
     <!-- 2. 기초회사 탭 -->
@@ -306,7 +321,6 @@
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
         </div>
         <button class="search-btn" onclick="searchData()">2D 관계도 보기</button>
-
         <div id="result-display"></div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
@@ -315,24 +329,30 @@
         <div id="root-event-list-display"></div>
     </div>
 
+    <!-- 🟢 4. 전체 데이터 전용 관리 탭 (새로 추가됨) -->
+    <div id="all-data-tab" class="tab-content">
+        <h3>저장된 전체 목록 관리</h3>
+        <p>데이터베이스에 등록된 모든 사건을 조회하고, 수정 또는 삭제를 진행할 수 있습니다.</p>
+        <div id="all-data-display"></div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://qdizucrodtfsqcjxadmk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkaXp1Y3JvZHRmc3FjanhhZG1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTQ1OTQsImV4cCI6MjA5ODEzMDU5NH0.0ItwcoyDwAMm5VOn5NaLj9QzHzoU53G4AojTddvamPI';
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 🟢 현재 수정 중인 데이터의 ID와 전체 데이터 배열을 저장할 변수
         let currentEditId = null;
         let currentDataList = [];
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
             document.getElementById(tabId).classList.add('active');
-            btnElement.classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
         }
 
-        // 🟢 수정 및 신규 저장을 모두 처리하도록 함수 업데이트
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
@@ -347,29 +367,29 @@
             }
 
             const payload = {
-                root_event: root,
-                link_1: link1,
-                link_2: link2,
-                link_3: link3,
-                link_4: link4,
-                company: company
+                root_event: root, link_1: link1, link_2: link2,
+                link_3: link3, link_4: link4, company: company
             };
 
             if (currentEditId) {
-                // 수정 모드일 때 (Update)
+                // 수정 처리
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
-
                 if (error) {
                     console.error('수정 에러:', error);
                     alert("데이터 수정 중 오류가 발생했습니다.");
                     return;
                 }
-                document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 수정되었습니다.`;
-                cancelEdit(); // 수정이 끝나면 상태 초기화
-            } else {
-                // 신규 저장 모드일 때 (Insert)
-                const { error } = await db.from('events').insert([payload]);
 
+                cancelEdit();
+                alert(`'${root}' 데이터가 성공적으로 수정되었습니다.`);
+
+                // 🟢 수정이 끝나면 '전체 데이터' 탭으로 자동 이동하여 결과 확인
+                openTab('all-data-tab', document.querySelector('.load-data-tab'));
+                fetchAllData();
+
+            } else {
+                // 신규 저장 처리
+                const { error } = await db.from('events').insert([payload]);
                 if (error) {
                     console.error('저장 에러:', error);
                     alert("데이터 저장 중 오류가 발생했습니다.");
@@ -377,18 +397,14 @@
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-                // 입력칸 비우기
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
                 document.getElementById('link-event-4').value = '';
                 document.getElementById('related-company').value = '';
+
+                setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
             }
-
-            setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
-
-            // 목록 새로고침
-            if (document.getElementById('all-data-display').innerHTML !== '') fetchAllData();
         }
 
         async function fetchAllData() {
@@ -400,13 +416,11 @@
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
-            currentDataList = data; // 수정을 위해 배열 저장
+            currentDataList = data;
 
-            // 🟢 표 헤더에 '관리' 항목 추가
             let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th><th>관리</th></tr>';
 
             data.forEach(item => {
-                // 🟢 표 데이터에 수정, 삭제 버튼 추가
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td>${item.link_1 || ''}</td>
@@ -424,7 +438,6 @@
             displayArea.innerHTML = htmlString;
         }
 
-        // 🟢 수정을 위해 데이터를 입력칸에 채워 넣는 함수
         function prepareEdit(id) {
             const targetData = currentDataList.find(item => item.id === id);
             if (!targetData) return;
@@ -436,31 +449,26 @@
             document.getElementById('link-event-4').value = targetData.link_4 || '';
             document.getElementById('related-company').value = targetData.company || '';
 
-            currentEditId = id; // 수정할 ID 기억
+            currentEditId = id;
 
-            // 버튼 디자인 변경
             const saveBtn = document.getElementById('main-save-btn');
             saveBtn.innerText = '수정된 내용 저장하기';
             saveBtn.style.backgroundColor = '#FF9800';
 
-            document.getElementById('cancel-edit-btn').style.display = 'inline-block'; // 취소 버튼 보이기
+            document.getElementById('cancel-edit-btn').style.display = 'inline-block';
 
-            // 위로 스크롤 이동
+            // 🟢 수정 버튼을 누르면 입력칸이 있는 '기초사건' 탭으로 화면 자동 이동
+            openTab('event-tab', document.querySelectorAll('.tab-button')[0]);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 🟢 수정 취소 기능
         function cancelEdit() {
             currentEditId = null;
-
-            // 버튼 복구
             const saveBtn = document.getElementById('main-save-btn');
             saveBtn.innerText = '수파베이스에 저장하기';
             saveBtn.style.backgroundColor = '#2196F3';
-
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
-            // 입력칸 비우기
             document.getElementById('root-event').value = '';
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
@@ -469,7 +477,6 @@
             document.getElementById('related-company').value = '';
         }
 
-        // 🟢 데이터 삭제 기능
         async function deleteData(id) {
             if (!confirm("정말로 이 데이터를 삭제하시겠습니까?")) return;
 
@@ -481,13 +488,8 @@
                 return;
             }
 
-            // 삭제 후 목록 다시 불러오기
             fetchAllData();
-
-            // 만약 삭제한 데이터가 현재 수정 중이던 데이터라면 폼 초기화
-            if (currentEditId === id) {
-                cancelEdit();
-            }
+            if (currentEditId === id) cancelEdit();
         }
 
         async function fetchCompanies() {
@@ -495,7 +497,6 @@
             displayArea.innerHTML = '<p>회사 리스트를 불러오는 중...</p>';
 
             const { data, error } = await db.from('events').select('company');
-
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
 
             const uniqueCompanies = new Set();
@@ -517,7 +518,6 @@
             displayArea.innerHTML = '<p>기초사건 리스트를 불러오는 중...</p>';
 
             const { data, error } = await db.from('events').select('root_event');
-
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
 
             const uniqueRootEvents = new Set();
@@ -554,10 +554,7 @@
                 return;
             }
 
-            const { data, error } = await db
-                .from('events')
-                .select('*')
-                .eq('root_event', query);
+            const { data, error } = await db.from('events').select('*').eq('root_event', query);
 
             if (error) {
                 console.error('조회 에러:', error);
@@ -601,9 +598,7 @@
             data.forEach(path => {
                 htmlString += '<div class="tree-path">';
 
-                if (path.link_1) {
-                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_1)}">${path.link_1}</div>`;
-                }
+                if (path.link_1) htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_1)}">${path.link_1}</div>`;
                 if (path.link_2) {
                     htmlString += `<div class="path-arrow">⬇</div>`;
                     htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_2)}">${path.link_2}</div>`;
@@ -625,7 +620,6 @@
             });
 
             htmlString += '</div></div>';
-
             displayArea.innerHTML = htmlString;
         }
     </script>
