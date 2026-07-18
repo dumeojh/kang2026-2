@@ -52,7 +52,6 @@
             padding: 20px;
             border-radius: 0 5px 5px 5px;
             max-width: 1000px;
-            /* 열이 추가되어 너비를 약간 더 넓힘 */
         }
 
         .tab-content.active {
@@ -66,7 +65,6 @@
         .input-group label {
             display: inline-block;
             width: 110px;
-            /* 라벨 너비 살짝 조정 */
             font-weight: bold;
         }
 
@@ -118,6 +116,17 @@
         th {
             background-color: #4CAF50;
             color: white;
+        }
+
+        /* 🟢 정렬 가능한 헤더 스타일 추가 */
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th.sortable:hover {
+            background-color: #45a049;
         }
 
         tr:nth-child(even) {
@@ -207,10 +216,8 @@
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             z-index: 2;
             text-align: center;
-            /* 텍스트 중앙 정렬 */
         }
 
-        /* 🟢 부연설명을 보여주는 텍스트 스타일 */
         .tree-root-desc {
             font-size: 13px;
             font-weight: normal;
@@ -291,7 +298,6 @@
             <label>기초사건</label>
             <input type="text" id="root-event" placeholder="예: 기초사건1">
         </div>
-        <!-- 🟢 기초사건 부연설명 입력칸 추가 -->
         <div class="input-group">
             <label>기초사건 설명</label>
             <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
@@ -347,7 +353,8 @@
 
     <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
-
+        <h3>저장된 전체 목록 관리</h3>
+        <p>항목의 헤더(초록색 배경)를 클릭하면 해당 열을 기준으로 데이터를 오름차순/내림차순 정렬할 수 있습니다.</p>
         <div id="all-data-display"></div>
     </div>
 
@@ -360,6 +367,9 @@
         let currentEditId = null;
         let currentDataList = [];
 
+        // 🟢 정렬 상태를 관리하는 변수 (기본은 최신 등록 순서: id 내림차순)
+        let sortConfig = { key: 'id', direction: 'desc' };
+
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -370,7 +380,7 @@
 
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
-            const rootDesc = document.getElementById('root-desc').value.trim(); // 🟢 부연설명 데이터 가져오기
+            const rootDesc = document.getElementById('root-desc').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
             const link3 = document.getElementById('link-event-3').value.trim();
@@ -382,7 +392,6 @@
                 return;
             }
 
-            // 🟢 payload에 root_desc 포함
             const payload = {
                 root_event: root, root_desc: rootDesc, link_1: link1, link_2: link2,
                 link_3: link3, link_4: link4, company: company
@@ -392,7 +401,7 @@
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
                 if (error) {
                     console.error('수정 에러:', error);
-                    alert("데이터 수정 중 오류가 발생했습니다. (root_desc 열을 추가했는지 확인하세요)");
+                    alert("데이터 수정 중 오류가 발생했습니다.");
                     return;
                 }
 
@@ -406,12 +415,11 @@
                 const { error } = await db.from('events').insert([payload]);
                 if (error) {
                     console.error('저장 에러:', error);
-                    alert("데이터 저장 중 오류가 발생했습니다. (root_desc 열을 추가했는지 확인하세요)");
+                    alert("데이터 저장 중 오류가 발생했습니다.");
                     return;
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-                // 저장 후 입력칸 비우기 (기초사건과 설명은 남겨둠)
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
@@ -422,22 +430,76 @@
             }
         }
 
+        // 🟢 데이터베이스에서 전체 데이터를 가져오는 함수
         async function fetchAllData() {
             const displayArea = document.getElementById('all-data-display');
             displayArea.innerHTML = '<p>데이터를 불러오는 중...</p>';
 
-            const { data, error } = await db.from('events').select('*').order('id', { ascending: false });
+            const { data, error } = await db.from('events').select('*');
 
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
             currentDataList = data;
+            renderTable(); // 데이터를 가져온 후 테이블 렌더링 호출
+        }
 
-            // 🟢 테이블 헤더에 '부연설명' 추가
-            let htmlString = '<table><tr><th>기초사건</th><th>부연설명</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th><th>관리</th></tr>';
+        // 🟢 정렬 버튼 클릭 시 호출되는 함수
+        function sortData(key) {
+            if (sortConfig.key === key) {
+                // 같은 열을 다시 클릭하면 정렬 방향(오름/내림)만 반대로 전환
+                sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                // 다른 열을 클릭하면 해당 열 기준 오름차순으로 초기화
+                sortConfig.key = key;
+                sortConfig.direction = 'asc';
+            }
+            renderTable(); // 변경된 정렬 기준으로 테이블 다시 그리기
+        }
 
-            data.forEach(item => {
-                // 🟢 테이블 데이터에 root_desc 추가
+        // 🟢 정렬 아이콘(▲, ▼, ↕)을 반환하는 함수
+        function getSortIcon(key) {
+            if (sortConfig.key !== key) return '<span style="color:#A5D6A7; font-size:12px;">↕</span>';
+            return sortConfig.direction === 'asc' ? '▲' : '▼';
+        }
+
+        // 🟢 테이블 화면 생성 전용 함수 (정렬 처리 포함)
+        function renderTable() {
+            const displayArea = document.getElementById('all-data-display');
+
+            // 자바스크립트 내장 sort()로 데이터 정렬
+            const sortedData = [...currentDataList].sort((a, b) => {
+                let valA = a[sortConfig.key] || '';
+                let valB = b[sortConfig.key] || '';
+
+                // 고유 ID는 숫자로 취급하여 정렬
+                if (sortConfig.key === 'id') {
+                    return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+                }
+
+                // 문자열은 알파벳/가나다 순으로 정렬
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // 🟢 정렬 함수와 아이콘이 적용된 HTML 헤더 작성
+            let htmlString = `<table>
+                <tr>
+                    <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
+                    <th class="sortable" onclick="sortData('root_desc')">부연설명 ${getSortIcon('root_desc')}</th>
+                    <th class="sortable" onclick="sortData('link_1')">연결사건 1 ${getSortIcon('link_1')}</th>
+                    <th class="sortable" onclick="sortData('link_2')">연결사건 2 ${getSortIcon('link_2')}</th>
+                    <th class="sortable" onclick="sortData('link_3')">연결사건 3 ${getSortIcon('link_3')}</th>
+                    <th class="sortable" onclick="sortData('link_4')">연결사건 4 ${getSortIcon('link_4')}</th>
+                    <th class="sortable" onclick="sortData('company')">관련 회사 ${getSortIcon('company')}</th>
+                    <th>관리</th>
+                </tr>`;
+
+            sortedData.forEach(item => {
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
@@ -461,7 +523,7 @@
             if (!targetData) return;
 
             document.getElementById('root-event').value = targetData.root_event || '';
-            document.getElementById('root-desc').value = targetData.root_desc || ''; // 🟢 부연설명 채우기
+            document.getElementById('root-desc').value = targetData.root_desc || '';
             document.getElementById('link-event-1').value = targetData.link_1 || '';
             document.getElementById('link-event-2').value = targetData.link_2 || '';
             document.getElementById('link-event-3').value = targetData.link_3 || '';
@@ -488,7 +550,7 @@
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
             document.getElementById('root-event').value = '';
-            document.getElementById('root-desc').value = ''; // 🟢 부연설명 비우기
+            document.getElementById('root-desc').value = '';
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
             document.getElementById('link-event-3').value = '';
@@ -609,7 +671,6 @@
                 return `font-size: ${fontSize}px; padding: ${paddingV}px ${paddingH}px; box-shadow: ${shadow}px ${shadow}px ${shadow * 2}px rgba(0,0,0,0.15);`;
             }
 
-            // 🟢 기초사건의 부연설명 텍스트 찾기 (작성된 내용 중 첫 번째 내용을 가져옴)
             let rootDescription = '';
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
             if (rootItem) {
@@ -617,7 +678,6 @@
             }
 
             let htmlString = '<div class="tree-layout">';
-            // 🟢 기초사건 박스 안에 부연설명 포함
             htmlString += `<div class="tree-root">
                 ${query}
                 ${rootDescription ? `<div class="tree-root-desc">${rootDescription}</div>` : ''}
