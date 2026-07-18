@@ -35,7 +35,6 @@
             padding: 20px;
             border-radius: 0 5px 5px 5px;
             max-width: 900px;
-            /* 표가 넓어지므로 전체 너비 확장 */
         }
 
         .tab-content.active {
@@ -76,7 +75,6 @@
             border-collapse: collapse;
             margin-top: 15px;
             font-size: 14px;
-            /* 열이 많아져 폰트 크기 살짝 조정 */
         }
 
         th,
@@ -179,14 +177,15 @@
 
         .tree-node {
             border: 2px solid #4CAF50;
-            padding: 10px 20px;
+            /* 여백과 글자 크기는 JS에서 동적으로 할당됨 */
             border-radius: 8px;
             background-color: white;
             font-weight: bold;
             text-align: center;
             width: 100%;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
             margin-bottom: 10px;
+            transition: all 0.3s ease;
+            /* 동적 크기 변화 부드럽게 */
         }
 
         .tree-company {
@@ -230,7 +229,6 @@
             <label>연결사건 2</label>
             <input type="text" id="link-event-2" placeholder="예: 사건2">
         </div>
-        <!-- 🟢 연결사건 3, 4 입력칸 추가 -->
         <div class="input-group">
             <label>연결사건 3</label>
             <input type="text" id="link-event-3" placeholder="예: 사건3">
@@ -261,7 +259,7 @@
 
     <!-- 3. 발생사건 탭 -->
     <div id="occurred-tab" class="tab-content">
-        <h3>사건 관계도 분석 (2D 시각화)</h3>
+        <h3>사건 관계도 분석 (2D 시각화 & 빈도별 강조)</h3>
         <div class="input-group">
             <label>기초사건 검색</label>
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
@@ -293,8 +291,8 @@
             const root = document.getElementById('root-event').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
-            const link3 = document.getElementById('link-event-3').value.trim(); // 🟢 연결사건 3 추가
-            const link4 = document.getElementById('link-event-4').value.trim(); // 🟢 연결사건 4 추가
+            const link3 = document.getElementById('link-event-3').value.trim();
+            const link4 = document.getElementById('link-event-4').value.trim();
             const company = document.getElementById('related-company').value.trim();
 
             if (!root) {
@@ -302,7 +300,6 @@
                 return;
             }
 
-            // 🟢 insert 데이터에 link_3, link_4 추가
             const { data, error } = await db
                 .from('events')
                 .insert([{
@@ -324,8 +321,8 @@
 
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
-            document.getElementById('link-event-3').value = ''; // 초기화 추가
-            document.getElementById('link-event-4').value = ''; // 초기화 추가
+            document.getElementById('link-event-3').value = '';
+            document.getElementById('link-event-4').value = '';
             document.getElementById('related-company').value = '';
 
             setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
@@ -342,10 +339,8 @@
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
-            // 🟢 테이블 헤더에 연결사건 3, 4 추가
             let htmlString = '<table><tr><th>기초사건</th><th>연결사건 1</th><th>연결사건 2</th><th>연결사건 3</th><th>연결사건 4</th><th>관련 회사</th></tr>';
             data.forEach(item => {
-                // 🟢 테이블 데이터에 link_3, link_4 추가
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td>${item.link_1 || ''}</td>
@@ -439,6 +434,34 @@
                 return;
             }
 
+            // 🟢 1. 현재 검색 결과 내에서 각 단어별 등장 빈도(반복 횟수) 계산
+            const frequencyMap = {};
+            data.forEach(path => {
+                const nodes = [path.link_1, path.link_2, path.link_3, path.link_4, path.company];
+                nodes.forEach(node => {
+                    if (node && node.trim() !== '없음') {
+                        const text = node.trim();
+                        frequencyMap[text] = (frequencyMap[text] || 0) + 1;
+                    }
+                });
+            });
+
+            // 🟢 2. 빈도수에 따라 노드의 크기(여백 및 글자)와 그림자를 조절하는 함수
+            function getNodeStyle(text) {
+                const count = frequencyMap[text.trim()] || 1;
+                // 성장이 무한히 커지는 것을 방지 (최대 6단계 성장)
+                const growth = Math.min(count - 1, 6);
+
+                // 빈도에 따라 픽셀(크기) 동적 부여
+                const fontSize = 16 + (growth * 2.5); // 글자 크기 증가
+                const paddingV = 10 + (growth * 3);   // 세로 크기 증가
+                const paddingH = 20 + (growth * 5);   // 가로 크기 증가
+                const shadow = 2 + growth;            // 중요도에 따른 입체감 강화
+
+                return `font-size: ${fontSize}px; padding: ${paddingV}px ${paddingH}px; box-shadow: ${shadow}px ${shadow}px ${shadow * 2}px rgba(0,0,0,0.15);`;
+            }
+
+            // 🟢 3. 생성된 스타일을 각 HTML 태그에 입혀서 반환
             let htmlString = '<div class="tree-layout">';
             htmlString += `<div class="tree-root">${query}</div>`;
             htmlString += `<div class="tree-down-arrow">⬇</div>`;
@@ -448,25 +471,23 @@
                 htmlString += '<div class="tree-path">';
 
                 if (path.link_1) {
-                    htmlString += `<div class="tree-node">${path.link_1}</div>`;
+                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_1)}">${path.link_1}</div>`;
                 }
                 if (path.link_2) {
                     htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node">${path.link_2}</div>`;
+                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_2)}">${path.link_2}</div>`;
                 }
-                // 🟢 2D 트리에 연결사건 3 추가
                 if (path.link_3) {
                     htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node">${path.link_3}</div>`;
+                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_3)}">${path.link_3}</div>`;
                 }
-                // 🟢 2D 트리에 연결사건 4 추가
                 if (path.link_4) {
                     htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node">${path.link_4}</div>`;
+                    htmlString += `<div class="tree-node" style="${getNodeStyle(path.link_4)}">${path.link_4}</div>`;
                 }
                 if (path.company && path.company !== '없음') {
                     htmlString += `<div class="path-arrow">⬇</div>`;
-                    htmlString += `<div class="tree-node tree-company">${path.company}</div>`;
+                    htmlString += `<div class="tree-node tree-company" style="${getNodeStyle(path.company)}">${path.company}</div>`;
                 }
 
                 htmlString += '</div>';
