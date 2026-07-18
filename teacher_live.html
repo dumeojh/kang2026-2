@@ -431,8 +431,8 @@
 
     #problemArea:fullscreen .ptext img,
     #problemArea:-webkit-full-screen .ptext img,
-    #problemArea:fullscreen .p-main > img,
-    #problemArea:-webkit-full-screen .p-main > img {
+    #problemArea:fullscreen .p-main>img,
+    #problemArea:-webkit-full-screen .p-main>img {
       max-width: 100%;
       max-height: 60vh;
       width: auto;
@@ -723,14 +723,45 @@
       color: #5B5F6B;
     }
 
-    .cat-badge.cat-blue { background: #E5EDFF; color: #2C4CBB; }
-    .cat-badge.cat-green { background: #E4F6E9; color: #227A46; }
-    .cat-badge.cat-red { background: #FBE4E1; color: #B5342A; }
-    .cat-badge.cat-purple { background: #EFE6F7; color: #6B3FA0; }
-    .cat-badge.cat-orange { background: #FFF1DA; color: #B4700A; }
-    .cat-badge.cat-teal { background: #DFF4F4; color: #177A7A; }
-    .cat-badge.cat-pink { background: #FBE3F1; color: #B5347E; }
-    .cat-badge.cat-gray { background: #EFEFF2; color: #5B5F6B; }
+    .cat-badge.cat-blue {
+      background: #E5EDFF;
+      color: #2C4CBB;
+    }
+
+    .cat-badge.cat-green {
+      background: #E4F6E9;
+      color: #227A46;
+    }
+
+    .cat-badge.cat-red {
+      background: #FBE4E1;
+      color: #B5342A;
+    }
+
+    .cat-badge.cat-purple {
+      background: #EFE6F7;
+      color: #6B3FA0;
+    }
+
+    .cat-badge.cat-orange {
+      background: #FFF1DA;
+      color: #B4700A;
+    }
+
+    .cat-badge.cat-teal {
+      background: #DFF4F4;
+      color: #177A7A;
+    }
+
+    .cat-badge.cat-pink {
+      background: #FBE3F1;
+      color: #B5347E;
+    }
+
+    .cat-badge.cat-gray {
+      background: #EFEFF2;
+      color: #5B5F6B;
+    }
 
     .bank-list {
       margin-top: 16px;
@@ -1142,8 +1173,10 @@
       <div class="topbar">
         <button class="btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="제출 명단을 숨기거나 다시 보여줍니다">👥 명단
           숨기기</button>
-        <button class="btn" id="problemFsBtn" onclick="toggleProblemFullscreen()" title="문제를 화면 가득 크게 보여줍니다">🖥 문제 전체화면</button>
-        <button class="btn" id="appFsBtn" onclick="toggleAppFullscreen()" title="화면 전체(주소창 포함)를 꽉 채워 사용합니다">⛶ 전체화면 사용하기</button>
+        <button class="btn" id="problemFsBtn" onclick="toggleProblemFullscreen()" title="문제를 화면 가득 크게 보여줍니다">🖥 문제
+          전체화면</button>
+        <button class="btn" id="appFsBtn" onclick="toggleAppFullscreen()" title="화면 전체(주소창 포함)를 꽉 채워 사용합니다">⛶ 전체화면
+          사용하기</button>
         <h1 id="problemLabel">오늘의 문제</h1>
         <div class="room-code-badge hidden" id="roomCodeBadge"></div>
         <div class="timer" id="timerDisplay">--:--</div>
@@ -1201,7 +1234,8 @@
       <div class="bank-filter-tabs" id="bankFilterTabs">
         <button class="filter-tab active" data-cat="전체" onclick="setBankFilter('전체')">전체</button>
       </div>
-      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.</div>
+      <div class="setup-hint" style="margin-top:-4px;">분류 종류를 추가/삭제/이름변경하려면 <b>문제 은행 관리 페이지</b>의 "⚙️ 분류 관리"를 이용하세요.
+      </div>
       <div class="bank-refresh-row"
         style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px;">
         <span id="bankLastLoadedLabel" style="font-size:12px; color:var(--muted, #888);"></span>
@@ -2185,9 +2219,9 @@
       bankRenderLimit = BANK_RENDER_STEP;
       const searchInput = document.getElementById('bankSearchInput');
       if (searchInput) searchInput.value = '';
-      await loadCategories();
+      await loadCategories(true);
       renderBankFilterTabs();
-      loadBank();
+      loadBank(true); // 문제 은행 관리 페이지 등 다른 화면에서 방금 추가/수정/삭제했을 수 있으므로 열 때마다 새로 불러옵니다.
       document.getElementById('bankModal').classList.remove('hidden');
     }
     function closeBankModal() {
