@@ -2280,9 +2280,22 @@
         const count = archiveCounts[p.id] || 0;
         const teacher = p.teacher_name || '알 수 없음';
         const scope = (p.target_scope || []).map(formatScopeToken).join(', ') || '대상 정보 없음';
-        const actionHtml = p.is_active
-          ? `<span style="font-size:12px; color:var(--green); font-weight:700;">진행중</span>`
-          : `<button class="btn danger" onclick="event.stopPropagation(); deleteProblemRecord(${p.id})">🗑 삭제</button>`;
+        const isMine = teacherProfile && p.teacher_id === teacherProfile.teacherId;
+        const isCurrentlyShown = activeProblem && activeProblem.id === p.id;
+
+        let actionHtml;
+        if (p.is_active && isCurrentlyShown) {
+          // 지금 화면에 떠 있는, 실제로 진행 중인 문제 — 여기서 실수로 마감/삭제하지 않도록 보호합니다.
+          actionHtml = `<span style="font-size:12px; color:var(--green); font-weight:700;">진행중 (현재 화면)</span>`;
+        } else if (p.is_active && isMine) {
+          // 예전에 "마감하기"를 안 누르고 넘어간 내 오래된 기록 — 여기서 바로 마감해서 삭제할 수 있게 해줍니다.
+          actionHtml = `<button class="btn" onclick="event.stopPropagation(); forceCloseArchiveProblem(${p.id})" title="마감 처리하면 아래에서 삭제할 수 있게 됩니다">🔓 마감 처리하기</button>`;
+        } else if (p.is_active) {
+          actionHtml = `<span style="font-size:12px; color:var(--green); font-weight:700;">진행중 (${escapeHtml(teacher)})</span>`;
+        } else {
+          actionHtml = `<button class="btn danger" onclick="event.stopPropagation(); deleteProblemRecord(${p.id})">🗑 삭제</button>`;
+        }
+
         return `
       <div class="bank-item" style="cursor:pointer;" onclick="openArchiveDetail(${p.id})">
         <div class="bank-item-main">
@@ -2293,6 +2306,14 @@
       </div>
     `;
       }).join('');
+    }
+
+    // 예전에 마감을 안 누르고 지나간 내 기록을 여기서 바로 마감 처리합니다. (현재 화면에 떠 있는 문제는 이 버튼이 뜨지 않아 안전합니다)
+    async function forceCloseArchiveProblem(id) {
+      if (!confirm('이 문제를 마감 처리할까요? 마감하면 목록에서 삭제할 수 있게 됩니다.')) return;
+      const { error } = await supabaseClient.from('live_problems').update({ is_active: false }).eq('id', id);
+      if (error) { alert('마감 처리 중 오류가 발생했습니다: ' + error.message); return; }
+      loadArchive();
     }
 
     function openArchiveModal() {
