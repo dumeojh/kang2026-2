@@ -1,55 +1,250 @@
-padding: 8px 18px;
-border-radius: 20px;
-font-weight: bold;
-cursor: pointer;
-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-transition: 0.2s;
-}
+<!DOCTYPE html>
+<html lang="ko">
 
-.root-event-tag:hover {
-background-color: #C8E6C9;
-transform: scale(1.05);
-}
+<head>
+    <meta charset="UTF-8">
+    <title>사건 관계도 분석</title>
 
-/* 네트워크 그래프를 띄울 컨테이너 */
-#network-container {
-width: 100%;
-height: 600px;
-background-color: #f0f4f8;
-border-radius: 12px;
-border: 2px solid #CFD8DC;
-margin-top: 20px;
-position: relative;
-}
+    <!-- 🟢 다방향 네트워크 그래프를 그리기 위한 라이브러리 추가 -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-/* 전체화면 스타일 (기본 브라우저 전체화면 API 사용 시 클래스 추가됨) */
-#network-container.fullscreen {
-background-color: #f0f4f8; /* 캔버스 배경색 유지 */
-border: none;
-border-radius: 0;
-width: 100vw;
-height: 100vh;
-}
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 20px;
+        }
 
-#close-fullscreen-btn {
-display: none;
-position: absolute;
-top: 20px;
-right: 20px;
-z-index: 10000;
-padding: 10px 15px;
-background-color: #F44336;
-color: white;
-border: none;
-border-radius: 4px;
-font-weight: bold;
-cursor: pointer;
-}
+        .tab-menu {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ccc;
+        }
 
-#network-container.fullscreen #close-fullscreen-btn {
-display: block;
-}
-</style>
+        .tab-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 5px 5px 0 0;
+            margin-bottom: -2px;
+            margin-right: 5px;
+        }
+
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .load-data-tab {
+            margin-left: 15px;
+            background-color: #607D8B;
+            color: white;
+            border-color: #546E7A;
+        }
+
+        .load-data-tab.active {
+            background-color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .tab-content {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 0 5px 5px 5px;
+            max-width: 1000px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: inline-block;
+            width: 110px;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .save-btn,
+        .search-btn,
+        .load-btn,
+        .fullscreen-btn {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .fullscreen-btn {
+            background-color: #009688;
+            margin-left: 5px;
+        }
+
+        .cancel-btn {
+            padding: 10px 20px;
+            background-color: #9E9E9E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-left: 10px;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th.sortable:hover {
+            background-color: #45a049;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #FF9800;
+        }
+
+        .edit-btn:hover {
+            background-color: #F57C00;
+        }
+
+        .delete-btn {
+            background-color: #F44336;
+        }
+
+        .delete-btn:hover {
+            background-color: #D32F2F;
+        }
+
+        .company-list,
+        .event-tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .company-tag {
+            background-color: #FFF3E0;
+            border: 1px solid #FF9800;
+            color: #E65100;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .root-event-tag {
+            background-color: #E8F5E9;
+            border: 1px solid #4CAF50;
+            color: #2E7D32;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            transition: 0.2s;
+        }
+
+        .root-event-tag:hover {
+            background-color: #C8E6C9;
+            transform: scale(1.05);
+        }
+
+        /* 네트워크 그래프를 띄울 컨테이너 */
+        #network-container {
+            width: 100%;
+            height: 600px;
+            background-color: #f0f4f8;
+            border-radius: 12px;
+            border: 2px solid #CFD8DC;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        /* 전체화면 스타일 (기본 브라우저 전체화면 API 사용 시 클래스 추가됨) */
+        #network-container.fullscreen {
+            background-color: #f0f4f8;
+            /* 캔버스 배경색 유지 */
+            border: none;
+            border-radius: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #close-fullscreen-btn {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 10px 15px;
+            background-color: #F44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #network-container.fullscreen #close-fullscreen-btn {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
