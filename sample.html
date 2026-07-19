@@ -515,6 +515,7 @@
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
+                document.getElementById('root-event').value = '';
                 document.getElementById('root-date').value = '';
                 document.getElementById('root-desc').value = '';
                 linkInputs.forEach(input => input.value = '');
