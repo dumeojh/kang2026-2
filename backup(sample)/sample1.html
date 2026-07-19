@@ -82,8 +82,7 @@
 
         .save-btn,
         .search-btn,
-        .load-btn,
-        .fullscreen-btn {
+        .load-btn {
             padding: 10px 20px;
             background-color: #2196F3;
             color: white;
@@ -91,11 +90,6 @@
             border-radius: 4px;
             cursor: pointer;
             margin-top: 10px;
-        }
-
-        .fullscreen-btn {
-            background-color: #009688;
-            margin-left: 5px;
         }
 
         .cancel-btn {
@@ -213,39 +207,6 @@
             border-radius: 12px;
             border: 2px solid #CFD8DC;
             margin-top: 20px;
-            position: relative;
-        }
-
-        /* 전체화면 스타일 */
-        #network-container.fullscreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-        }
-
-        #close-fullscreen-btn {
-            display: none;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            padding: 10px 15px;
-            background-color: #F44336;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        #network-container.fullscreen #close-fullscreen-btn {
-            display: block;
         }
     </style>
 </head>
@@ -315,14 +276,9 @@
         <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
         <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
             관계도 보기</button>
-        <button class="fullscreen-btn" onclick="toggleFullScreen()">전체화면으로 보기</button>
 
         <!-- 네트워크 그래프가 그려질 영역 -->
-        <div id="result-display">
-            <div id="network-container">
-                <button id="close-fullscreen-btn" onclick="toggleFullScreen()">닫기 (X)</button>
-            </div>
-        </div>
+        <div id="result-display"></div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
         <h3>등록된 기초사건 목록</h3>
@@ -346,7 +302,6 @@
         let currentEditId = null;
         let currentDataList = [];
         let sortConfig = { key: 'id', direction: 'desc' };
-        let networkInstance = null; // 네트워크 인스턴스를 저장할 변수 추가
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -560,63 +515,18 @@
             searchData();
         }
 
-        // 전체화면 토글 함수
-        function toggleFullScreen() {
-            const container = document.getElementById('network-container');
-            if (!container) return;
-
-            container.classList.toggle('fullscreen');
-
-            // 네트워크 인스턴스가 존재하면 리사이즈 이벤트를 발생시켜 크기를 맞춤
-            if (networkInstance) {
-                // 약간의 지연을 주어 CSS 렌더링 후 리사이즈 되도록 함
-                setTimeout(() => {
-                    networkInstance.fit();
-                }, 100);
-            }
-        }
-
         // 🟢 다방향 네트워크 그래프 및 화살표, 색상 농도 로직 적용 🟢
         async function searchData() {
             const query = document.getElementById('search-query').value.trim();
             const displayArea = document.getElementById('result-display');
+            displayArea.innerHTML = '<p>네트워크를 구성하는 중...</p>';
 
-            // 컨테이너 초기화 대신 기존 컨테이너 유지 또는 생성
-            let container = document.getElementById('network-container');
-            if (!container) {
-                displayArea.innerHTML = '';
-                container = document.createElement('div');
-                container.id = 'network-container';
-                const closeBtn = document.createElement('button');
-                closeBtn.id = 'close-fullscreen-btn';
-                closeBtn.innerText = '닫기 (X)';
-                closeBtn.onclick = toggleFullScreen;
-                container.appendChild(closeBtn);
-                displayArea.appendChild(container);
-            } else {
-                // 닫기 버튼을 제외한 내용만 지움
-                Array.from(container.children).forEach(child => {
-                    if (child.id !== 'close-fullscreen-btn') {
-                        container.removeChild(child);
-                    }
-                });
-            }
-
-            if (!query) {
-                container.innerHTML += `<p style="margin: 20px;">검색할 기초사건을 입력해주세요.</p>`;
-                return;
-            }
-
-            const loadingMsg = document.createElement('p');
-            loadingMsg.innerText = '네트워크를 구성하는 중...';
-            loadingMsg.style.margin = '20px';
-            container.appendChild(loadingMsg);
+            if (!query) { alert("검색할 기초사건을 입력해주세요."); return; }
 
             const { data, error } = await db.from('events').select('*').eq('root_event', query);
 
             if (error || !data || data.length === 0) {
-                loadingMsg.innerText = `'${query}'에 해당하는 데이터가 없습니다.`;
-                loadingMsg.style.color = 'red';
+                displayArea.innerHTML = `<p style="color: red; margin-top: 20px;">'${query}'에 해당하는 데이터가 없습니다.</p>`;
                 return;
             }
 
@@ -707,8 +617,10 @@
                 }
             });
 
-            // 로딩 메시지 제거
-            container.removeChild(loadingMsg);
+            displayArea.innerHTML = '';
+            const container = document.createElement('div');
+            container.id = 'network-container';
+            displayArea.appendChild(container);
 
             const networkData = {
                 nodes: new vis.DataSet(visNodes),
@@ -736,44 +648,19 @@
                 }
             };
 
-            networkInstance = new vis.Network(container, networkData, options);
+            new vis.Network(container, networkData, options);
         }
 
         // 🟢 전체 사건 관계도를 그려주는 새 함수 추가
         async function viewAllNetwork() {
             const displayArea = document.getElementById('result-display');
-
-            // 컨테이너 처리
-            let container = document.getElementById('network-container');
-            if (!container) {
-                displayArea.innerHTML = '';
-                container = document.createElement('div');
-                container.id = 'network-container';
-                const closeBtn = document.createElement('button');
-                closeBtn.id = 'close-fullscreen-btn';
-                closeBtn.innerText = '닫기 (X)';
-                closeBtn.onclick = toggleFullScreen;
-                container.appendChild(closeBtn);
-                displayArea.appendChild(container);
-            } else {
-                Array.from(container.children).forEach(child => {
-                    if (child.id !== 'close-fullscreen-btn') {
-                        container.removeChild(child);
-                    }
-                });
-            }
-
-            const loadingMsg = document.createElement('p');
-            loadingMsg.innerText = '전체 네트워크를 구성하는 중...';
-            loadingMsg.style.margin = '20px';
-            container.appendChild(loadingMsg);
+            displayArea.innerHTML = '<p>전체 네트워크를 구성하는 중...</p>';
 
             // 필터 조건 없이 전체 이벤트를 불러옵니다.
             const { data, error } = await db.from('events').select('*');
 
             if (error || !data || data.length === 0) {
-                loadingMsg.innerText = '저장된 데이터가 없습니다.';
-                loadingMsg.style.color = 'red';
+                displayArea.innerHTML = `<p style="color: red; margin-top: 20px;">저장된 데이터가 없습니다.</p>`;
                 return;
             }
 
@@ -868,8 +755,10 @@
                 }
             });
 
-            // 로딩 메시지 제거
-            container.removeChild(loadingMsg);
+            displayArea.innerHTML = '';
+            const container = document.createElement('div');
+            container.id = 'network-container';
+            displayArea.appendChild(container);
 
             const networkData = {
                 nodes: new vis.DataSet(visNodes),
@@ -897,7 +786,7 @@
                 }
             };
 
-            networkInstance = new vis.Network(container, networkData, options);
+            new vis.Network(container, networkData, options);
         }
     </script>
 </body>
