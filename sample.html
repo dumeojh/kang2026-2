@@ -866,7 +866,10 @@
             loadingMsg.style.margin = '20px';
             container.appendChild(loadingMsg);
 
-            const { data, error } = await db.from('events').select('*').eq('root_event', query);
+            const searchColumns = ['root_event', 'link_1', 'link_2', 'link_3', 'link_4', 'link_5', 'link_6', 'link_7', 'company'];
+            const orFilter = searchColumns.map(col => `${col}.eq.${query}`).join(',');
+
+            const { data, error } = await db.from('events').select('*').or(orFilter);
 
             if (error || !data || data.length === 0) {
                 loadingMsg.innerText = `'${query}'에 해당하는 데이터가 없습니다.`;
@@ -878,19 +881,19 @@
             const nodeTypes = {};
             const edgeCounts = {};
 
-            let rootDescription = '';
-
-            let rootDateString = '';
-
-            const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
-            if (rootItem) { rootDescription = rootItem.root_desc.trim(); }
-
-            const dateItem = data.find(item => item.event_date && item.event_date.trim() !== '');
-            if (dateItem) { rootDateString = dateItem.event_date.trim(); }
+            const rootDescriptions = {};
+            const rootDates = {};
 
             data.forEach(path => {
+                if (path.root_desc && path.root_desc.trim() !== '') {
+                    rootDescriptions[path.root_event.trim()] = path.root_desc.trim();
+                }
+                if (path.event_date && path.event_date.trim() !== '') {
+                    rootDates[path.root_event.trim()] = path.event_date.trim();
+                }
+
                 const seq = [
-                    { name: query, type: 'root' },
+                    { name: path.root_event, type: 'root' },
                     { name: path.link_1, type: 'event' },
                     { name: path.link_2, type: 'event' },
                     { name: path.link_3, type: 'event' },
@@ -941,17 +944,19 @@
                 let labelText = name;
                 if (nodeTypes[name] === 'root') {
 
-                    if (rootDateString) labelText += `\n[${rootDateString}]`;
-                    if (rootDescription) labelText += `\n(${rootDescription})`;
+                    if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
+                    if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
                 }
+
+                const isSearched = name === query;
 
                 return {
                     id: name,
                     label: labelText,
                     shape: 'box',
                     font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
-                    color: { background: bg, border: border },
-                    borderWidth: 2,
+                    color: { background: bg, border: isSearched ? '#FFD700' : border },
+                    borderWidth: isSearched ? 4 : 2,
                     shadow: true
                 };
             });
