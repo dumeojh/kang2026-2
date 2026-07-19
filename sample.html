@@ -274,6 +274,8 @@
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
         </div>
         <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
+        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
+            관계도 보기</button>
 
         <!-- 네트워크 그래프가 그려질 영역 -->
         <div id="result-display"></div>
@@ -528,19 +530,15 @@
                 return;
             }
 
-            // 노드 빈도수, 엣지(연결) 빈도수, 노드 타입(기초/사건/회사)을 저장할 객체
             const nodeCounts = {};
             const nodeTypes = {};
             const edgeCounts = {};
 
-            // 부연설명 찾기
             let rootDescription = '';
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
             if (rootItem) { rootDescription = rootItem.root_desc.trim(); }
 
-            // 전체 데이터를 순회하며 노드와 연결(엣지) 관계 추출
             data.forEach(path => {
-                // 한 줄(Row)의 사건 흐름을 순서대로 배열화
                 const seq = [
                     { name: query, type: 'root' },
                     { name: path.link_1, type: 'event' },
@@ -550,12 +548,10 @@
                     { name: path.company, type: 'company' }
                 ].filter(item => item.name && item.name.trim() !== '없음');
 
-                // 각 노드의 등장 횟수와 타입 기록
                 seq.forEach(item => {
                     const name = item.name.trim();
                     nodeCounts[name] = (nodeCounts[name] || 0) + 1;
 
-                    // 우선순위 부여 (기초사건 > 회사 > 일반사건)
                     if (!nodeTypes[name] || item.type === 'root') {
                         nodeTypes[name] = item.type;
                     } else if (item.type === 'company' && nodeTypes[name] !== 'root') {
@@ -563,7 +559,6 @@
                     }
                 });
 
-                // 앞 사건에서 뒷 사건으로 연결고리(Edge) 생성
                 for (let i = 0; i < seq.length - 1; i++) {
                     const from = seq[i].name.trim();
                     const to = seq[i + 1].name.trim();
@@ -572,28 +567,27 @@
                 }
             });
 
-            // 🟢 Vis.js 노드 데이터 배열 생성 (중복 많을수록 색상 진하게)
             const visNodes = Object.keys(nodeCounts).map(name => {
                 const count = nodeCounts[name];
                 let bg, border, fontColor;
 
                 if (nodeTypes[name] === 'root') {
-                    bg = count >= 3 ? '#0D47A1' : count === 2 ? '#1976D2' : '#2196F3'; // 파란색 점점 진하게
+                    bg = count >= 3 ? '#0D47A1' : count === 2 ? '#1976D2' : '#2196F3';
                     border = '#0D47A1';
                     fontColor = 'white';
                 } else if (nodeTypes[name] === 'company') {
-                    bg = count >= 3 ? '#E65100' : count === 2 ? '#F57C00' : '#FF9800'; // 주황색 점점 진하게
+                    bg = count >= 3 ? '#E65100' : count === 2 ? '#F57C00' : '#FF9800';
                     border = '#E65100';
                     fontColor = count > 1 ? 'white' : 'black';
                 } else {
-                    bg = count >= 4 ? '#1B5E20' : count === 3 ? '#388E3C' : count === 2 ? '#4CAF50' : '#C8E6C9'; // 초록색 점점 진하게
+                    bg = count >= 4 ? '#1B5E20' : count === 3 ? '#388E3C' : count === 2 ? '#4CAF50' : '#C8E6C9';
                     border = '#2E7D32';
                     fontColor = count > 1 ? 'white' : 'black';
                 }
 
                 let labelText = name;
                 if (nodeTypes[name] === 'root' && rootDescription) {
-                    labelText += `\n(${rootDescription})`; // 기초사건에 부연설명 포함
+                    labelText += `\n(${rootDescription})`;
                 }
 
                 return {
@@ -607,26 +601,22 @@
                 };
             });
 
-            // 🟢 Vis.js 엣지 데이터 배열 생성 (반복 횟수만큼 화살표 여러 가닥 생성)
             const visEdges = [];
             Object.keys(edgeCounts).forEach(key => {
                 const [from, to] = key.split('|');
                 const count = edgeCounts[key];
 
-                // 반복된 횟수(count)만큼 화살표 선을 여러 개 밀어넣습니다.
-                // 라이브러리가 자동으로 이 선들을 곡선으로 휘어지게 만들어 분리해 보여줍니다.
                 for (let i = 0; i < count; i++) {
                     visEdges.push({
                         from: from,
                         to: to,
                         arrows: 'to',
-                        color: { color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5' }, // 많이 연결될수록 선도 어둡게
+                        color: { color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5' },
                         width: count > 1 ? 2 : 1
                     });
                 }
             });
 
-            // 컨테이너 초기화 및 네트워크 그래프 주입
             displayArea.innerHTML = '';
             const container = document.createElement('div');
             container.id = 'network-container';
@@ -640,25 +630,162 @@
             const options = {
                 layout: {
                     hierarchical: {
-                        direction: 'UD', // 위(Up)에서 아래(Down)로 흐름
-                        sortMethod: 'directed', // 화살표 방향을 기준으로 계층 정렬
+                        direction: 'UD',
+                        sortMethod: 'directed',
                         nodeSpacing: 180,
                         levelSeparation: 120
                     }
                 },
                 physics: {
                     hierarchicalRepulsion: {
-                        nodeDistance: 150 // 노드 간 간격 조정
+                        nodeDistance: 150
                     }
                 },
                 edges: {
                     smooth: {
-                        type: 'dynamic' // 🟢 동일한 노드 사이에 여러 개의 선이 있으면 자동으로 둥글게 갈라져서 표시됨
+                        type: 'dynamic'
                     }
                 }
             };
 
-            // 네트워크 그래프 실행
+            new vis.Network(container, networkData, options);
+        }
+
+        // 🟢 전체 사건 관계도를 그려주는 새 함수 추가
+        async function viewAllNetwork() {
+            const displayArea = document.getElementById('result-display');
+            displayArea.innerHTML = '<p>전체 네트워크를 구성하는 중...</p>';
+
+            // 필터 조건 없이 전체 이벤트를 불러옵니다.
+            const { data, error } = await db.from('events').select('*');
+
+            if (error || !data || data.length === 0) {
+                displayArea.innerHTML = `<p style="color: red; margin-top: 20px;">저장된 데이터가 없습니다.</p>`;
+                return;
+            }
+
+            const nodeCounts = {};
+            const nodeTypes = {};
+            const edgeCounts = {};
+            const rootDescriptions = {}; // 모든 기초사건의 부연설명을 저장할 객체
+
+            // 전체 데이터를 순회하며 노드와 연결(엣지) 관계 추출
+            data.forEach(path => {
+                // 기초사건의 부연설명 수집
+                if (path.root_desc && path.root_desc.trim() !== '') {
+                    rootDescriptions[path.root_event.trim()] = path.root_desc.trim();
+                }
+
+                const seq = [
+                    { name: path.root_event, type: 'root' },
+                    { name: path.link_1, type: 'event' },
+                    { name: path.link_2, type: 'event' },
+                    { name: path.link_3, type: 'event' },
+                    { name: path.link_4, type: 'event' },
+                    { name: path.company, type: 'company' }
+                ].filter(item => item.name && item.name.trim() !== '없음');
+
+                seq.forEach(item => {
+                    const name = item.name.trim();
+                    nodeCounts[name] = (nodeCounts[name] || 0) + 1;
+
+                    if (!nodeTypes[name] || item.type === 'root') {
+                        nodeTypes[name] = item.type;
+                    } else if (item.type === 'company' && nodeTypes[name] !== 'root') {
+                        nodeTypes[name] = 'company';
+                    }
+                });
+
+                for (let i = 0; i < seq.length - 1; i++) {
+                    const from = seq[i].name.trim();
+                    const to = seq[i + 1].name.trim();
+                    const edgeKey = `${from}|${to}`;
+                    edgeCounts[edgeKey] = (edgeCounts[edgeKey] || 0) + 1;
+                }
+            });
+
+            const visNodes = Object.keys(nodeCounts).map(name => {
+                const count = nodeCounts[name];
+                let bg, border, fontColor;
+
+                if (nodeTypes[name] === 'root') {
+                    bg = count >= 3 ? '#0D47A1' : count === 2 ? '#1976D2' : '#2196F3';
+                    border = '#0D47A1';
+                    fontColor = 'white';
+                } else if (nodeTypes[name] === 'company') {
+                    bg = count >= 3 ? '#E65100' : count === 2 ? '#F57C00' : '#FF9800';
+                    border = '#E65100';
+                    fontColor = count > 1 ? 'white' : 'black';
+                } else {
+                    bg = count >= 4 ? '#1B5E20' : count === 3 ? '#388E3C' : count === 2 ? '#4CAF50' : '#C8E6C9';
+                    border = '#2E7D32';
+                    fontColor = count > 1 ? 'white' : 'black';
+                }
+
+                let labelText = name;
+                // 개별 기초사건에 맞는 부연설명 매핑
+                if (nodeTypes[name] === 'root' && rootDescriptions[name]) {
+                    labelText += `\n(${rootDescriptions[name]})`;
+                }
+
+                return {
+                    id: name,
+                    label: labelText,
+                    shape: 'box',
+                    font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
+                    color: { background: bg, border: border },
+                    borderWidth: 2,
+                    shadow: true
+                };
+            });
+
+            const visEdges = [];
+            Object.keys(edgeCounts).forEach(key => {
+                const [from, to] = key.split('|');
+                const count = edgeCounts[key];
+
+                for (let i = 0; i < count; i++) {
+                    visEdges.push({
+                        from: from,
+                        to: to,
+                        arrows: 'to',
+                        color: { color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5' },
+                        width: count > 1 ? 2 : 1
+                    });
+                }
+            });
+
+            displayArea.innerHTML = '';
+            const container = document.createElement('div');
+            container.id = 'network-container';
+            displayArea.appendChild(container);
+
+            const networkData = {
+                nodes: new vis.DataSet(visNodes),
+                edges: new vis.DataSet(visEdges)
+            };
+
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD',
+                        sortMethod: 'directed',
+                        nodeSpacing: 180,
+                        levelSeparation: 120
+                    }
+                },
+                physics: {
+                    hierarchicalRepulsion: {
+                        nodeDistance: 150
+                    }
+                },
+                edges: {
+                    smooth: {
+                        type: 'dynamic'
+                    }
+                }
+            };
+
             new vis.Network(container, networkData, options);
         }
     </script>
