@@ -83,7 +83,6 @@
             border-radius: 4px;
         }
 
-        /* 날짜 입력 필드는 너비 자동 조정 */
         .input-group input[type="date"] {
             width: 150px;
         }
@@ -118,23 +117,26 @@
             display: none;
         }
 
+        /* 🟢 줄간격 및 여백 극대화 압축 (한 화면에 다 들어오도록) */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 14px;
+            margin-top: 5px; /* 테이블 위 여백 축소 */
+            font-size: 12px; /* 폰트 크기 축소 */
         }
 
         th,
         td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 3px 5px; /* 셀 안의 위아래 패딩을 대폭 축소 */
             text-align: center;
+            height: 24px; /* 줄 높이 고정으로 최소화 */
         }
 
         th {
             background-color: #4CAF50;
             color: white;
+            padding: 4px 5px;
         }
 
         th.sortable {
@@ -152,12 +154,12 @@
         }
 
         .action-btn {
-            padding: 5px 10px;
-            margin: 2px;
+            padding: 2px 6px; /* 관리 버튼 여백 축소 */
+            margin: 1px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px; /* 버튼 폰트 축소 */
             font-weight: bold;
             color: white;
         }
@@ -186,34 +188,29 @@
             margin-top: 15px;
         }
 
+        .company-tag, .root-event-tag {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
         .company-tag {
             background-color: #FFF3E0;
             border: 1px solid #FF9800;
             color: #E65100;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-weight: bold;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
-
         .root-event-tag {
             background-color: #E8F5E9;
             border: 1px solid #4CAF50;
             color: #2E7D32;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-weight: bold;
             cursor: pointer;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
             transition: 0.2s;
         }
-
         .root-event-tag:hover {
             background-color: #C8E6C9;
             transform: scale(1.05);
         }
 
-        /* 네트워크 그래프를 띄울 컨테이너 */
         #network-container {
             width: 100%;
             height: 600px;
@@ -224,7 +221,6 @@
             position: relative;
         }
 
-        /* 전체화면 스타일 */
         #network-container.fullscreen {
             background-color: #f0f4f8;
             border: none;
@@ -252,20 +248,21 @@
             display: block;
         }
 
-        /* 페이지네이션 스타일 */
+        /* 🟢 페이지네이션 여백 축소 */
         .pagination {
             display: flex;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 10px; /* 테이블과 페이지 버튼 사이 간격 축소 */
             gap: 5px;
         }
 
         .page-btn {
-            padding: 5px 10px;
+            padding: 4px 8px; /* 페이지 버튼 크기 축소 */
             border: 1px solid #ccc;
             background-color: #f9f9f9;
             cursor: pointer;
             border-radius: 4px;
+            font-size: 12px;
         }
 
         .page-btn.active {
@@ -287,8 +284,7 @@
         <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
         <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
-        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
-            불러오기</button>
+        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터 불러오기</button>
     </div>
 
     <!-- 1. 기초사건 탭 -->
@@ -296,7 +292,6 @@
         <h3>기초사건 기록</h3>
         <p>동일한 기초사건에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
 
-        <!-- 🟢 기초사건과 날짜를 같은 줄에 배치 -->
         <div class="input-group">
             <label>기초사건</label>
             <input type="text" id="root-event" placeholder="예: 기초사건1">
@@ -349,11 +344,9 @@
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
         </div>
         <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
-        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
-            관계도 보기</button>
+        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체 관계도 보기</button>
         <button class="fullscreen-btn" onclick="toggleFullScreen()">전체화면으로 보기</button>
 
-        <!-- 네트워크 그래프가 그려질 영역 -->
         <div id="result-display">
             <div id="network-container">
                 <button id="close-fullscreen-btn" onclick="toggleFullScreen()">닫기 (X)</button>
@@ -368,16 +361,12 @@
 
     <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
-        <!-- 🟢 날짜 필터 추가 -->
-        <div
-            style="margin-bottom: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
+        <!-- 🟢 필터 영역 위아래 여백 축소 -->
+        <div style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
             <strong>필터 보기: </strong>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked
-                    onchange="applyDateFilter()"> 전체 보기</label>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date"
-                    onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
-            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는
-                데이터만</label>
+            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked onchange="applyDateFilter()"> 전체 보기</label>
+            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date" onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
+            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는 데이터만</label>
         </div>
 
         <div id="all-data-display"></div>
@@ -396,9 +385,10 @@
         let networkInstance = null;
 
         let currentPage = 1;
-        const itemsPerPage = 10;
+        // 🟢 한 화면에 들어가게끔 10개로 다시 복구
+        const itemsPerPage = 10; 
 
-        let currentFilter = 'all'; // 🟢 현재 필터 상태 저장 변수
+        let currentFilter = 'all'; 
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -410,7 +400,7 @@
 
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
-            const rootDate = document.getElementById('root-date').value; // 🟢 날짜 값 가져오기
+            const rootDate = document.getElementById('root-date').value; 
             const rootDesc = document.getElementById('root-desc').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
@@ -420,8 +410,6 @@
 
             if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
 
-            // 🟢 payload에 날짜 필드(event_date) 추가 (DB에 'event_date' 컬럼이 미리 생성되어 있어야 함)
-            // 만약 날짜가 비어있으면 null을 전송하도록 처리
             const payload = {
                 root_event: root,
                 event_date: rootDate || null,
@@ -437,7 +425,7 @@
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
                 if (error) {
                     console.error(error);
-                    alert("데이터 수정 중 오류가 발생했습니다. (DB에 'event_date' 컬럼이 있는지 확인해주세요)");
+                    alert("데이터 수정 중 오류가 발생했습니다.");
                     return;
                 }
                 cancelEdit();
@@ -448,12 +436,12 @@
                 const { error } = await db.from('events').insert([payload]);
                 if (error) {
                     console.error(error);
-                    alert("데이터 저장 중 오류가 발생했습니다. (DB에 'event_date' 컬럼이 있는지 확인해주세요)");
+                    alert("데이터 저장 중 오류가 발생했습니다.");
                     return;
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-                document.getElementById('root-date').value = ''; // 🟢 날짜 입력창 초기화
+                document.getElementById('root-date').value = ''; 
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
@@ -477,7 +465,6 @@
             renderTable();
         }
 
-        // 🟢 라디오 버튼 클릭 시 호출되는 필터 적용 함수
         function applyDateFilter() {
             const filterOptions = document.getElementsByName('date-filter');
             for (const option of filterOptions) {
@@ -486,7 +473,7 @@
                     break;
                 }
             }
-            currentPage = 1; // 필터를 바꾸면 1페이지로 이동
+            currentPage = 1; 
             renderTable();
         }
 
@@ -501,7 +488,7 @@
         }
 
         function getSortIcon(key) {
-            if (sortConfig.key !== key) return '<span style="color:#A5D6A7; font-size:12px;">↕</span>';
+            if (sortConfig.key !== key) return '<span style="color:#A5D6A7; font-size:10px;">↕</span>';
             return sortConfig.direction === 'asc' ? '▲' : '▼';
         }
 
@@ -509,7 +496,6 @@
             const displayArea = document.getElementById('all-data-display');
             const paginationArea = document.getElementById('pagination-display');
 
-            // 🟢 1. 필터링 로직 추가
             let filteredData = currentDataList;
             if (currentFilter === 'with-date') {
                 filteredData = currentDataList.filter(item => item.event_date && item.event_date.trim() !== '');
@@ -517,7 +503,6 @@
                 filteredData = currentDataList.filter(item => !item.event_date || item.event_date.trim() === '');
             }
 
-            // 🟢 2. 정렬 로직
             const sortedData = [...filteredData].sort((a, b) => {
                 let valA = a[sortConfig.key] || '';
                 let valB = b[sortConfig.key] || '';
@@ -533,7 +518,6 @@
                 return 0;
             });
 
-            // 🟢 3. 페이징 슬라이싱
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const pageData = sortedData.slice(startIndex, endIndex);
@@ -544,7 +528,6 @@
                 return;
             }
 
-            // 🟢 4. 테이블 그리기 (날짜 컬럼 추가)
             let htmlString = `<table>
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
@@ -564,7 +547,7 @@
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td>${dateDisplay}</td>
-                    <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
+                    <td style="color: #555; font-size: 11px;">${item.root_desc || ''}</td>
                     <td>${item.link_1 || ''}</td>
                     <td>${item.link_2 || ''}</td>
                     <td>${item.link_3 || ''}</td>
@@ -579,7 +562,6 @@
             htmlString += '</table>';
             displayArea.innerHTML = htmlString;
 
-            // 🟢 5. 페이지네이션 버튼 생성 (filteredData 길이 기준)
             const totalPages = Math.ceil(filteredData.length / itemsPerPage);
             let paginationHtml = '';
 
@@ -608,7 +590,7 @@
             if (!targetData) return;
 
             document.getElementById('root-event').value = targetData.root_event || '';
-            document.getElementById('root-date').value = targetData.event_date || ''; // 날짜 필드 복원
+            document.getElementById('root-date').value = targetData.event_date || ''; 
             document.getElementById('root-desc').value = targetData.root_desc || '';
             document.getElementById('link-event-1').value = targetData.link_1 || '';
             document.getElementById('link-event-2').value = targetData.link_2 || '';
@@ -634,7 +616,7 @@
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
             document.getElementById('root-event').value = '';
-            document.getElementById('root-date').value = ''; // 날짜 초기화
+            document.getElementById('root-date').value = ''; 
             document.getElementById('root-desc').value = '';
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
@@ -789,7 +771,7 @@
             const edgeCounts = {};
 
             let rootDescription = '';
-            // 🟢 기초사건(root_event) 노드 라벨에 날짜도 보여주기 위해 날짜 찾기
+            
             let rootDateString = '';
 
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
@@ -847,7 +829,7 @@
 
                 let labelText = name;
                 if (nodeTypes[name] === 'root') {
-                    // 🟢 기초사건 이름 밑에 날짜가 있으면 날짜 추가, 설명이 있으면 설명 추가
+                    
                     if (rootDateString) labelText += `\n[${rootDateString}]`;
                     if (rootDescription) labelText += `\n(${rootDescription})`;
                 }
@@ -954,14 +936,14 @@
             const edgeCounts = {};
 
             const rootDescriptions = {};
-            const rootDates = {}; // 🟢 전체 네트워크에서도 날짜를 매핑하기 위해 추가
+            const rootDates = {}; 
 
             data.forEach(path => {
                 if (path.root_desc && path.root_desc.trim() !== '') {
                     rootDescriptions[path.root_event.trim()] = path.root_desc.trim();
                 }
 
-                // 🟢 기초사건별 날짜 수집
+                
                 if (path.event_date && path.event_date.trim() !== '') {
                     rootDates[path.root_event.trim()] = path.event_date.trim();
                 }
@@ -1014,7 +996,7 @@
 
                 let labelText = name;
                 if (nodeTypes[name] === 'root') {
-                    // 🟢 노드 라벨에 매핑된 날짜와 설명 표시
+                    
                     if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
                     if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
                 }
