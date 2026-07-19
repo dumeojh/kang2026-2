@@ -244,6 +244,33 @@
         #network-container.fullscreen #close-fullscreen-btn {
             display: block;
         }
+
+        /* 🟢 페이지네이션 스타일 추가 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .page-btn {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .page-btn.active {
+            background-color: #4CAF50;
+            color: white;
+            border: 1px solid #4CAF50;
+            font-weight: bold;
+        }
+
+        .page-btn:hover:not(.active) {
+            background-color: #e9e9e9;
+        }
     </style>
 </head>
 
@@ -331,6 +358,8 @@
     <div id="all-data-tab" class="tab-content">
 
         <div id="all-data-display"></div>
+        <!-- 🟢 페이지네이션 버튼이 들어갈 영역 -->
+        <div id="pagination-display" class="pagination"></div>
     </div>
 
     <script>
@@ -343,6 +372,10 @@
         let currentDataList = [];
         let sortConfig = { key: 'id', direction: 'desc' };
         let networkInstance = null; // 네트워크 인스턴스를 저장할 변수 추가
+
+        // 🟢 페이징 처리를 위한 변수
+        let currentPage = 1;
+        const itemsPerPage = 10; // 한 페이지에 보여줄 데이터 개수
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -399,6 +432,7 @@
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
             currentDataList = data;
+            currentPage = 1; // 🟢 새 데이터를 불러오면 항상 1페이지부터 시작
             renderTable();
         }
 
@@ -419,6 +453,9 @@
 
         function renderTable() {
             const displayArea = document.getElementById('all-data-display');
+            const paginationArea = document.getElementById('pagination-display');
+
+            // 🟢 1. 전체 데이터 정렬
             const sortedData = [...currentDataList].sort((a, b) => {
                 let valA = a[sortConfig.key] || '';
                 let valB = b[sortConfig.key] || '';
@@ -434,6 +471,12 @@
                 return 0;
             });
 
+            // 🟢 2. 현재 페이지에 해당하는 데이터만 추출 (페이징 슬라이싱)
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = sortedData.slice(startIndex, endIndex);
+
+            // 🟢 3. 테이블 그리기
             let htmlString = `<table>
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
@@ -446,7 +489,7 @@
                     <th>관리</th>
                 </tr>`;
 
-            sortedData.forEach(item => {
+            pageData.forEach(item => {
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
@@ -463,6 +506,35 @@
             });
             htmlString += '</table>';
             displayArea.innerHTML = htmlString;
+
+            // 🟢 4. 페이지네이션 버튼 생성
+            const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+            let paginationHtml = '';
+
+            if (totalPages > 1) {
+                // 이전 버튼
+                if (currentPage > 1) {
+                    paginationHtml += `<button class="page-btn" onclick="changePage(${currentPage - 1})">이전</button>`;
+                }
+
+                // 페이지 번호 버튼
+                for (let i = 1; i <= totalPages; i++) {
+                    const activeClass = i === currentPage ? 'active' : '';
+                    paginationHtml += `<button class="page-btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
+                }
+
+                // 다음 버튼
+                if (currentPage < totalPages) {
+                    paginationHtml += `<button class="page-btn" onclick="changePage(${currentPage + 1})">다음</button>`;
+                }
+            }
+            paginationArea.innerHTML = paginationHtml;
+        }
+
+        // 🟢 페이지 변경 함수
+        function changePage(newPage) {
+            currentPage = newPage;
+            renderTable();
         }
 
         function prepareEdit(id) {
@@ -507,6 +579,8 @@
             if (!confirm("정말로 이 데이터를 삭제하시겠습니까?")) return;
             const { error } = await db.from('events').delete().eq('id', id);
             if (error) { alert("삭제 중 오류가 발생했습니다."); return; }
+
+            // 삭제 후 현재 데이터 갱신 (페이징 유지 로직 필요시 추가 처리)
             fetchAllData();
             if (currentEditId === id) cancelEdit();
         }
