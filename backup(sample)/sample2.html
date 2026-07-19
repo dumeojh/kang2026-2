@@ -65,8 +65,6 @@
 
         .input-group {
             margin-bottom: 10px;
-            display: flex;
-            align-items: center;
         }
 
         .input-group label {
@@ -75,17 +73,11 @@
             font-weight: bold;
         }
 
-        .input-group input[type="text"],
-        .input-group input[type="date"] {
+        .input-group input {
             padding: 8px;
             width: 300px;
             border: 1px solid #ccc;
             border-radius: 4px;
-        }
-
-        /* 날짜 입력 필드는 너비 자동 조정 */
-        .input-group input[type="date"] {
-            width: 150px;
         }
 
         .save-btn,
@@ -224,9 +216,10 @@
             position: relative;
         }
 
-        /* 전체화면 스타일 */
+        /* 전체화면 스타일 (기본 브라우저 전체화면 API 사용 시 클래스 추가됨) */
         #network-container.fullscreen {
             background-color: #f0f4f8;
+            /* 캔버스 배경색 유지 */
             border: none;
             border-radius: 0;
             width: 100vw;
@@ -252,7 +245,7 @@
             display: block;
         }
 
-        /* 페이지네이션 스타일 */
+        /* 🟢 페이지네이션 스타일 추가 */
         .pagination {
             display: flex;
             justify-content: center;
@@ -294,16 +287,11 @@
     <!-- 1. 기초사건 탭 -->
     <div id="event-tab" class="tab-content active">
         <h3>기초사건 기록</h3>
-        <p>동일한 기초사건에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
-
-        <!-- 🟢 기초사건과 날짜를 같은 줄에 배치 -->
+        <p>동일한 기초사건에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다.</p>
         <div class="input-group">
             <label>기초사건</label>
             <input type="text" id="root-event" placeholder="예: 기초사건1">
-            <span style="margin: 0 10px 0 20px; font-weight: bold; color: #555;">발생 날짜 :</span>
-            <input type="date" id="root-date">
         </div>
-
         <div class="input-group">
             <label>기초사건 설명</label>
             <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
@@ -368,19 +356,9 @@
 
     <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
-        <!-- 🟢 날짜 필터 추가 -->
-        <div
-            style="margin-bottom: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
-            <strong>필터 보기: </strong>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked
-                    onchange="applyDateFilter()"> 전체 보기</label>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date"
-                    onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
-            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는
-                데이터만</label>
-        </div>
 
         <div id="all-data-display"></div>
+        <!-- 🟢 페이지네이션 버튼이 들어갈 영역 -->
         <div id="pagination-display" class="pagination"></div>
     </div>
 
@@ -393,12 +371,11 @@
         let currentEditId = null;
         let currentDataList = [];
         let sortConfig = { key: 'id', direction: 'desc' };
-        let networkInstance = null;
+        let networkInstance = null; // 네트워크 인스턴스를 저장할 변수 추가
 
+        // 🟢 페이징 처리를 위한 변수
         let currentPage = 1;
-        const itemsPerPage = 10;
-
-        let currentFilter = 'all'; // 🟢 현재 필터 상태 저장 변수
+        const itemsPerPage = 10; // 한 페이지에 보여줄 데이터 개수
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -410,7 +387,6 @@
 
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
-            const rootDate = document.getElementById('root-date').value; // 🟢 날짜 값 가져오기
             const rootDesc = document.getElementById('root-desc').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
@@ -420,40 +396,23 @@
 
             if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
 
-            // 🟢 payload에 날짜 필드(event_date) 추가 (DB에 'event_date' 컬럼이 미리 생성되어 있어야 함)
-            // 만약 날짜가 비어있으면 null을 전송하도록 처리
             const payload = {
-                root_event: root,
-                event_date: rootDate || null,
-                root_desc: rootDesc,
-                link_1: link1,
-                link_2: link2,
-                link_3: link3,
-                link_4: link4,
-                company: company
+                root_event: root, root_desc: rootDesc, link_1: link1, link_2: link2,
+                link_3: link3, link_4: link4, company: company
             };
 
             if (currentEditId) {
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
-                if (error) {
-                    console.error(error);
-                    alert("데이터 수정 중 오류가 발생했습니다. (DB에 'event_date' 컬럼이 있는지 확인해주세요)");
-                    return;
-                }
+                if (error) { alert("데이터 수정 중 오류가 발생했습니다."); return; }
                 cancelEdit();
                 alert(`'${root}' 데이터가 성공적으로 수정되었습니다.`);
                 openTab('all-data-tab', document.querySelector('.load-data-tab'));
                 fetchAllData();
             } else {
                 const { error } = await db.from('events').insert([payload]);
-                if (error) {
-                    console.error(error);
-                    alert("데이터 저장 중 오류가 발생했습니다. (DB에 'event_date' 컬럼이 있는지 확인해주세요)");
-                    return;
-                }
+                if (error) { alert("데이터 저장 중 오류가 발생했습니다."); return; }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-                document.getElementById('root-date').value = ''; // 🟢 날짜 입력창 초기화
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
@@ -473,20 +432,7 @@
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
 
             currentDataList = data;
-            currentPage = 1;
-            renderTable();
-        }
-
-        // 🟢 라디오 버튼 클릭 시 호출되는 필터 적용 함수
-        function applyDateFilter() {
-            const filterOptions = document.getElementsByName('date-filter');
-            for (const option of filterOptions) {
-                if (option.checked) {
-                    currentFilter = option.value;
-                    break;
-                }
-            }
-            currentPage = 1; // 필터를 바꾸면 1페이지로 이동
+            currentPage = 1; // 🟢 새 데이터를 불러오면 항상 1페이지부터 시작
             renderTable();
         }
 
@@ -509,16 +455,8 @@
             const displayArea = document.getElementById('all-data-display');
             const paginationArea = document.getElementById('pagination-display');
 
-            // 🟢 1. 필터링 로직 추가
-            let filteredData = currentDataList;
-            if (currentFilter === 'with-date') {
-                filteredData = currentDataList.filter(item => item.event_date && item.event_date.trim() !== '');
-            } else if (currentFilter === 'no-date') {
-                filteredData = currentDataList.filter(item => !item.event_date || item.event_date.trim() === '');
-            }
-
-            // 🟢 2. 정렬 로직
-            const sortedData = [...filteredData].sort((a, b) => {
+            // 🟢 1. 전체 데이터 정렬
+            const sortedData = [...currentDataList].sort((a, b) => {
                 let valA = a[sortConfig.key] || '';
                 let valB = b[sortConfig.key] || '';
 
@@ -533,22 +471,15 @@
                 return 0;
             });
 
-            // 🟢 3. 페이징 슬라이싱
+            // 🟢 2. 현재 페이지에 해당하는 데이터만 추출 (페이징 슬라이싱)
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const pageData = sortedData.slice(startIndex, endIndex);
 
-            if (filteredData.length === 0) {
-                displayArea.innerHTML = '<p style="color: gray; text-align: center; margin-top: 30px;">해당 조건의 데이터가 없습니다.</p>';
-                paginationArea.innerHTML = '';
-                return;
-            }
-
-            // 🟢 4. 테이블 그리기 (날짜 컬럼 추가)
+            // 🟢 3. 테이블 그리기
             let htmlString = `<table>
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
-                    <th class="sortable" onclick="sortData('event_date')">날짜 ${getSortIcon('event_date')}</th>
                     <th class="sortable" onclick="sortData('root_desc')">부연설명 ${getSortIcon('root_desc')}</th>
                     <th class="sortable" onclick="sortData('link_1')">연결사건 1 ${getSortIcon('link_1')}</th>
                     <th class="sortable" onclick="sortData('link_2')">연결사건 2 ${getSortIcon('link_2')}</th>
@@ -559,11 +490,8 @@
                 </tr>`;
 
             pageData.forEach(item => {
-                const dateDisplay = item.event_date ? `<span style="color:#00796B; font-weight:bold;">${item.event_date}</span>` : '<span style="color:#ccc;">-</span>';
-
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
-                    <td>${dateDisplay}</td>
                     <td style="color: #555; font-size: 12px;">${item.root_desc || ''}</td>
                     <td>${item.link_1 || ''}</td>
                     <td>${item.link_2 || ''}</td>
@@ -579,18 +507,23 @@
             htmlString += '</table>';
             displayArea.innerHTML = htmlString;
 
-            // 🟢 5. 페이지네이션 버튼 생성 (filteredData 길이 기준)
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            // 🟢 4. 페이지네이션 버튼 생성
+            const totalPages = Math.ceil(sortedData.length / itemsPerPage);
             let paginationHtml = '';
 
             if (totalPages > 1) {
+                // 이전 버튼
                 if (currentPage > 1) {
                     paginationHtml += `<button class="page-btn" onclick="changePage(${currentPage - 1})">이전</button>`;
                 }
+
+                // 페이지 번호 버튼
                 for (let i = 1; i <= totalPages; i++) {
                     const activeClass = i === currentPage ? 'active' : '';
                     paginationHtml += `<button class="page-btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
                 }
+
+                // 다음 버튼
                 if (currentPage < totalPages) {
                     paginationHtml += `<button class="page-btn" onclick="changePage(${currentPage + 1})">다음</button>`;
                 }
@@ -598,6 +531,7 @@
             paginationArea.innerHTML = paginationHtml;
         }
 
+        // 🟢 페이지 변경 함수
         function changePage(newPage) {
             currentPage = newPage;
             renderTable();
@@ -608,7 +542,6 @@
             if (!targetData) return;
 
             document.getElementById('root-event').value = targetData.root_event || '';
-            document.getElementById('root-date').value = targetData.event_date || ''; // 날짜 필드 복원
             document.getElementById('root-desc').value = targetData.root_desc || '';
             document.getElementById('link-event-1').value = targetData.link_1 || '';
             document.getElementById('link-event-2').value = targetData.link_2 || '';
@@ -634,7 +567,6 @@
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
             document.getElementById('root-event').value = '';
-            document.getElementById('root-date').value = ''; // 날짜 초기화
             document.getElementById('root-desc').value = '';
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
@@ -648,6 +580,7 @@
             const { error } = await db.from('events').delete().eq('id', id);
             if (error) { alert("삭제 중 오류가 발생했습니다."); return; }
 
+            // 삭제 후 현재 데이터 갱신 (페이징 유지 로직 필요시 추가 처리)
             fetchAllData();
             if (currentEditId === id) cancelEdit();
         }
@@ -697,29 +630,33 @@
             searchData();
         }
 
+        // 브라우저의 기본 전체화면(Native Fullscreen API) 사용 및 ESC 감지
         function toggleFullScreen() {
             const container = document.getElementById('network-container');
             if (!container) return;
 
             if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                // 전체화면 진입
                 if (container.requestFullscreen) {
                     container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
+                } else if (container.webkitRequestFullscreen) { /* Safari */
                     container.webkitRequestFullscreen();
-                } else if (container.msRequestFullscreen) {
+                } else if (container.msRequestFullscreen) { /* IE11 */
                     container.msRequestFullscreen();
                 }
             } else {
+                // 전체화면 종료
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
+                } else if (document.webkitExitFullscreen) { /* Safari */
                     document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
+                } else if (document.msExitFullscreen) { /* IE11 */
                     document.msExitFullscreen();
                 }
             }
         }
 
+        // 전체화면 상태가 변할 때(ESC키 누름 등) 클래스 추가/제거 및 캔버스 크기 재조정
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         document.addEventListener('msfullscreenchange', handleFullscreenChange);
@@ -743,10 +680,12 @@
             }
         }
 
+        // 🟢 다방향 네트워크 그래프 및 화살표, 색상 농도 로직 적용 🟢
         async function searchData() {
             const query = document.getElementById('search-query').value.trim();
             const displayArea = document.getElementById('result-display');
 
+            // 컨테이너 초기화 대신 기존 컨테이너 유지 또는 생성
             let container = document.getElementById('network-container');
             if (!container) {
                 displayArea.innerHTML = '';
@@ -759,6 +698,7 @@
                 container.appendChild(closeBtn);
                 displayArea.appendChild(container);
             } else {
+                // 닫기 버튼을 제외한 내용만 지움
                 Array.from(container.children).forEach(child => {
                     if (child.id !== 'close-fullscreen-btn') {
                         container.removeChild(child);
@@ -789,14 +729,8 @@
             const edgeCounts = {};
 
             let rootDescription = '';
-            // 🟢 기초사건(root_event) 노드 라벨에 날짜도 보여주기 위해 날짜 찾기
-            let rootDateString = '';
-
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
             if (rootItem) { rootDescription = rootItem.root_desc.trim(); }
-
-            const dateItem = data.find(item => item.event_date && item.event_date.trim() !== '');
-            if (dateItem) { rootDateString = dateItem.event_date.trim(); }
 
             data.forEach(path => {
                 const seq = [
@@ -846,10 +780,8 @@
                 }
 
                 let labelText = name;
-                if (nodeTypes[name] === 'root') {
-                    // 🟢 기초사건 이름 밑에 날짜가 있으면 날짜 추가, 설명이 있으면 설명 추가
-                    if (rootDateString) labelText += `\n[${rootDateString}]`;
-                    if (rootDescription) labelText += `\n(${rootDescription})`;
+                if (nodeTypes[name] === 'root' && rootDescription) {
+                    labelText += `\n(${rootDescription})`;
                 }
 
                 return {
@@ -873,6 +805,7 @@
                         from: from,
                         to: to,
                         arrows: 'to',
+                        // 🟢 박스(노드) 클릭 시 연결선(엣지)을 빨간색(적색)으로 하이라이트하도록 옵션 추가
                         color: {
                             color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5',
                             highlight: '#ff0000',
@@ -883,6 +816,7 @@
                 }
             });
 
+            // 로딩 메시지 제거
             container.removeChild(loadingMsg);
 
             const networkData = {
@@ -914,9 +848,11 @@
             networkInstance = new vis.Network(container, networkData, options);
         }
 
+        // 🟢 전체 사건 관계도를 그려주는 새 함수 추가
         async function viewAllNetwork() {
             const displayArea = document.getElementById('result-display');
 
+            // 컨테이너 처리
             let container = document.getElementById('network-container');
             if (!container) {
                 displayArea.innerHTML = '';
@@ -941,6 +877,7 @@
             loadingMsg.style.margin = '20px';
             container.appendChild(loadingMsg);
 
+            // 필터 조건 없이 전체 이벤트를 불러옵니다.
             const { data, error } = await db.from('events').select('*');
 
             if (error || !data || data.length === 0) {
@@ -952,18 +889,13 @@
             const nodeCounts = {};
             const nodeTypes = {};
             const edgeCounts = {};
+            const rootDescriptions = {}; // 모든 기초사건의 부연설명을 저장할 객체
 
-            const rootDescriptions = {};
-            const rootDates = {}; // 🟢 전체 네트워크에서도 날짜를 매핑하기 위해 추가
-
+            // 전체 데이터를 순회하며 노드와 연결(엣지) 관계 추출
             data.forEach(path => {
+                // 기초사건의 부연설명 수집
                 if (path.root_desc && path.root_desc.trim() !== '') {
                     rootDescriptions[path.root_event.trim()] = path.root_desc.trim();
-                }
-
-                // 🟢 기초사건별 날짜 수집
-                if (path.event_date && path.event_date.trim() !== '') {
-                    rootDates[path.root_event.trim()] = path.event_date.trim();
                 }
 
                 const seq = [
@@ -1013,10 +945,9 @@
                 }
 
                 let labelText = name;
-                if (nodeTypes[name] === 'root') {
-                    // 🟢 노드 라벨에 매핑된 날짜와 설명 표시
-                    if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
-                    if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
+                // 개별 기초사건에 맞는 부연설명 매핑
+                if (nodeTypes[name] === 'root' && rootDescriptions[name]) {
+                    labelText += `\n(${rootDescriptions[name]})`;
                 }
 
                 return {
@@ -1040,6 +971,7 @@
                         from: from,
                         to: to,
                         arrows: 'to',
+                        // 🟢 박스(노드) 클릭 시 연결선(엣지)을 빨간색(적색)으로 하이라이트하도록 옵션 추가
                         color: {
                             color: count > 2 ? '#424242' : count > 1 ? '#757575' : '#B0BEC5',
                             highlight: '#ff0000',
@@ -1050,6 +982,7 @@
                 }
             });
 
+            // 로딩 메시지 제거
             container.removeChild(loadingMsg);
 
             const networkData = {
