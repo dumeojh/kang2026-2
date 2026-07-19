@@ -430,6 +430,12 @@
 
     <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
+        <div class="input-group">
+            <label>사건주체 검색</label>
+            <input type="text" id="all-data-search-query" placeholder="예: 사건주체1 (비워두면 전체 표시)"
+                oninput="applySearchFilter()">
+        </div>
+
         <div
             style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
             <strong>필터 보기: </strong>
@@ -460,6 +466,7 @@
         const itemsPerPage = 10;
 
         let currentFilter = 'all';
+        let currentSearchQuery = '';
 
         // 🟢 탭 열기
         function openTab(tabId, btnElement) {
@@ -551,6 +558,12 @@
             renderTable();
         }
 
+        function applySearchFilter() {
+            currentSearchQuery = document.getElementById('all-data-search-query').value.trim();
+            currentPage = 1;
+            renderTable();
+        }
+
         function sortData(key) {
             if (sortConfig.key === key) {
                 sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -572,9 +585,16 @@
 
             let filteredData = currentDataList;
             if (currentFilter === 'with-date') {
-                filteredData = currentDataList.filter(item => item.event_date && item.event_date.trim() !== '');
+                filteredData = filteredData.filter(item => item.event_date && item.event_date.trim() !== '');
             } else if (currentFilter === 'no-date') {
-                filteredData = currentDataList.filter(item => !item.event_date || item.event_date.trim() === '');
+                filteredData = filteredData.filter(item => !item.event_date || item.event_date.trim() === '');
+            }
+
+            // 🟢 사건주체(root_event) 검색 - 필터에 상관없이 사건주체 항목에만 적용
+            if (currentSearchQuery) {
+                filteredData = filteredData.filter(item =>
+                    item.root_event && item.root_event.toLowerCase().includes(currentSearchQuery.toLowerCase())
+                );
             }
 
             const sortedData = [...filteredData].sort((a, b) => {
