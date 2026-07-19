@@ -56,7 +56,8 @@
             border: 1px solid #ccc;
             padding: 20px;
             border-radius: 0 5px 5px 5px;
-            max-width: 1000px;
+            max-width: 1200px;
+            /* 테이블이 넓어졌으므로 최대 너비 약간 확장 */
         }
 
         .tab-content.active {
@@ -121,22 +122,23 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px; /* 테이블 위 여백 축소 */
-            font-size: 12px; /* 폰트 크기 축소 */
+            margin-top: 5px;
+            font-size: 11px;
+            /* 데이터가 많아져 폰트를 조금 더 줄임 */
         }
 
         th,
         td {
             border: 1px solid #ddd;
-            padding: 3px 5px; /* 셀 안의 위아래 패딩을 대폭 축소 */
+            padding: 3px 4px;
             text-align: center;
-            height: 24px; /* 줄 높이 고정으로 최소화 */
+            height: 24px;
         }
 
         th {
             background-color: #4CAF50;
             color: white;
-            padding: 4px 5px;
+            padding: 4px 4px;
         }
 
         th.sortable {
@@ -154,12 +156,12 @@
         }
 
         .action-btn {
-            padding: 2px 6px; /* 관리 버튼 여백 축소 */
+            padding: 2px 6px;
             margin: 1px;
             border: none;
             border-radius: 3px;
             cursor: pointer;
-            font-size: 11px; /* 버튼 폰트 축소 */
+            font-size: 10px;
             font-weight: bold;
             color: white;
         }
@@ -188,17 +190,20 @@
             margin-top: 15px;
         }
 
-        .company-tag, .root-event-tag {
+        .company-tag,
+        .root-event-tag {
             padding: 8px 18px;
             border-radius: 20px;
             font-weight: bold;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
+
         .company-tag {
             background-color: #FFF3E0;
             border: 1px solid #FF9800;
             color: #E65100;
         }
+
         .root-event-tag {
             background-color: #E8F5E9;
             border: 1px solid #4CAF50;
@@ -206,6 +211,7 @@
             cursor: pointer;
             transition: 0.2s;
         }
+
         .root-event-tag:hover {
             background-color: #C8E6C9;
             transform: scale(1.05);
@@ -248,16 +254,15 @@
             display: block;
         }
 
-        /* 🟢 페이지네이션 여백 축소 */
         .pagination {
             display: flex;
             justify-content: center;
-            margin-top: 10px; /* 테이블과 페이지 버튼 사이 간격 축소 */
+            margin-top: 10px;
             gap: 5px;
         }
 
         .page-btn {
-            padding: 4px 8px; /* 페이지 버튼 크기 축소 */
+            padding: 4px 8px;
             border: 1px solid #ccc;
             background-color: #f9f9f9;
             cursor: pointer;
@@ -284,7 +289,8 @@
         <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
         <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
-        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터 불러오기</button>
+        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
+            불러오기</button>
     </div>
 
     <!-- 1. 기초사건 탭 -->
@@ -319,6 +325,19 @@
             <label>연결사건 4</label>
             <input type="text" id="link-event-4" placeholder="예: 사건4">
         </div>
+        <!-- 🟢 추가된 연결사건 5, 6, 7 -->
+        <div class="input-group">
+            <label>연결사건 5</label>
+            <input type="text" id="link-event-5" placeholder="예: 사건5">
+        </div>
+        <div class="input-group">
+            <label>연결사건 6</label>
+            <input type="text" id="link-event-6" placeholder="예: 사건6">
+        </div>
+        <div class="input-group">
+            <label>연결사건 7</label>
+            <input type="text" id="link-event-7" placeholder="예: 사건7">
+        </div>
         <div class="input-group">
             <label>관련 회사</label>
             <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
@@ -344,7 +363,8 @@
             <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
         </div>
         <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
-        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체 관계도 보기</button>
+        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
+            관계도 보기</button>
         <button class="fullscreen-btn" onclick="toggleFullScreen()">전체화면으로 보기</button>
 
         <div id="result-display">
@@ -361,12 +381,15 @@
 
     <!-- 4. 전체 데이터 전용 관리 탭 -->
     <div id="all-data-tab" class="tab-content">
-        <!-- 🟢 필터 영역 위아래 여백 축소 -->
-        <div style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
+        <div
+            style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
             <strong>필터 보기: </strong>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked onchange="applyDateFilter()"> 전체 보기</label>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date" onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
-            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는 데이터만</label>
+            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked
+                    onchange="applyDateFilter()"> 전체 보기</label>
+            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date"
+                    onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
+            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는
+                데이터만</label>
         </div>
 
         <div id="all-data-display"></div>
@@ -385,10 +408,9 @@
         let networkInstance = null;
 
         let currentPage = 1;
-        // 🟢 한 화면에 들어가게끔 10개로 다시 복구
-        const itemsPerPage = 10; 
+        const itemsPerPage = 10;
 
-        let currentFilter = 'all'; 
+        let currentFilter = 'all';
 
         function openTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -400,12 +422,16 @@
 
         async function saveData() {
             const root = document.getElementById('root-event').value.trim();
-            const rootDate = document.getElementById('root-date').value; 
+            const rootDate = document.getElementById('root-date').value;
             const rootDesc = document.getElementById('root-desc').value.trim();
             const link1 = document.getElementById('link-event-1').value.trim();
             const link2 = document.getElementById('link-event-2').value.trim();
             const link3 = document.getElementById('link-event-3').value.trim();
             const link4 = document.getElementById('link-event-4').value.trim();
+            // 🟢 추가된 데이터 읽기
+            const link5 = document.getElementById('link-event-5').value.trim();
+            const link6 = document.getElementById('link-event-6').value.trim();
+            const link7 = document.getElementById('link-event-7').value.trim();
             const company = document.getElementById('related-company').value.trim();
 
             if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
@@ -418,6 +444,9 @@
                 link_2: link2,
                 link_3: link3,
                 link_4: link4,
+                link_5: link5, // 🟢 페이로드에 추가
+                link_6: link6,
+                link_7: link7,
                 company: company
             };
 
@@ -425,7 +454,7 @@
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
                 if (error) {
                     console.error(error);
-                    alert("데이터 수정 중 오류가 발생했습니다.");
+                    alert("데이터 수정 중 오류가 발생했습니다. DB에 컬럼이 있는지 확인하세요.");
                     return;
                 }
                 cancelEdit();
@@ -436,16 +465,19 @@
                 const { error } = await db.from('events').insert([payload]);
                 if (error) {
                     console.error(error);
-                    alert("데이터 저장 중 오류가 발생했습니다.");
+                    alert("데이터 저장 중 오류가 발생했습니다. DB에 컬럼이 있는지 확인하세요.");
                     return;
                 }
                 document.getElementById('save-message').innerText = `'${root}' 데이터가 성공적으로 저장되었습니다.`;
 
-                document.getElementById('root-date').value = ''; 
+                document.getElementById('root-date').value = '';
                 document.getElementById('link-event-1').value = '';
                 document.getElementById('link-event-2').value = '';
                 document.getElementById('link-event-3').value = '';
                 document.getElementById('link-event-4').value = '';
+                document.getElementById('link-event-5').value = ''; // 🟢 초기화 추가
+                document.getElementById('link-event-6').value = '';
+                document.getElementById('link-event-7').value = '';
                 document.getElementById('related-company').value = '';
                 setTimeout(() => { document.getElementById('save-message').innerText = ''; }, 3000);
             }
@@ -473,7 +505,7 @@
                     break;
                 }
             }
-            currentPage = 1; 
+            currentPage = 1;
             renderTable();
         }
 
@@ -528,15 +560,19 @@
                 return;
             }
 
+            // 🟢 테이블 헤더에 5, 6, 7 추가
             let htmlString = `<table>
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
                     <th class="sortable" onclick="sortData('event_date')">날짜 ${getSortIcon('event_date')}</th>
                     <th class="sortable" onclick="sortData('root_desc')">부연설명 ${getSortIcon('root_desc')}</th>
-                    <th class="sortable" onclick="sortData('link_1')">연결사건 1 ${getSortIcon('link_1')}</th>
-                    <th class="sortable" onclick="sortData('link_2')">연결사건 2 ${getSortIcon('link_2')}</th>
-                    <th class="sortable" onclick="sortData('link_3')">연결사건 3 ${getSortIcon('link_3')}</th>
-                    <th class="sortable" onclick="sortData('link_4')">연결사건 4 ${getSortIcon('link_4')}</th>
+                    <th class="sortable" onclick="sortData('link_1')">연결1 ${getSortIcon('link_1')}</th>
+                    <th class="sortable" onclick="sortData('link_2')">연결2 ${getSortIcon('link_2')}</th>
+                    <th class="sortable" onclick="sortData('link_3')">연결3 ${getSortIcon('link_3')}</th>
+                    <th class="sortable" onclick="sortData('link_4')">연결4 ${getSortIcon('link_4')}</th>
+                    <th class="sortable" onclick="sortData('link_5')">연결5 ${getSortIcon('link_5')}</th>
+                    <th class="sortable" onclick="sortData('link_6')">연결6 ${getSortIcon('link_6')}</th>
+                    <th class="sortable" onclick="sortData('link_7')">연결7 ${getSortIcon('link_7')}</th>
                     <th class="sortable" onclick="sortData('company')">관련 회사 ${getSortIcon('company')}</th>
                     <th>관리</th>
                 </tr>`;
@@ -544,14 +580,18 @@
             pageData.forEach(item => {
                 const dateDisplay = item.event_date ? `<span style="color:#00796B; font-weight:bold;">${item.event_date}</span>` : '<span style="color:#ccc;">-</span>';
 
+                // 🟢 테이블 데이터에 5, 6, 7 추가
                 htmlString += `<tr>
                     <td>${item.root_event || ''}</td>
                     <td>${dateDisplay}</td>
-                    <td style="color: #555; font-size: 11px;">${item.root_desc || ''}</td>
+                    <td style="color: #555;">${item.root_desc || ''}</td>
                     <td>${item.link_1 || ''}</td>
                     <td>${item.link_2 || ''}</td>
                     <td>${item.link_3 || ''}</td>
                     <td>${item.link_4 || ''}</td>
+                    <td>${item.link_5 || ''}</td>
+                    <td>${item.link_6 || ''}</td>
+                    <td>${item.link_7 || ''}</td>
                     <td>${item.company || ''}</td>
                     <td>
                         <button class="action-btn edit-btn" onclick="prepareEdit(${item.id})">수정</button>
@@ -590,12 +630,16 @@
             if (!targetData) return;
 
             document.getElementById('root-event').value = targetData.root_event || '';
-            document.getElementById('root-date').value = targetData.event_date || ''; 
+            document.getElementById('root-date').value = targetData.event_date || '';
             document.getElementById('root-desc').value = targetData.root_desc || '';
             document.getElementById('link-event-1').value = targetData.link_1 || '';
             document.getElementById('link-event-2').value = targetData.link_2 || '';
             document.getElementById('link-event-3').value = targetData.link_3 || '';
             document.getElementById('link-event-4').value = targetData.link_4 || '';
+            // 🟢 수정 시 5, 6, 7 데이터 불러오기
+            document.getElementById('link-event-5').value = targetData.link_5 || '';
+            document.getElementById('link-event-6').value = targetData.link_6 || '';
+            document.getElementById('link-event-7').value = targetData.link_7 || '';
             document.getElementById('related-company').value = targetData.company || '';
 
             currentEditId = id;
@@ -616,12 +660,16 @@
             document.getElementById('cancel-edit-btn').style.display = 'none';
 
             document.getElementById('root-event').value = '';
-            document.getElementById('root-date').value = ''; 
+            document.getElementById('root-date').value = '';
             document.getElementById('root-desc').value = '';
             document.getElementById('link-event-1').value = '';
             document.getElementById('link-event-2').value = '';
             document.getElementById('link-event-3').value = '';
             document.getElementById('link-event-4').value = '';
+            // 🟢 취소 시 5, 6, 7 초기화
+            document.getElementById('link-event-5').value = '';
+            document.getElementById('link-event-6').value = '';
+            document.getElementById('link-event-7').value = '';
             document.getElementById('related-company').value = '';
         }
 
@@ -771,7 +819,7 @@
             const edgeCounts = {};
 
             let rootDescription = '';
-            
+
             let rootDateString = '';
 
             const rootItem = data.find(item => item.root_desc && item.root_desc.trim() !== '');
@@ -781,12 +829,16 @@
             if (dateItem) { rootDateString = dateItem.event_date.trim(); }
 
             data.forEach(path => {
+                // 🟢 네트워크 연결 순서에 5, 6, 7 추가
                 const seq = [
                     { name: query, type: 'root' },
                     { name: path.link_1, type: 'event' },
                     { name: path.link_2, type: 'event' },
                     { name: path.link_3, type: 'event' },
                     { name: path.link_4, type: 'event' },
+                    { name: path.link_5, type: 'event' },
+                    { name: path.link_6, type: 'event' },
+                    { name: path.link_7, type: 'event' },
                     { name: path.company, type: 'company' }
                 ].filter(item => item.name && item.name.trim() !== '없음');
 
@@ -829,7 +881,7 @@
 
                 let labelText = name;
                 if (nodeTypes[name] === 'root') {
-                    
+
                     if (rootDateString) labelText += `\n[${rootDateString}]`;
                     if (rootDescription) labelText += `\n(${rootDescription})`;
                 }
@@ -936,24 +988,28 @@
             const edgeCounts = {};
 
             const rootDescriptions = {};
-            const rootDates = {}; 
+            const rootDates = {};
 
             data.forEach(path => {
                 if (path.root_desc && path.root_desc.trim() !== '') {
                     rootDescriptions[path.root_event.trim()] = path.root_desc.trim();
                 }
 
-                
+
                 if (path.event_date && path.event_date.trim() !== '') {
                     rootDates[path.root_event.trim()] = path.event_date.trim();
                 }
 
+                // 🟢 전체 네트워크 조회에도 연결사건 5, 6, 7 추가
                 const seq = [
                     { name: path.root_event, type: 'root' },
                     { name: path.link_1, type: 'event' },
                     { name: path.link_2, type: 'event' },
                     { name: path.link_3, type: 'event' },
                     { name: path.link_4, type: 'event' },
+                    { name: path.link_5, type: 'event' },
+                    { name: path.link_6, type: 'event' },
+                    { name: path.link_7, type: 'event' },
                     { name: path.company, type: 'company' }
                 ].filter(item => item.name && item.name.trim() !== '없음');
 
@@ -996,7 +1052,7 @@
 
                 let labelText = name;
                 if (nodeTypes[name] === 'root') {
-                    
+
                     if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
                     if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
                 }
