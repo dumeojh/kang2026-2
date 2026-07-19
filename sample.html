@@ -315,29 +315,29 @@
 <body>
 
     <div class="tab-menu">
-        <button class="tab-button active" onclick="openTab('event-tab', this)">기초사건</button>
+        <button class="tab-button active" onclick="openTab('event-tab', this)">사건주체</button>
         <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
         <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
         <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
             불러오기</button>
     </div>
 
-    <!-- 1. 기초사건 탭 -->
+    <!-- 1. 사건주체 탭 -->
     <div id="event-tab" class="tab-content active">
-        <h3>기초사건 기록</h3>
-        <p>동일한 기초사건에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
+        <h3>사건주체 기록</h3>
+        <p>동일한 사건주체에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
 
         <div class="input-group">
             <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
-            <label>기초사건</label>
-            <input type="text" id="root-event" placeholder="예: 기초사건1">
+            <label>사건주체</label>
+            <input type="text" id="root-event" placeholder="예: 사건주체1">
             <span style="margin: 0 10px 0 20px; font-weight: bold; color: #555;">발생 날짜 :</span>
             <input type="date" id="root-date">
         </div>
 
         <div class="input-group">
             <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
-            <label>기초사건 설명</label>
+            <label>사건내용</label>
             <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
         </div>
 
@@ -408,8 +408,8 @@
         <h3>사건 관계도 분석 (다방향 네트워크 그래프)</h3>
         <p>마우스 휠로 확대/축소하거나 상자를 드래그해서 위치를 조정할 수 있습니다.</p>
         <div class="input-group">
-            <label>기초사건 검색</label>
-            <input type="text" id="search-query" placeholder="조회할 기초사건을 입력하세요 (예: 기초사건1)">
+            <label>사건주체 검색</label>
+            <input type="text" id="search-query" placeholder="조회할 사건주체를 입력하세요 (예: 사건주체1)">
         </div>
         <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
         <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
@@ -423,7 +423,7 @@
         </div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
-        <h3>등록된 기초사건 목록</h3>
+        <h3>등록된 사건주체 목록</h3>
         <p>아래 사건을 클릭하면 상단 검색창에 입력되어 관계도가 바로 조회됩니다.</p>
         <div id="root-event-list-display"></div>
     </div>
@@ -493,7 +493,7 @@
                 company: company
             };
 
-            if (!root) { alert("기초사건은 반드시 입력해야 합니다."); return; }
+            if (!root) { alert("사건주체는 반드시 입력해야 합니다."); return; }
 
             if (currentEditId) {
                 const { error } = await db.from('events').update(payload).eq('id', currentEditId);
@@ -603,9 +603,9 @@
 
             let htmlString = `<table>
                 <tr>
-                    <th class="sortable" onclick="sortData('root_event')">기초사건 ${getSortIcon('root_event')}</th>
+                    <th class="sortable" onclick="sortData('root_event')">사건주체 ${getSortIcon('root_event')}</th>
                     <th class="sortable" onclick="sortData('event_date')">날짜 ${getSortIcon('event_date')}</th>
-                    <th class="sortable" onclick="sortData('root_desc')">부연설명 ${getSortIcon('root_desc')}</th>
+                    <th class="sortable" onclick="sortData('root_desc')">사건내용 ${getSortIcon('root_desc')}</th>
                     <th class="sortable" onclick="sortData('link_1')">연결1 ${getSortIcon('link_1')}</th>
                     <th class="sortable" onclick="sortData('link_2')">연결2 ${getSortIcon('link_2')}</th>
                     <th class="sortable" onclick="sortData('link_3')">연결3 ${getSortIcon('link_3')}</th>
@@ -742,7 +742,7 @@
 
         async function fetchRootEvents() {
             const displayArea = document.getElementById('root-event-list-display');
-            displayArea.innerHTML = '<p>기초사건 리스트를 불러오는 중...</p>';
+            displayArea.innerHTML = '<p>사건주체 리스트를 불러오는 중...</p>';
             const { data, error } = await db.from('events').select('root_event');
             if (error) return;
 
@@ -752,7 +752,7 @@
                 if (root) uniqueRootEvents.add(root);
             });
 
-            if (uniqueRootEvents.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 기초사건 정보가 없습니다.</p>'; return; }
+            if (uniqueRootEvents.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 사건주체 정보가 없습니다.</p>'; return; }
             let htmlString = '<div class="event-tag-list">';
             uniqueRootEvents.forEach(root => {
                 htmlString += `<div class="root-event-tag" onclick="selectRootEvent('${root}')">${root}</div>`;
@@ -836,7 +836,7 @@
             }
 
             if (!query) {
-                container.innerHTML += `<p style="margin: 20px;">검색할 기초사건을 입력해주세요.</p>`;
+                container.innerHTML += `<p style="margin: 20px;">검색할 사건주체를 입력해주세요.</p>`;
                 return;
             }
 
