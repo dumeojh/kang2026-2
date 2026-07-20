@@ -882,11 +882,11 @@
             displayArea.innerHTML = htmlString;
         }
 
-        // 🟢 회사 태그를 클릭하면 발생사건 탭으로 이동해 해당 회사를 중심으로 관계도를 조회
+        // 🟢 회사 태그를 클릭하면 발생사건 탭으로 이동해 전체 관계도 안에서 해당 회사 노드를 강조/포커스
         function selectCompany(companyName) {
             openTab('occurred-tab', document.querySelectorAll('.tab-button')[2]);
-            document.getElementById('search-query').value = companyName;
-            searchData();
+            document.getElementById('search-query').value = '';
+            viewAllNetwork(companyName);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1141,7 +1141,7 @@
             networkInstance = new vis.Network(container, networkData, options);
         }
 
-        async function viewAllNetwork() {
+        async function viewAllNetwork(focusNodeId = null) {
             const displayArea = document.getElementById('result-display');
 
             let container = document.getElementById('network-container');
@@ -1309,6 +1309,29 @@
             };
 
             networkInstance = new vis.Network(container, networkData, options);
+
+            // 🟢 특정 노드(예: 회사)를 중심으로 보고 싶을 때 해당 노드를 강조하고 화면을 이동/확대
+            if (focusNodeId) {
+                const targetNode = networkData.nodes.get(focusNodeId);
+                if (targetNode) {
+                    networkData.nodes.update({
+                        id: focusNodeId,
+                        color: { background: '#D500F9', border: '#AA00FF' },
+                        font: { color: 'white', size: (targetNode.font ? targetNode.font.size : 14) + 4 },
+                        borderWidth: 4
+                    });
+
+                    networkInstance.once('afterDrawing', () => {
+                        networkInstance.selectNodes([focusNodeId]);
+                        networkInstance.focus(focusNodeId, {
+                            scale: 1.2,
+                            animation: { duration: 800, easingFunction: 'easeInOutQuad' }
+                        });
+                    });
+                } else {
+                    alert(`'${focusNodeId}'에 해당하는 데이터가 전체 관계도에 없습니다.`);
+                }
+            }
         }
 
         // 🟢 드래그 앤 드롭 로직 추가
