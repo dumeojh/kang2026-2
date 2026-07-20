@@ -15,12 +15,18 @@
             margin: 20px;
         }
 
+        .app-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+        }
+
         .tab-menu {
             display: flex;
-            align-items: flex-end;
-            justify-content: flex-end;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ccc;
+            flex-direction: column;
+            align-items: stretch;
+            flex-shrink: 0;
+            width: 160px;
         }
 
         .tab-button {
@@ -29,19 +35,20 @@
             cursor: pointer;
             border: 1px solid #ccc;
             background-color: #f1f1f1;
-            border-radius: 5px 5px 0 0;
-            margin-bottom: -2px;
-            margin-right: 5px;
+            border-radius: 5px 0 0 5px;
+            margin-bottom: 5px;
+            margin-right: -2px;
+            text-align: left;
         }
 
         .tab-button.active {
             background-color: #4CAF50;
             color: white;
-            border-bottom: 2px solid #4CAF50;
+            border-right: 2px solid #4CAF50;
         }
 
         .load-data-tab {
-            margin-left: 15px;
+            margin-top: 15px;
             background-color: #607D8B;
             color: white;
             border-color: #546E7A;
@@ -49,7 +56,12 @@
 
         .load-data-tab.active {
             background-color: #4CAF50;
-            border-bottom: 2px solid #4CAF50;
+            border-right: 2px solid #4CAF50;
+        }
+
+        .tab-content-area {
+            flex: 1;
+            min-width: 0;
         }
 
         .tab-content {
@@ -322,145 +334,153 @@
 
 <body>
 
-    <div class="tab-menu">
-        <button class="tab-button active" onclick="openTab('event-tab', this)">사건주체</button>
-        <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
-        <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
-        <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
-            불러오기</button>
-    </div>
-
-    <!-- 1. 사건주체 탭 -->
-    <div id="event-tab" class="tab-content active">
-        <h3>사건주체 기록</h3>
-        <p>동일한 사건주체에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
-
-        <div class="input-group">
-            <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
-            <label>사건주체</label>
-            <input type="text" id="root-event" placeholder="예: 사건주체1">
-            <span style="margin: 0 10px 0 20px; font-weight: bold; color: #555;">발생 날짜 :</span>
-            <input type="date" id="root-date">
+    <div class="app-layout">
+        <div class="tab-menu">
+            <button class="tab-button active" onclick="openTab('event-tab', this)">사건주체</button>
+            <button class="tab-button" onclick="openTab('company-tab', this); fetchCompanies()">기초회사</button>
+            <button class="tab-button" onclick="openTab('occurred-tab', this); fetchRootEvents()">발생사건</button>
+            <button class="tab-button load-data-tab" onclick="openTab('all-data-tab', this); fetchAllData()">전체 데이터
+                불러오기</button>
         </div>
 
-        <div class="input-group">
-            <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
-            <label>사건내용</label>
-            <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
+        <div class="tab-content-area">
+            <!-- 1. 사건주체 탭 -->
+            <div id="event-tab" class="tab-content active">
+                <h3>사건주체 기록</h3>
+                <p>동일한 사건주체에 대해 여러 갈래의 사건을 계속 추가하면 2차원으로 확장됩니다. (날짜는 선택사항입니다)</p>
+
+                <div class="input-group">
+                    <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
+                    <label>사건주체</label>
+                    <input type="text" id="root-event" placeholder="예: 사건주체1">
+                    <span style="margin: 0 10px 0 20px; font-weight: bold; color: #555;">발생 날짜 :</span>
+                    <input type="date" id="root-date">
+                </div>
+
+                <div class="input-group">
+                    <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
+                    <label>사건내용</label>
+                    <input type="text" id="root-desc" placeholder="예: 사건의 주요 배경 (선택사항)" style="width: 400px;">
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
+                <p style="color: #666; font-size: 13px; margin-bottom: 15px;">💡 <b>안내:</b> 왼쪽의 '☰' 아이콘을 드래그하여 연결사건의 순서를
+                    자유롭게 바꿀
+                    수 있습니다.</p>
+
+                <!-- 🟢 드래그 앤 드롭을 적용할 컨테이너 -->
+                <div id="link-events-container">
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 1</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건1">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 2</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건2">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 3</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건3">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 4</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건4">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 5</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건5">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 6</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건6">
+                    </div>
+                    <div class="input-group draggable-item" draggable="true">
+                        <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                        <label class="dynamic-label">연결사건 7</label>
+                        <input type="text" class="link-input-field" placeholder="예: 사건7">
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
+
+                <div class="input-group">
+                    <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
+                    <label>관련 회사</label>
+                    <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
+                </div>
+
+                <button class="save-btn" id="main-save-btn" onclick="saveData()" style="margin-left: 38px;">수파베이스에
+                    저장하기</button>
+                <button class="cancel-btn" id="cancel-edit-btn" onclick="cancelEdit()">수정 취소</button>
+                <p id="save-message" style="color: blue; font-weight: bold; margin-left: 38px;"></p>
+            </div>
+
+            <!-- 2. 기초회사 탭 -->
+            <div id="company-tab" class="tab-content">
+                <h3>저장된 관련 회사 목록</h3>
+                <p style="color: #666; font-size: 13px;">💡 회사를 클릭하면 해당 회사를 중심으로 한 네트워크 관계도가 바로 조회됩니다.</p>
+                <div id="company-display"></div>
+            </div>
+
+            <!-- 3. 발생사건 탭 -->
+            <div id="occurred-tab" class="tab-content">
+                <h3>사건 관계도 분석 (다방향 네트워크 그래프)</h3>
+                <p>마우스 휠로 확대/축소하거나 상자를 드래그해서 위치를 조정할 수 있습니다.</p>
+                <div class="input-group">
+                    <label>사건주체 검색</label>
+                    <input type="text" id="search-query" placeholder="조회할 사건주체를 입력하세요 (예: 사건주체1)">
+                </div>
+                <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
+                <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;"
+                    onclick="viewAllNetwork()">전체
+                    관계도 보기</button>
+                <button class="fullscreen-btn" onclick="toggleFullScreen()">전체화면으로 보기</button>
+
+                <div id="result-display">
+                    <div id="network-container">
+                        <button id="close-fullscreen-btn" onclick="toggleFullScreen()">닫기 (X)</button>
+                    </div>
+                </div>
+
+                <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+                <h3>등록된 사건주체 목록</h3>
+                <p>아래 사건을 클릭하면 상단 검색창에 입력되어 관계도가 바로 조회됩니다.</p>
+                <div id="root-event-list-display"></div>
+            </div>
+
+            <!-- 4. 전체 데이터 전용 관리 탭 -->
+            <div id="all-data-tab" class="tab-content">
+                <div class="input-group">
+                    <label>사건주체 검색</label>
+                    <input type="text" id="all-data-search-query" placeholder="예: 사건주체1 (비워두면 전체 표시)"
+                        oninput="applySearchFilter()">
+                    <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#607D8B;"
+                        onclick="fetchAllData()">🔄 새로고침</button>
+                    <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#795548;"
+                        onclick="printData()">🖨️ 인쇄하기</button>
+                </div>
+
+                <div
+                    style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
+                    <strong>필터 보기: </strong>
+                    <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked
+                            onchange="applyDateFilter()"> 전체 보기</label>
+                    <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date"
+                            onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
+                    <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는
+                        데이터만</label>
+                </div>
+
+                <div id="all-data-display"></div>
+                <div id="pagination-display" class="pagination"></div>
+            </div>
         </div>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
-        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">💡 <b>안내:</b> 왼쪽의 '☰' 아이콘을 드래그하여 연결사건의 순서를 자유롭게 바꿀
-            수 있습니다.</p>
-
-        <!-- 🟢 드래그 앤 드롭을 적용할 컨테이너 -->
-        <div id="link-events-container">
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 1</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건1">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 2</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건2">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 3</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건3">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 4</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건4">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 5</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건5">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 6</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건6">
-            </div>
-            <div class="input-group draggable-item" draggable="true">
-                <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
-                <label class="dynamic-label">연결사건 7</label>
-                <input type="text" class="link-input-field" placeholder="예: 사건7">
-            </div>
-        </div>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
-
-        <div class="input-group">
-            <span style="width:38px;"></span> <!-- 들여쓰기 맞춤용 -->
-            <label>관련 회사</label>
-            <input type="text" id="related-company" placeholder="예: 회사a 또는 없음">
-        </div>
-
-        <button class="save-btn" id="main-save-btn" onclick="saveData()" style="margin-left: 38px;">수파베이스에 저장하기</button>
-        <button class="cancel-btn" id="cancel-edit-btn" onclick="cancelEdit()">수정 취소</button>
-        <p id="save-message" style="color: blue; font-weight: bold; margin-left: 38px;"></p>
-    </div>
-
-    <!-- 2. 기초회사 탭 -->
-    <div id="company-tab" class="tab-content">
-        <h3>저장된 관련 회사 목록</h3>
-        <p style="color: #666; font-size: 13px;">💡 회사를 클릭하면 해당 회사를 중심으로 한 네트워크 관계도가 바로 조회됩니다.</p>
-        <div id="company-display"></div>
-    </div>
-
-    <!-- 3. 발생사건 탭 -->
-    <div id="occurred-tab" class="tab-content">
-
-        <div class="input-group">
-            <label>사건주체 검색</label>
-            <input type="text" id="search-query" placeholder="조회할 사건주체를 입력하세요 (예: 사건주체1)">
-        </div>
-        <button class="search-btn" onclick="searchData()">네트워크 관계도 보기</button>
-        <button class="search-btn" style="background-color: #9C27B0; margin-left: 5px;" onclick="viewAllNetwork()">전체
-            관계도 보기</button>
-        <button class="fullscreen-btn" onclick="toggleFullScreen()">전체화면으로 보기</button>
-
-        <div id="result-display">
-            <div id="network-container">
-                <button id="close-fullscreen-btn" onclick="toggleFullScreen()">닫기 (X)</button>
-            </div>
-        </div>
-
-        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
-        <h3>등록된 사건주체 목록</h3>
-        <p>아래 사건을 클릭하면 상단 검색창에 입력되어 관계도가 바로 조회됩니다.</p>
-        <div id="root-event-list-display"></div>
-    </div>
-
-    <!-- 4. 전체 데이터 전용 관리 탭 -->
-    <div id="all-data-tab" class="tab-content">
-        <div class="input-group">
-            <label>사건주체 검색</label>
-            <input type="text" id="all-data-search-query" placeholder="예: 사건주체1 (비워두면 전체 표시)"
-                oninput="applySearchFilter()">
-            <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#607D8B;"
-                onclick="fetchAllData()">🔄 새로고침</button>
-            <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#795548;"
-                onclick="printData()">🖨️ 인쇄하기</button>
-        </div>
-
-        <div
-            style="margin-bottom: 10px; padding: 6px 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; font-size: 13px;">
-            <strong>필터 보기: </strong>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="all" checked
-                    onchange="applyDateFilter()"> 전체 보기</label>
-            <label style="margin-right: 15px;"><input type="radio" name="date-filter" value="with-date"
-                    onchange="applyDateFilter()"> 날짜 있는 데이터만</label>
-            <label><input type="radio" name="date-filter" value="no-date" onchange="applyDateFilter()"> 날짜 없는
-                데이터만</label>
-        </div>
-
-        <div id="all-data-display"></div>
-        <div id="pagination-display" class="pagination"></div>
     </div>
 
     <script>
