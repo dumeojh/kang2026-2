@@ -175,14 +175,10 @@
 
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
 
-            // 입력한 학번의 학년(첫 글자)에 해당하는 컬럼만 정확히 조회
-            // (전체 컬럼을 OR로 조회하면, 학번 재사용 시 작년 학번=올해 학번인
-            //  동명이인이 있을 경우 잘못된 학생과 매칭될 수 있음)
-            const idColumn = `grade${studentGrade}_id`;
             const { data: studentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
-                .eq(idColumn, sId);
+                .or(`grade1_id.eq.${sId},grade2_id.eq.${sId},grade3_id.eq.${sId}`);
 
             if (studentError) {
                 console.error("DB 조회 오류:", studentError);
