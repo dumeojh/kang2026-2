@@ -1162,18 +1162,28 @@
                     fontColor = count > 1 ? 'white' : 'black';
                 }
 
-                let labelText = name;
+                let shortLabel = name;
+                let fullLabel = name;
                 if (nodeTypes[name] === 'root') {
 
-                    if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
-                    if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
+                    if (rootDates[name]) {
+                        shortLabel += `\n[${rootDates[name]}]`;
+                        fullLabel += `\n[${rootDates[name]}]`;
+                    }
+                    if (rootDescriptions[name]) {
+                        shortLabel += `\n(...)`;
+                        fullLabel += `\n(${rootDescriptions[name]})`;
+                    }
                 }
 
                 const isSearched = name === query;
 
                 return {
                     id: name,
-                    label: labelText,
+                    label: shortLabel,
+                    shortLabel: shortLabel,
+                    fullLabel: fullLabel,
+                    hasDescription: !!rootDescriptions[name],
                     shape: 'box',
                     font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
                     color: { background: bg, border: isSearched ? '#FFD700' : border },
@@ -1231,6 +1241,20 @@
             };
 
             networkInstance = new vis.Network(container, networkData, options);
+
+            // 🟢 사건주체 노드를 클릭하면 (...)으로 숨겨둔 사건내용을 펼치거나 다시 접음
+            networkInstance.on('click', function (params) {
+                if (params.nodes.length !== 1) return;
+                const nodeId = params.nodes[0];
+                const node = networkData.nodes.get(nodeId);
+                if (!node || !node.hasDescription) return;
+
+                const isExpanded = node.label === node.fullLabel;
+                networkData.nodes.update({
+                    id: nodeId,
+                    label: isExpanded ? node.shortLabel : node.fullLabel
+                });
+            });
         }
 
         async function viewAllNetwork(focusNodeId = null) {
@@ -1334,16 +1358,26 @@
                     fontColor = count > 1 ? 'white' : 'black';
                 }
 
-                let labelText = name;
+                let shortLabel = name;
+                let fullLabel = name;
                 if (nodeTypes[name] === 'root') {
 
-                    if (rootDates[name]) labelText += `\n[${rootDates[name]}]`;
-                    if (rootDescriptions[name]) labelText += `\n(${rootDescriptions[name]})`;
+                    if (rootDates[name]) {
+                        shortLabel += `\n[${rootDates[name]}]`;
+                        fullLabel += `\n[${rootDates[name]}]`;
+                    }
+                    if (rootDescriptions[name]) {
+                        shortLabel += `\n(...)`;
+                        fullLabel += `\n(${rootDescriptions[name]})`;
+                    }
                 }
 
                 return {
                     id: name,
-                    label: labelText,
+                    label: shortLabel,
+                    shortLabel: shortLabel,
+                    fullLabel: fullLabel,
+                    hasDescription: !!rootDescriptions[name],
                     shape: 'box',
                     font: { color: fontColor, size: 14 + Math.min(count * 2, 10), face: 'Malgun Gothic' },
                     color: { background: bg, border: border },
@@ -1401,6 +1435,20 @@
             };
 
             networkInstance = new vis.Network(container, networkData, options);
+
+            // 🟢 사건주체 노드를 클릭하면 (...)으로 숨겨둔 사건내용을 펼치거나 다시 접음
+            networkInstance.on('click', function (params) {
+                if (params.nodes.length !== 1) return;
+                const nodeId = params.nodes[0];
+                const node = networkData.nodes.get(nodeId);
+                if (!node || !node.hasDescription) return;
+
+                const isExpanded = node.label === node.fullLabel;
+                networkData.nodes.update({
+                    id: nodeId,
+                    label: isExpanded ? node.shortLabel : node.fullLabel
+                });
+            });
 
             // 🟢 특정 노드(예: 회사)를 중심으로 보고 싶을 때 해당 노드를 강조하고 화면을 이동/확대
             if (focusNodeId) {
