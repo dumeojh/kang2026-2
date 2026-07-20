@@ -200,6 +200,13 @@
             background-color: #FFF3E0;
             border: 1px solid #FF9800;
             color: #E65100;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .company-tag:hover {
+            background-color: #FFE0B2;
+            transform: scale(1.05);
         }
 
         .root-event-tag {
@@ -400,6 +407,7 @@
     <!-- 2. 기초회사 탭 -->
     <div id="company-tab" class="tab-content">
         <h3>저장된 관련 회사 목록</h3>
+        <p style="color: #666; font-size: 13px;">💡 회사를 클릭하면 해당 회사를 중심으로 한 네트워크 관계도가 바로 조회됩니다.</p>
         <div id="company-display"></div>
     </div>
 
@@ -867,9 +875,19 @@
 
             if (uniqueCompanies.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 회사 정보가 없습니다.</p>'; return; }
             let htmlString = '<div class="company-list">';
-            uniqueCompanies.forEach(company => { htmlString += `<div class="company-tag">${company}</div>`; });
+            uniqueCompanies.forEach(company => {
+                htmlString += `<div class="company-tag" onclick="selectCompany('${company.replace(/'/g, "\\'")}')">${company}</div>`;
+            });
             htmlString += '</div>';
             displayArea.innerHTML = htmlString;
+        }
+
+        // 🟢 회사 태그를 클릭하면 발생사건 탭으로 이동해 해당 회사를 중심으로 관계도를 조회
+        function selectCompany(companyName) {
+            openTab('occurred-tab', document.querySelectorAll('.tab-button')[2]);
+            document.getElementById('search-query').value = companyName;
+            searchData();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function fetchRootEvents() {
