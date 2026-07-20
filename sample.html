@@ -469,6 +469,38 @@
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // 🟢 HTML 특수문자를 이스케이프 — innerHTML에 DB 값을 꽂기 전에 항상 통과시켜서
+        //    저장된 데이터에 <script> 같은 값이 들어있어도 실행되지 않도록 방지
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // 🟢 Supabase(PostgREST)는 한 번에 최대 1000행만 반환하므로,
+        //    range()로 페이지를 넘겨가며 전체 데이터를 끝까지 모아서 반환
+        async function fetchAllPaginated(makeQuery) {
+            const pageSize = 1000;
+            let from = 0;
+            let allData = [];
+            while (true) {
+                const { data, error } = await makeQuery().range(from, from + pageSize - 1);
+                if (error) return { data: null, error };
+                if (!data || data.length === 0) break;
+                allData = allData.concat(data);
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
+            return { data: allData, error: null };
+        }
+
+        // 🟢 PostgREST의 .or() 필터에서 값에 쉼표/괄호/콜론 등이 들어가면
+        //    조건이 잘못 나뉘는 문제를 막기 위해 값을 큰따옴표로 감싸서 이스케이프
+        function escapeOrValue(v) {
+            return `"${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+        }
+
         let currentEditId = null;
         let currentDataList = [];
         let sortConfig = { key: 'id', direction: 'desc' };
@@ -548,7 +580,7 @@
             const displayArea = document.getElementById('all-data-display');
             displayArea.innerHTML = '<p>데이터를 불러오는 중...</p>';
 
-            const { data, error } = await db.from('events').select('*');
+            const { data, error } = await fetchAllPaginated(() => db.from('events').select('*'));
 
             if (error) { displayArea.innerHTML = `<p style="color: red;">오류가 발생했습니다.</p>`; return; }
             if (!data || data.length === 0) { displayArea.innerHTML = '<p style="color: gray;">아직 저장된 데이터가 없습니다.</p>'; return; }
@@ -658,20 +690,20 @@
                 </tr>`;
 
             pageData.forEach(item => {
-                const dateDisplay = item.event_date ? `<span style="color:#00796B; font-weight:bold;">${item.event_date}</span>` : '<span style="color:#ccc;">-</span>';
+                const dateDisplay = item.event_date ? `<span style="color:#00796B; font-weight:bold;">${escapeHtml(item.event_date)}</span>` : '<span style="color:#ccc;">-</span>';
 
                 htmlString += `<tr>
-                    <td>${item.root_event || ''}</td>
+                    <td>${escapeHtml(item.root_event)}</td>
                     <td>${dateDisplay}</td>
-                    <td style="color: #555;">${item.root_desc || ''}</td>
-                    <td>${item.link_1 || ''}</td>
-                    <td>${item.link_2 || ''}</td>
-                    <td>${item.link_3 || ''}</td>
-                    <td>${item.link_4 || ''}</td>
-                    <td>${item.link_5 || ''}</td>
-                    <td>${item.link_6 || ''}</td>
-                    <td>${item.link_7 || ''}</td>
-                    <td>${item.company || ''}</td>
+                    <td style="color: #555;">${escapeHtml(item.root_desc)}</td>
+                    <td>${escapeHtml(item.link_1)}</td>
+                    <td>${escapeHtml(item.link_2)}</td>
+                    <td>${escapeHtml(item.link_3)}</td>
+                    <td>${escapeHtml(item.link_4)}</td>
+                    <td>${escapeHtml(item.link_5)}</td>
+                    <td>${escapeHtml(item.link_6)}</td>
+                    <td>${escapeHtml(item.link_7)}</td>
+                    <td>${escapeHtml(item.company)}</td>
                     <td>
                         <button class="action-btn edit-btn" onclick="prepareEdit(${item.id})">수정</button>
                         <button class="action-btn delete-btn" onclick="deleteData(${item.id})">삭제</button>
@@ -722,7 +754,7 @@
             if (currentFilter === 'with-date') filterLabel = '날짜 있는 데이터만';
             else if (currentFilter === 'no-date') filterLabel = '날짜 없는 데이터만';
 
-            const searchLabel = currentSearchQuery ? ` / 검색어: "${currentSearchQuery}"` : '';
+            const searchLabel = currentSearchQuery ? ` / 검색어: "${escapeHtml(currentSearchQuery)}"` : '';
             const now = new Date();
             const timestamp = now.toLocaleString('ko-KR');
 
@@ -730,17 +762,17 @@
             sortedData.forEach((item, idx) => {
                 rowsHtml += `<tr>
                     <td>${idx + 1}</td>
-                    <td>${item.root_event || ''}</td>
-                    <td>${item.event_date || '-'}</td>
-                    <td>${item.root_desc || ''}</td>
-                    <td>${item.link_1 || ''}</td>
-                    <td>${item.link_2 || ''}</td>
-                    <td>${item.link_3 || ''}</td>
-                    <td>${item.link_4 || ''}</td>
-                    <td>${item.link_5 || ''}</td>
-                    <td>${item.link_6 || ''}</td>
-                    <td>${item.link_7 || ''}</td>
-                    <td>${item.company || ''}</td>
+                    <td>${escapeHtml(item.root_event)}</td>
+                    <td>${item.event_date ? escapeHtml(item.event_date) : '-'}</td>
+                    <td>${escapeHtml(item.root_desc)}</td>
+                    <td>${escapeHtml(item.link_1)}</td>
+                    <td>${escapeHtml(item.link_2)}</td>
+                    <td>${escapeHtml(item.link_3)}</td>
+                    <td>${escapeHtml(item.link_4)}</td>
+                    <td>${escapeHtml(item.link_5)}</td>
+                    <td>${escapeHtml(item.link_6)}</td>
+                    <td>${escapeHtml(item.link_7)}</td>
+                    <td>${escapeHtml(item.company)}</td>
                 </tr>`;
             });
 
@@ -864,8 +896,8 @@
         async function fetchCompanies() {
             const displayArea = document.getElementById('company-display');
             displayArea.innerHTML = '<p>회사 리스트를 불러오는 중...</p>';
-            const { data, error } = await db.from('events').select('company');
-            if (error) return;
+            const { data, error } = await fetchAllPaginated(() => db.from('events').select('company'));
+            if (error) { displayArea.innerHTML = '<p style="color: red;">오류가 발생했습니다.</p>'; return; }
 
             const uniqueCompanies = new Set();
             data.forEach(item => {
@@ -874,12 +906,21 @@
             });
 
             if (uniqueCompanies.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 회사 정보가 없습니다.</p>'; return; }
-            let htmlString = '<div class="company-list">';
-            uniqueCompanies.forEach(company => {
-                htmlString += `<div class="company-tag" onclick="selectCompany('${company.replace(/'/g, "\\'")}')">${company}</div>`;
+
+            const sortedCompanies = Array.from(uniqueCompanies).sort((a, b) => a.localeCompare(b, 'ko'));
+
+            const container = document.createElement('div');
+            container.className = 'company-list';
+            sortedCompanies.forEach(company => {
+                const tag = document.createElement('div');
+                tag.className = 'company-tag';
+                tag.textContent = company; // textContent라 이스케이프 불필요, HTML로 해석되지 않음
+                tag.addEventListener('click', () => selectCompany(company));
+                container.appendChild(tag);
             });
-            htmlString += '</div>';
-            displayArea.innerHTML = htmlString;
+
+            displayArea.innerHTML = '';
+            displayArea.appendChild(container);
         }
 
         // 🟢 회사 태그를 클릭하면 발생사건 탭으로 이동해 전체 관계도 안에서 해당 회사 노드를 강조/포커스
@@ -893,8 +934,8 @@
         async function fetchRootEvents() {
             const displayArea = document.getElementById('root-event-list-display');
             displayArea.innerHTML = '<p>사건주체 리스트를 불러오는 중...</p>';
-            const { data, error } = await db.from('events').select('root_event');
-            if (error) return;
+            const { data, error } = await fetchAllPaginated(() => db.from('events').select('root_event'));
+            if (error) { displayArea.innerHTML = '<p style="color: red;">오류가 발생했습니다.</p>'; return; }
 
             const uniqueRootEvents = new Set();
             data.forEach(item => {
@@ -903,12 +944,21 @@
             });
 
             if (uniqueRootEvents.size === 0) { displayArea.innerHTML = '<p style="color: gray;">저장된 사건주체 정보가 없습니다.</p>'; return; }
-            let htmlString = '<div class="event-tag-list">';
-            uniqueRootEvents.forEach(root => {
-                htmlString += `<div class="root-event-tag" onclick="selectRootEvent('${root}')">${root}</div>`;
+
+            const sortedRootEvents = Array.from(uniqueRootEvents).sort((a, b) => a.localeCompare(b, 'ko'));
+
+            const container = document.createElement('div');
+            container.className = 'event-tag-list';
+            sortedRootEvents.forEach(root => {
+                const tag = document.createElement('div');
+                tag.className = 'root-event-tag';
+                tag.textContent = root;
+                tag.addEventListener('click', () => selectRootEvent(root));
+                container.appendChild(tag);
             });
-            htmlString += '</div>';
-            displayArea.innerHTML = htmlString;
+
+            displayArea.innerHTML = '';
+            displayArea.appendChild(container);
         }
 
         function selectRootEvent(eventName) {
@@ -996,9 +1046,12 @@
             container.appendChild(loadingMsg);
 
             const searchColumns = ['root_event', 'link_1', 'link_2', 'link_3', 'link_4', 'link_5', 'link_6', 'link_7', 'company'];
-            const orFilter = searchColumns.map(col => `${col}.eq.${query}`).join(',');
+            // 🟢 ilike + escapeOrValue로 (1) 쉼표/괄호 등 특수문자 있어도 안전하게, (2) 부분일치로
+            //    "전체 데이터" 탭 검색과 동일하게 동작하도록 통일
+            const likeQuery = `%${query}%`;
+            const orFilter = searchColumns.map(col => `${col}.ilike.${escapeOrValue(likeQuery)}`).join(',');
 
-            const { data, error } = await db.from('events').select('*').or(orFilter);
+            const { data, error } = await fetchAllPaginated(() => db.from('events').select('*').or(orFilter));
 
             if (error || !data || data.length === 0) {
                 loadingMsg.innerText = `'${query}'에 해당하는 데이터가 없습니다.`;
@@ -1168,7 +1221,7 @@
             loadingMsg.style.margin = '20px';
             container.appendChild(loadingMsg);
 
-            const { data, error } = await db.from('events').select('*');
+            const { data, error } = await fetchAllPaginated(() => db.from('events').select('*'));
 
             if (error || !data || data.length === 0) {
                 loadingMsg.innerText = '저장된 데이터가 없습니다.';
