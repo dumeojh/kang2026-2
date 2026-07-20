@@ -180,6 +180,26 @@
             background-color: #D32F2F;
         }
 
+        .desc-cell {
+            cursor: pointer;
+            color: #b0b0b0;
+            user-select: none;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .desc-cell.revealed {
+            color: #555;
+            cursor: pointer;
+            white-space: normal;
+        }
+
+        .desc-cell:hover:not(.revealed) {
+            text-decoration: underline;
+        }
+
         .company-list,
         .event-tag-list {
             display: flex;
@@ -677,7 +697,7 @@
                 <tr>
                     <th class="sortable" onclick="sortData('root_event')">사건주체 ${getSortIcon('root_event')}</th>
                     <th class="sortable" onclick="sortData('event_date')">날짜 ${getSortIcon('event_date')}</th>
-                    <th class="sortable" onclick="sortData('root_desc')">사건내용 ${getSortIcon('root_desc')}</th>
+                    <th class="sortable" onclick="sortData('root_desc')">사건내용 ${getSortIcon('root_desc')}<br><span style="font-size:9px; font-weight:normal; opacity:0.85;">(Shift+클릭)</span></th>
                     <th class="sortable" onclick="sortData('link_1')">연결1 ${getSortIcon('link_1')}</th>
                     <th class="sortable" onclick="sortData('link_2')">연결2 ${getSortIcon('link_2')}</th>
                     <th class="sortable" onclick="sortData('link_3')">연결3 ${getSortIcon('link_3')}</th>
@@ -695,7 +715,7 @@
                 htmlString += `<tr>
                     <td>${escapeHtml(item.root_event)}</td>
                     <td>${dateDisplay}</td>
-                    <td style="color: #555;">${escapeHtml(item.root_desc)}</td>
+                    <td class="desc-cell" title="Shift+클릭으로 보기/숨기기" onclick="toggleDescCell(event, ${item.id})">···</td>
                     <td>${escapeHtml(item.link_1)}</td>
                     <td>${escapeHtml(item.link_2)}</td>
                     <td>${escapeHtml(item.link_3)}</td>
@@ -734,6 +754,25 @@
         function changePage(newPage) {
             currentPage = newPage;
             renderTable();
+        }
+
+        // 🟢 사건내용 셀은 기본적으로 숨겨두고, Shift+클릭 시에만 내용을 보여줌(다시 클릭하면 숨김)
+        //    textContent로 넣기 때문에 별도 이스케이프 없이도 XSS 걱정 없음
+        function toggleDescCell(e, id) {
+            const td = e.currentTarget;
+            const isRevealed = td.classList.contains('revealed');
+
+            if (isRevealed) {
+                td.classList.remove('revealed');
+                td.textContent = '···';
+                return;
+            }
+
+            if (!e.shiftKey) return; // 숨겨진 상태에서는 Shift를 눌러야만 보임
+
+            const item = currentDataList.find(it => it.id === id);
+            td.textContent = (item && item.root_desc) ? item.root_desc : '(내용 없음)';
+            td.classList.add('revealed');
         }
 
         // 🟢 인쇄 기능 - 현재 필터/검색/정렬이 적용된 전체 데이터(페이지 구분 없이)를 인쇄용 창으로 출력
