@@ -22,9 +22,7 @@
       --error-soft: #f7e3e1;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -86,9 +84,7 @@
       outline: none;
     }
 
-    input:focus {
-      border-color: var(--accent);
-    }
+    input:focus { border-color: var(--accent); }
 
     button {
       width: 100%;
@@ -105,18 +101,10 @@
       transition: opacity .15s;
     }
 
-    button:disabled {
-      opacity: .5;
-      cursor: default;
-    }
+    button:disabled { opacity: .5; cursor: default; }
+    button:active { opacity: .85; }
 
-    button:active {
-      opacity: .85;
-    }
-
-    #result {
-      margin-top: 22px;
-    }
+    #result { margin-top: 22px; }
 
     .course-box {
       border: 1px solid var(--accent);
@@ -141,10 +129,7 @@
       padding: 3px 0;
     }
 
-    .course-box .row .k {
-      color: var(--sub);
-    }
-
+    .course-box .row .k { color: var(--sub); }
     .course-box .row .v {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 500;
@@ -158,18 +143,173 @@
       border-radius: 8px;
     }
 
-    .msg.error {
-      background: var(--error-soft);
-      color: var(--error);
+    .msg.error { background: var(--error-soft); color: var(--error); }
+    .msg.empty { color: var(--sub); }
+
+    /* ===== 톱니바퀴 (설정) ===== */
+    #gearBtn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      color: var(--sub);
+      user-select: none;
+      z-index: 50;
+      margin: 0;
+      padding: 0;
+      transition: transform .15s, background .15s;
+    }
+    #gearBtn:hover { background: rgba(255,255,255,0.95); }
+    #gearBtn:active { transform: rotate(25deg); }
+
+    /* ===== 관리자 패널 모달 ===== */
+    #adminOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30,28,24,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #adminOverlay.open { display: flex; }
+
+    #adminPanel {
+      width: 100%;
+      max-width: 880px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px 26px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     }
 
-    .msg.empty {
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .admin-header h2 {
+      font-family: 'Gowun Batang', serif;
+      font-size: 19px;
+      margin: 0;
+    }
+    #closeAdminBtn {
+      width: auto;
+      margin: 0;
+      padding: 8px 14px;
+      font-size: 13px;
+      background: transparent;
       color: var(--sub);
+      border: 1px solid var(--line);
+    }
+
+    .admin-add-form {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+      align-items: end;
+    }
+    .admin-add-form .field { display: flex; flex-direction: column; }
+    .admin-add-form label {
+      margin: 0 0 4px;
+      font-size: 11px;
+    }
+    .admin-add-form input {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    #addRowBtn {
+      grid-column: span 6;
+      margin-top: 4px;
+      padding: 10px 0;
+      font-size: 14px;
+    }
+
+    table.admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.admin-table th, table.admin-table td {
+      border: 1px solid var(--line);
+      padding: 6px 8px;
+      text-align: left;
+    }
+    table.admin-table th {
+      background: var(--accent-soft);
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    table.admin-table td input {
+      width: 100%;
+      padding: 5px 6px;
+      font-size: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    table.admin-table td input:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    .admin-row-actions {
+      display: flex;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .admin-row-actions button {
+      width: auto;
+      margin: 0;
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    .btn-save { background: var(--accent); }
+    .btn-delete { background: var(--error); }
+
+    .admin-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .admin-filter input {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    .admin-filter button {
+      width: auto;
+      margin: 0;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .admin-status {
+      font-size: 12px;
+      color: var(--sub);
+      margin: 8px 0;
     }
   </style>
 </head>
 
 <body>
+  <button id="gearBtn" title="설정">⚙️</button>
+
   <div class="card">
     <h1>공동교육과정 수강 조회</h1>
     <p class="sub">학번과 이름을 입력하면 수강 정보를 확인할 수 있어요</p>
@@ -188,22 +328,57 @@
     <div id="result"></div>
   </div>
 
+  <!-- ===== 관리자 패널 ===== -->
+  <div id="adminOverlay">
+    <div id="adminPanel">
+      <div class="admin-header">
+        <h2>관리자 패널 — 공동교육과정 명단</h2>
+        <button id="closeAdminBtn">닫기</button>
+      </div>
+
+      <div class="admin-add-form">
+        <div class="field"><label>학기</label><input id="newSemester" value="2026-2" /></div>
+        <div class="field"><label>학번</label><input id="newStudentId" /></div>
+        <div class="field"><label>이름</label><input id="newStudentName" /></div>
+        <div class="field"><label>수강 과목명</label><input id="newSubject" /></div>
+        <div class="field"><label>거점교</label><input id="newSchool" /></div>
+        <div class="field"><label>수업 시간</label><input id="newTime" /></div>
+        <button id="addRowBtn">+ 추가</button>
+      </div>
+
+      <div class="admin-filter">
+        <input id="filterSemester" placeholder="학기로 필터 (예: 2026-2, 비우면 전체)" />
+        <button id="refreshBtn">조회</button>
+      </div>
+
+      <div class="admin-status" id="adminStatus"></div>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>학기</th><th>학번</th><th>이름</th><th>수강 과목명</th><th>거점교</th><th>수업 시간</th><th>작업</th>
+          </tr>
+        </thead>
+        <tbody id="adminTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <script>
     // ===== 아래 두 값만 채워주세요 =====
     const SUPABASE_URL = 'https://zfywndoukwuxseloxogj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmeXduZG91a3d1eHNlbG94b2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODUwMTQsImV4cCI6MjA5ODg2MTAxNH0.0O8_67qBrYbdabQ-iwcs4HsMkhmXIBg-wlFpm3ZlCvw';
+    const ADMIN_PASSWORD = '1';
     // ===================================
 
     const btn = document.getElementById('searchBtn');
     const resultEl = document.getElementById('result');
 
-    function normalize(str) {
-      return (str || '').trim();
-    }
+    function normalize(str) { return (str || '').trim(); }
 
     function escapeHtml(str) {
       const div = document.createElement('div');
-      div.textContent = str;
+      div.textContent = str == null ? '' : str;
       return div.innerHTML;
     }
 
@@ -212,7 +387,6 @@
       btn.disabled = true;
     }
 
-    // --- 설정 문제를 화면에 바로 보여주는 초기 점검 ---
     let sb = null;
     let initError = null;
 
@@ -220,7 +394,7 @@
       if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         initError = 'Supabase 라이브러리(jsdelivr CDN)를 불러오지 못했습니다. 네트워크/방화벽에서 cdn.jsdelivr.net 접근이 막혀있는지 확인해주세요.';
       } else if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
-        initError = 'SUPABASE_ANON_KEY가 아직 실제 값으로 바뀌지 않았습니다. Supabase 대시보드 → Settings → API 에서 anon key를 복사해 코드에 넣어주세요.';
+        initError = 'SUPABASE_ANON_KEY가 아직 실제 값으로 바뀌지 않았습니다.';
       } else {
         sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
@@ -235,10 +409,7 @@
     }
 
     async function search() {
-      if (initError) {
-        showConfigError(initError);
-        return;
-      }
+      if (initError) { showConfigError(initError); return; }
 
       const semester = normalize(document.getElementById('semester').value);
       const studentId = normalize(document.getElementById('studentId').value);
@@ -290,6 +461,166 @@
     document.getElementById('studentName').addEventListener('keydown', e => {
       if (e.key === 'Enter') search();
     });
+
+    // ============================================================
+    // 톱니바퀴 3연속 클릭 → 비밀번호 → 관리자 패널
+    // ============================================================
+    const gearBtn = document.getElementById('gearBtn');
+    const adminOverlay = document.getElementById('adminOverlay');
+    const closeAdminBtn = document.getElementById('closeAdminBtn');
+    const adminTbody = document.getElementById('adminTbody');
+    const adminStatus = document.getElementById('adminStatus');
+
+    let gearClickCount = 0;
+    let gearClickTimer = null;
+
+    gearBtn.addEventListener('click', () => {
+      gearClickCount++;
+      if (gearClickTimer) clearTimeout(gearClickTimer);
+      gearClickTimer = setTimeout(() => { gearClickCount = 0; }, 800);
+
+      if (gearClickCount >= 3) {
+        gearClickCount = 0;
+        clearTimeout(gearClickTimer);
+        openAdminPanel();
+      }
+    });
+
+    function openAdminPanel() {
+      const pw = window.prompt('관리자 비밀번호를 입력하세요');
+      if (pw === null) return; // 취소
+      if (pw !== ADMIN_PASSWORD) {
+        alert('비밀번호가 올바르지 않습니다.');
+        return;
+      }
+      adminOverlay.classList.add('open');
+      loadAdminData();
+    }
+
+    closeAdminBtn.addEventListener('click', () => {
+      adminOverlay.classList.remove('open');
+    });
+    adminOverlay.addEventListener('click', (e) => {
+      if (e.target === adminOverlay) adminOverlay.classList.remove('open');
+    });
+
+    function setAdminStatus(msg, isError) {
+      adminStatus.textContent = msg || '';
+      adminStatus.style.color = isError ? 'var(--error)' : 'var(--sub)';
+    }
+
+    async function loadAdminData() {
+      if (initError) { setAdminStatus(initError, true); return; }
+      setAdminStatus('불러오는 중...');
+      const filterSemester = normalize(document.getElementById('filterSemester').value);
+
+      try {
+        let query = sb.from('joint_curriculum_enrollments')
+          .select('id, semester, student_id, student_name, subject_name, host_school, class_time')
+          .order('semester', { ascending: false })
+          .order('student_id', { ascending: true });
+
+        if (filterSemester) query = query.eq('semester', filterSemester);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        renderAdminRows(data || []);
+        setAdminStatus(`총 ${data ? data.length : 0}건`);
+      } catch (err) {
+        console.error('[관리자 조회 오류]', err);
+        setAdminStatus('조회 실패: ' + (err.message || ''), true);
+      }
+    }
+
+    function renderAdminRows(rows) {
+      adminTbody.innerHTML = rows.map(row => `
+        <tr data-id="${row.id}">
+          <td><input value="${escapeHtml(row.semester)}" data-field="semester" /></td>
+          <td><input value="${escapeHtml(row.student_id)}" data-field="student_id" /></td>
+          <td><input value="${escapeHtml(row.student_name)}" data-field="student_name" /></td>
+          <td><input value="${escapeHtml(row.subject_name)}" data-field="subject_name" /></td>
+          <td><input value="${escapeHtml(row.host_school)}" data-field="host_school" /></td>
+          <td><input value="${escapeHtml(row.class_time)}" data-field="class_time" /></td>
+          <td class="admin-row-actions">
+            <button class="btn-save">저장</button>
+            <button class="btn-delete">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+
+      adminTbody.querySelectorAll('tr').forEach(tr => {
+        const id = tr.getAttribute('data-id');
+        tr.querySelector('.btn-save').addEventListener('click', () => saveRow(id, tr));
+        tr.querySelector('.btn-delete').addEventListener('click', () => deleteRow(id));
+      });
+    }
+
+    async function saveRow(id, tr) {
+      const fields = {};
+      tr.querySelectorAll('input[data-field]').forEach(input => {
+        fields[input.getAttribute('data-field')] = normalize(input.value);
+      });
+
+      try {
+        const { error } = await sb
+          .from('joint_curriculum_enrollments')
+          .update(fields)
+          .eq('id', id);
+        if (error) throw error;
+        setAdminStatus('저장되었습니다.');
+      } catch (err) {
+        console.error('[저장 오류]', err);
+        setAdminStatus('저장 실패: ' + (err.message || ''), true);
+      }
+    }
+
+    async function deleteRow(id) {
+      if (!window.confirm('이 행을 삭제하시겠습니까?')) return;
+      try {
+        const { error } = await sb
+          .from('joint_curriculum_enrollments')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+        loadAdminData();
+      } catch (err) {
+        console.error('[삭제 오류]', err);
+        setAdminStatus('삭제 실패: ' + (err.message || ''), true);
+      }
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click', async () => {
+      const newRow = {
+        semester: normalize(document.getElementById('newSemester').value),
+        student_id: normalize(document.getElementById('newStudentId').value),
+        student_name: normalize(document.getElementById('newStudentName').value),
+        subject_name: normalize(document.getElementById('newSubject').value),
+        host_school: normalize(document.getElementById('newSchool').value),
+        class_time: normalize(document.getElementById('newTime').value),
+      };
+
+      if (!newRow.semester || !newRow.student_id || !newRow.student_name || !newRow.subject_name || !newRow.host_school || !newRow.class_time) {
+        setAdminStatus('모든 항목을 입력해주세요.', true);
+        return;
+      }
+
+      try {
+        const { error } = await sb.from('joint_curriculum_enrollments').insert(newRow);
+        if (error) throw error;
+        document.getElementById('newStudentId').value = '';
+        document.getElementById('newStudentName').value = '';
+        document.getElementById('newSubject').value = '';
+        document.getElementById('newSchool').value = '';
+        document.getElementById('newTime').value = '';
+        loadAdminData();
+      } catch (err) {
+        console.error('[추가 오류]', err);
+        setAdminStatus('추가 실패: ' + (err.message || ''), true);
+      }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', loadAdminData);
   </script>
 </body>
 
