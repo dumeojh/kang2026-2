@@ -434,10 +434,6 @@
             <label>사건주체 검색</label>
             <input type="text" id="all-data-search-query" placeholder="예: 사건주체1 (비워두면 전체 표시)"
                 oninput="applySearchFilter()">
-            <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#607D8B;"
-                onclick="fetchAllData()">🔄 새로고침</button>
-            <button class="load-btn" style="margin-top:0; margin-left:10px; background-color:#795548;"
-                onclick="printData()">🖨️ 인쇄하기</button>
         </div>
 
         <div
@@ -583,8 +579,10 @@
             return sortConfig.direction === 'asc' ? '▲' : '▼';
         }
 
-        // 🟢 현재 필터/검색/정렬 조건이 모두 적용된 데이터를 반환 (테이블 렌더링과 인쇄에서 공통으로 사용)
-        function getFilteredSortedData() {
+        function renderTable() {
+            const displayArea = document.getElementById('all-data-display');
+            const paginationArea = document.getElementById('pagination-display');
+
             let filteredData = currentDataList;
             if (currentFilter === 'with-date') {
                 filteredData = filteredData.filter(item => item.event_date && item.event_date.trim() !== '');
@@ -613,15 +611,6 @@
                 if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
-
-            return { filteredData, sortedData };
-        }
-
-        function renderTable() {
-            const displayArea = document.getElementById('all-data-display');
-            const paginationArea = document.getElementById('pagination-display');
-
-            const { filteredData, sortedData } = getFilteredSortedData();
 
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
@@ -694,106 +683,6 @@
         function changePage(newPage) {
             currentPage = newPage;
             renderTable();
-        }
-
-        // 🟢 인쇄 기능 - 현재 필터/검색/정렬이 적용된 전체 데이터(페이지 구분 없이)를 인쇄용 창으로 출력
-        function printData() {
-            if (!currentDataList || currentDataList.length === 0) {
-                alert("인쇄할 데이터가 없습니다. 먼저 '전체 데이터 불러오기'를 눌러주세요.");
-                return;
-            }
-
-            const { sortedData } = getFilteredSortedData();
-
-            if (sortedData.length === 0) {
-                alert("현재 조건에 해당하는 데이터가 없습니다.");
-                return;
-            }
-
-            let filterLabel = '전체 보기';
-            if (currentFilter === 'with-date') filterLabel = '날짜 있는 데이터만';
-            else if (currentFilter === 'no-date') filterLabel = '날짜 없는 데이터만';
-
-            const searchLabel = currentSearchQuery ? ` / 검색어: "${currentSearchQuery}"` : '';
-            const now = new Date();
-            const timestamp = now.toLocaleString('ko-KR');
-
-            let rowsHtml = '';
-            sortedData.forEach((item, idx) => {
-                rowsHtml += `<tr>
-                    <td>${idx + 1}</td>
-                    <td>${item.root_event || ''}</td>
-                    <td>${item.event_date || '-'}</td>
-                    <td>${item.root_desc || ''}</td>
-                    <td>${item.link_1 || ''}</td>
-                    <td>${item.link_2 || ''}</td>
-                    <td>${item.link_3 || ''}</td>
-                    <td>${item.link_4 || ''}</td>
-                    <td>${item.link_5 || ''}</td>
-                    <td>${item.link_6 || ''}</td>
-                    <td>${item.link_7 || ''}</td>
-                    <td>${item.company || ''}</td>
-                </tr>`;
-            });
-
-            const printHtml = `
-                <!DOCTYPE html>
-                <html lang="ko">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>사건 관계도 데이터 인쇄</title>
-                    <style>
-                        body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; }
-                        h2 { margin-bottom: 4px; }
-                        .print-info { color: #555; font-size: 12px; margin-bottom: 15px; }
-                        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-                        th, td { border: 1px solid #999; padding: 4px 6px; text-align: center; }
-                        th { background-color: #4CAF50; color: white; }
-                        tr:nth-child(even) { background-color: #f2f2f2; }
-                        @media print {
-                            button { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h2>사건 관계도 분석 - 전체 데이터</h2>
-                    <div class="print-info">
-                        출력일시: ${timestamp} &nbsp;|&nbsp; 필터: ${filterLabel}${searchLabel} &nbsp;|&nbsp; 총 ${sortedData.length}건
-                    </div>
-                    <table>
-                        <tr>
-                            <th>#</th>
-                            <th>사건주체</th>
-                            <th>날짜</th>
-                            <th>사건내용</th>
-                            <th>연결1</th>
-                            <th>연결2</th>
-                            <th>연결3</th>
-                            <th>연결4</th>
-                            <th>연결5</th>
-                            <th>연결6</th>
-                            <th>연결7</th>
-                            <th>관련 회사</th>
-                        </tr>
-                        ${rowsHtml}
-                    </table>
-                </body>
-                </html>
-            `;
-
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                alert("팝업이 차단되어 인쇄 창을 열 수 없습니다. 팝업 차단을 해제해주세요.");
-                return;
-            }
-            printWindow.document.open();
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
-
-            printWindow.onload = function () {
-                printWindow.focus();
-                printWindow.print();
-            };
         }
 
         function prepareEdit(id) {
