@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <title>AI 기사 핵심 추출기</title>
     <style>
-        /* 화면을 깔끔하게 보여주기 위한 기본 디자인 */
         body {
             font-family: sans-serif;
             padding: 20px;
             max-width: 600px;
+            line-height: 1.6;
         }
 
         textarea {
@@ -17,6 +17,7 @@
             height: 150px;
             margin-bottom: 10px;
             padding: 10px;
+            box-sizing: border-box;
         }
 
         button {
@@ -26,6 +27,11 @@
             color: white;
             border: none;
             border-radius: 5px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
 
         #resultBox {
@@ -35,6 +41,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             white-space: pre-wrap;
+            min-height: 50px;
         }
     </style>
 </head>
@@ -42,58 +49,59 @@
 <body>
 
     <h2>기사 논리 뼈대 추출기</h2>
+    <p>기사 내용을 아래에 붙여넣고 버튼을 누르면, AI가 불필요한 수식어를 덜어내고 <strong>'명사 -> 동사'</strong> 형태로 논리적인 뼈대만 추출합니다.</p>
+
     <textarea id="articleInput" placeholder="여기에 분석할 기사 내용을 붙여넣으세요..."></textarea>
     <button onclick="analyzeText()">명사-동사 추출하기</button>
 
-    <!-- AI의 답변이 들어갈 빈 상자 -->
     <div id="resultBox">이곳에 분석 결과가 표시됩니다.</div>
 
     <script>
-        // 버튼을 누르면 실행되는 함수입니다.
-        // async는 '서버와 통신할 때 기다려주는 기능'이라고 생각하시면 됩니다.
         async function analyzeText() {
-            // 1. 화면에서 사용자가 입력한 기사 텍스트와 결과 상자를 가져옵니다.
             const inputText = document.getElementById('articleInput').value;
             const resultBox = document.getElementById('resultBox');
 
-            // 텍스트가 없으면 경고창을 띄웁니다.
             if (!inputText) {
                 alert("기사 내용을 입력해 주세요.");
                 return;
             }
 
-            resultBox.innerText = "AI가 문맥을 분석하고 있습니다. 잠시만 기다려주세요...";
+            resultBox.innerText = "Gemini AI가 문맥을 분석하고 있습니다. 잠시만 기다려주세요...";
+
+            // 회원님이 발급받으신 구글 Gemini API 키
+            const API_KEY = "AIzaSyAyM1bb80qORycDm94B-_JVHFqOwGoXV_s";
+
+            // 통신 주소도 구글 서버로 변경되었습니다.
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
             try {
-                // 2. AI 서버(API)에 요청을 보냅니다. (fetch 사용)
-                // 참고: 아래 주소와 키는 가짜(예시)입니다. 실제 작동하려면 Gemini나 OpenAI에서 발급받은 주소와 키를 넣어야 합니다.
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST', // 데이터를 서버로 '보내겠다'는 뜻입니다.
+                const response = await fetch(url, {
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'AIzaSyAyM1bb80qORycDm94B-_JVHFqOwGoXV_s'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: "gpt-3.5-turbo", // 사용할 AI 모델 이름
-                        messages: [
-                            {
-                                role: "user",
-                                content: inputText + "\n\n위 기사에서 불필요한 수식어를 빼고 가장 핵심적인 명사와 동사만 뽑아서 '명사 -> 동사' 형태로 요약해 줘."
-                            }
-                        ]
+                        contents: [{
+                            parts: [{
+                                text: inputText + "\n\n위 기사에서 불필요한 수식어를 빼고 가장 핵심적인 명사와 동사만 뽑아서 '명사 -> 동사' 형태로 요약해 줘."
+                            }]
+                        }]
                     })
                 });
 
-                // 3. 서버에서 온 응답을 프로그램이 읽을 수 있는 형태로 바꿉니다.
                 const data = await response.json();
 
-                // 4. 화면의 결과 상자에 AI가 보내온 텍스트를 집어넣습니다.
-                resultBox.innerText = data.choices[0].message.content;
+                if (data.candidates && data.candidates.length > 0) {
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    resultBox.innerText = aiResponse;
+                } else {
+                    resultBox.innerText = "분석 결과를 가져오지 못했습니다. API 키가 정확한지 확인해 주세요.";
+                    console.error("API 응답 오류:", data);
+                }
 
             } catch (error) {
-                // 통신 중 에러가 발생하면 화면에 보여줍니다.
-                resultBox.innerText = "오류가 발생했습니다: API 키나 네트워크 연결을 확인해 주세요.";
-                console.error(error);
+                resultBox.innerText = "오류가 발생했습니다: 네트워크 연결을 확인해 주세요.";
+                console.error("통신 에러:", error);
             }
         }
     </script>
