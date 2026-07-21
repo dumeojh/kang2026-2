@@ -240,11 +240,11 @@
 
                 isUpdating = true;
                 document.getElementById('btnSubmitApp').innerText = '✅ 신청 수정하기';
-                document.getElementById('authSuccessMessage').innerHTML = `인증 완료: ${matchedStudent.name} 학생 (기존 신청: <mark style="background-color:#FFF176; color:#d32f2f; font-weight:900; padding:2px 6px; border-radius:4px;">${existingSubject}</mark>)`;
+                document.getElementById('authSuccessMessage').innerHTML = `인증 완료: ${sId} ${matchedStudent.name} 학생 (기존 신청: <mark style="background-color:#FFF176; color:#d32f2f; font-weight:900; padding:2px 6px; border-radius:4px;">${existingSubject}</mark>)`;
             } else {
                 isUpdating = false;
                 document.getElementById('btnSubmitApp').innerText = '✅ 최종 신청하기';
-                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
+                document.getElementById('authSuccessMessage').innerText = `인증 완료: ${sId} ${matchedStudent.name} 학생, 신청할 과목을 선택해주세요.`;
             }
 
             document.getElementById('step1Auth').classList.add('hidden');
