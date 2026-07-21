@@ -175,11 +175,12 @@
 
             const expectedAdmissionYear = Number(configData.admission_year) - (studentGrade - Number(configData.target_grade));
 
-            // 입력한 학번의 학년(첫 글자)에 해당하는 컬럼만 정확히 조회
-            // (전체 컬럼을 OR로 조회하면, 학번 재사용 시 작년 학번=올해 학번인
-            //  동명이인이 있을 경우 잘못된 학생과 매칭될 수 있음)
+            // 입력한 학번의 학년(첫 글자)에 해당하는 컬럼만 조회
+            // 주의: grade1_id 같은 컬럼은 "작년에 그 학번을 썼던 학생"의 값이 그대로 남아있어서,
+            // 학번이 매년 재사용되면 동명이인이 아니어도 두 학생이 같은 값으로 걸릴 수 있다.
+            // -> 아래에서 admission_year까지 함께 확인해 정확한 학생 한 명으로 좁힌다.
             const idColumn = `grade${studentGrade}_id`;
-            const { data: studentData, error: studentError } = await supabaseClient
+            const { data: rawStudentData, error: studentError } = await supabaseClient
                 .from('students')
                 .select('*')
                 .eq(idColumn, sId);
@@ -190,7 +191,7 @@
                 return;
             }
 
-            if (!studentData || studentData.length === 0) {
+            if (!rawStudentData || rawStudentData.length === 0) {
                 const { data: nameData } = await supabaseClient.from('students').select('*').eq('name', sName);
                 if (nameData && nameData.length > 0) {
                     alert(`'${sName}' 학생은 명단에 존재하지만, 입력하신 학번(${sId})이 DB에 등록된 정보와 다릅니다. 확인해주세요.`);
@@ -201,11 +202,18 @@
             }
 
             const inputNameClean = sName.replace(/\s+/g, '');
-            const matchedStudent = studentData.find(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
+            const nameMatches = rawStudentData.filter(s => s.name && s.name.replace(/\s+/g, '') === inputNameClean);
 
-            if (!matchedStudent) {
+            if (nameMatches.length === 0) {
                 alert(`입력하신 학번(${sId})은 확인되나, 입력하신 이름('${sName}')과 DB에 등록된 이름이 다릅니다.`);
                 return;
+            }
+
+            // 학번이 재사용되어 동명이인의 데이터가 함께 걸린 경우, 입학년도가 정확히
+            // 일치하는 학생을 우선 선택한다. (예: 올해 신입생 학번이 재학생의 작년 학번과 겹치는 경우)
+            let matchedStudent = nameMatches.find(s => Number(s.admission_year) === expectedAdmissionYear);
+            if (!matchedStudent) {
+                matchedStudent = nameMatches.find(s => !s.admission_year) || nameMatches[0];
             }
 
             if (matchedStudent.admission_year && Number(matchedStudent.admission_year) !== expectedAdmissionYear) {
